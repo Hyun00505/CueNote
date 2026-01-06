@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "todo.schema.json",
+  "title": "TodoItem",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "text": { "type": "string" },
+    "checked": { "type": "boolean" },
+    "notePath": { "type": "string" },
+    "lineNo": { "type": "number" }
+  },
+  "required": ["id", "text", "checked", "notePath", "lineNo"],
+  "additionalProperties": false
+}

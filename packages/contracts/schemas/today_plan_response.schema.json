@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "today_plan_response.schema.json",
+  "title": "TodayPlanResponse",
+  "type": "object",
+  "properties": {
+    "tldr": { "type": "string" },
+    "overdue": {
+      "type": "array",
+      "items": { "$ref": "todo.schema.json" }
+    },
+    "dueSoon": {
+      "type": "array",
+      "items": { "$ref": "todo.schema.json" }
+    },
+    "nextActions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "quickWins": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["tldr", "overdue", "dueSoon", "nextActions", "quickWins"],
+  "additionalProperties": false
+}

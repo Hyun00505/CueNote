@@ -8,9 +8,9 @@
     "packages/shared"
   ],
   "scripts": {
-    "dev:desktop": "pnpm --filter desktop dev",
-    "dev:core": "cd apps/core && uvicorn app.main:app --reload --host 127.0.0.1 --port 8787",
-    "dev:all": "concurrently \"pnpm dev:core\" \"pnpm dev:desktop\""
+    "dev:desktop": "pnpm --filter cuenote-desktop dev",
+    "dev:core": "cd apps/core && uvicorn main:app --host 127.0.0.1 --port 8787 --reload",
+    "dev:all": "concurrently -k -n core,desktop -c blue,green \"pnpm dev:core\" \"pnpm dev:desktop\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

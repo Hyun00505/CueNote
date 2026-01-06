@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "today_plan_request.schema.json",
+  "title": "TodayPlanRequest",
+  "type": "object",
+  "properties": {
+    "nowISO": { "type": "string" },
+    "todos": {
+      "type": "array",
+      "items": { "$ref": "todo.schema.json" }
+    }
+  },
+  "required": ["nowISO", "todos"],
+  "additionalProperties": false
+}
