@@ -399,3 +399,4 @@ const { todayPlan, planLoading, planError, generatePlan } = usePlan();
 }
 </style>
 
+
