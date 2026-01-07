@@ -81,5 +81,7 @@
   // 환경 자동 감지 문제 해결을 위한 추가 설정
   "python.experiments.enabled": false, // 실험적 기능 비활성화
   "python.analysis.diagnosticMode": "workspace", // 분석 모드
-  "jupyter.kernels.filter": [] // Jupyter 커널 필터 비활성화
+  "jupyter.kernels.filter": [],
+  "cursorpyright.analysis.diagnosticMode": "workspace",
+  "cursorpyright.analysis.extraPaths": [] // Jupyter 커널 필터 비활성화
 }
