@@ -1,11 +1,12 @@
 import hashlib
 import logging
 import re
+from pathlib import Path
 from typing import Optional
 
 import json
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -18,16 +19,22 @@ except ImportError:
 
 app = FastAPI(title="CueNote Core")
 logger = logging.getLogger("cuenote.core")
+logging.basicConfig(level=logging.INFO)
+
+# 프로젝트 루트의 data 폴더를 기본 vault로 사용
+# apps/core/app/main.py -> 3단계 상위가 프로젝트 루트
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+VAULT_PATH = PROJECT_ROOT / "data"
+
+# vault 디렉토리 생성
+VAULT_PATH.mkdir(parents=True, exist_ok=True)
 
 TODO_PATTERN = re.compile(r"^\s*-\s*\[(?P<checked>[ xX])\]\s+(?P<text>.+)\s*$")
 
 
 class VaultFilePayload(BaseModel):
-    note_path: str = Field(alias="notePath")
+    path: str  # relative path in vault
     content: str
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class TodoItem(BaseModel):
@@ -48,7 +55,10 @@ class TodayPlan(BaseModel):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,6 +74,82 @@ async def on_startup() -> None:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Vault Endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class VaultOpenPayload(BaseModel):
+    path: Optional[str] = None  # 경로가 없으면 기본 data 폴더 사용
+
+
+@app.post("/vault/open")
+async def open_vault(payload: VaultOpenPayload = None):
+    """
+    Vault를 열고 초기화합니다.
+    payload.path가 없으면 프로젝트 루트의 data 폴더를 사용합니다.
+    """
+    vault_dir = VAULT_PATH
+    if payload and payload.path:
+        vault_dir = Path(payload.path)
+    
+    if not vault_dir.exists():
+        vault_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("Created vault directory: %s", vault_dir)
+    
+    if not vault_dir.is_dir():
+        raise HTTPException(status_code=400, detail="Invalid vault path")
+    
+    logger.info("Vault opened: %s", vault_dir)
+    return {"status": "ok", "path": str(vault_dir)}
+
+
+@app.get("/vault/files")
+async def list_vault_files():
+    """
+    Vault 내의 모든 마크다운 파일을 재귀적으로 조회합니다.
+    """
+    if not VAULT_PATH.exists():
+        VAULT_PATH.mkdir(parents=True, exist_ok=True)
+    
+    files: list[str] = []
+    for md_file in VAULT_PATH.rglob("*.md"):
+        # 상대 경로로 변환
+        rel_path = md_file.relative_to(VAULT_PATH)
+        files.append(str(rel_path).replace("\\", "/"))
+    
+    files.sort()
+    logger.info("Found %d markdown files in vault", len(files))
+    return {"files": files}
+
+
+@app.get("/vault/file")
+async def get_vault_file(path: str = Query(..., description="Relative path to file")):
+    """
+    Vault 내의 특정 마크다운 파일 내용을 읽습니다.
+    """
+    # 경로 순회 공격 방지
+    safe_path = Path(path).as_posix()
+    if ".." in safe_path or safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    file_path = VAULT_PATH / safe_path
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if not file_path.is_file():
+        raise HTTPException(status_code=400, detail="Not a file")
+    
+    try:
+        content = file_path.read_text(encoding="utf-8")
+        logger.info("Read file: %s", safe_path)
+        return {"path": safe_path, "content": content}
+    except Exception as e:
+        logger.error("Failed to read file %s: %s", safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to read file")
 
 
 def parse_todos(note_path: str, content: str) -> list[TodoItem]:
@@ -90,10 +176,33 @@ def parse_todos(note_path: str, content: str) -> list[TodoItem]:
 
 @app.put("/vault/file")
 async def put_vault_file(payload: VaultFilePayload):
-    todos = parse_todos(payload.note_path, payload.content)
+    """
+    Vault 내의 마크다운 파일을 저장하고, TODO를 인덱싱합니다.
+    파일이 없으면 새로 생성합니다.
+    """
+    # 경로 순회 공격 방지
+    safe_path = Path(payload.path).as_posix()
+    if ".." in safe_path or safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    file_path = VAULT_PATH / safe_path
+    
+    # 상위 디렉토리 생성
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # 파일 저장
+        file_path.write_text(payload.content, encoding="utf-8")
+        logger.info("Saved file: %s", safe_path)
+    except Exception as e:
+        logger.error("Failed to save file %s: %s", safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to save file")
+    
+    # TODO 파싱 및 인덱싱
+    todos = parse_todos(safe_path, payload.content)
     conn = get_conn()
     try:
-        conn.execute("DELETE FROM todos WHERE note_path = ?", (payload.note_path,))
+        conn.execute("DELETE FROM todos WHERE note_path = ?", (safe_path,))
         conn.executemany(
             """
             INSERT INTO todos (id, note_path, line_no, text, checked, updated_at)
@@ -113,7 +222,8 @@ async def put_vault_file(payload: VaultFilePayload):
         conn.commit()
     finally:
         conn.close()
-    logger.info("Indexed %s todos for %s", len(todos), payload.note_path)
+    
+    logger.info("Indexed %s todos for %s", len(todos), safe_path)
     return {"status": "ok", "todoCount": len(todos)}
 
 
