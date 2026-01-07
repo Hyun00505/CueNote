@@ -4,3 +4,4 @@ dist
 .DS_Store
 apps/core/__pycache__
 apps/core/data/cuenote.db
+sLLM_python/data/
