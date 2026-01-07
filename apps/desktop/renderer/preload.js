@@ -1,1 +1,5 @@
-// Preload can expose limited APIs if needed
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('cuenote', {
+  selectVault: () => ipcRenderer.invoke('cuenote:select-vault')
+});
