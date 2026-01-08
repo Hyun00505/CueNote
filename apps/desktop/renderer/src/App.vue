@@ -40,7 +40,7 @@ const sidebarCollapsed = ref(false);
 const currentView = ref<ViewType>('editor');
 const activeFile = ref<string | null>(null);
 
-const { vaultPath } = useVault();
+const { vaultPath, initVault } = useVault();
 const { checkHealth } = useHealth();
 
 const vaultName = computed(() => {
@@ -52,8 +52,10 @@ function handleSelectFile(file: string) {
   currentView.value = 'editor';
 }
 
-onMounted(() => {
+onMounted(async () => {
   checkHealth();
+  // 앱 시작 시 기본 vault(data 폴더) 자동 로드
+  await initVault();
 });
 </script>
 

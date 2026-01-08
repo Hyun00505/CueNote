@@ -81,11 +81,14 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     editorError.value = '';
     try {
       const content = editorView.state.doc.toString();
-      await fetch(`${CORE_BASE}/vault/file`, {
+      const res = await fetch(`${CORE_BASE}/vault/file`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: activeFile.value, content })
       });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
       await refreshTodoCount();
     } catch (error) {
       editorError.value = 'Failed to save file.';
@@ -95,12 +98,38 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     }
   }
 
+  async function createNewFile(fileName: string) {
+    if (!fileName.endsWith('.md')) {
+      fileName = fileName + '.md';
+    }
+    editorError.value = '';
+    try {
+      // 빈 파일 생성
+      const res = await fetch(`${CORE_BASE}/vault/file`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: fileName, content: '' })
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      // 새 파일 열기
+      await openFile(fileName);
+      return true;
+    } catch (error) {
+      editorError.value = 'Failed to create file.';
+      console.error('Create file failed', error);
+      return false;
+    }
+  }
+
   return {
     activeFile,
     editorError,
     saving,
     openFile,
-    saveFile
+    saveFile,
+    createNewFile
   };
 }
 
