@@ -49,11 +49,110 @@
         </button>
       </div>
       
-      <EditorToolbar :editor="editor as Editor" />
+      <EditorToolbar 
+        :editor="editor as Editor" 
+        :summarizing="summarizing"
+        @summarize="handleSummarize"
+      />
 
-      <div class="editor-content-wrapper">
+      <!-- AI 요약 결과 패널 -->
+      <Transition name="slide">
+        <div v-if="summaryResult" class="summary-panel">
+          <div class="summary-header">
+            <div class="summary-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
+              </svg>
+              <span>AI 요약</span>
+              <span class="word-count">{{ summaryResult.wordCount }}자</span>
+            </div>
+            <div class="summary-actions">
+              <button class="action-btn" @click="copySummary" :title="copied ? '복사됨!' : '요약 복사'">
+                <svg v-if="!copied" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+              <button class="action-btn insert-btn" @click="insertSummary" title="노트 상단에 삽입">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span>삽입</span>
+              </button>
+              <button class="close-btn" @click="summaryResult = null" title="닫기">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="summary-content">
+            <p class="summary-text">{{ summaryResult.summary }}</p>
+            <div v-if="summaryResult.keyPoints.length > 0" class="key-points">
+              <h4>핵심 포인트</h4>
+              <ul>
+                <li v-for="(point, index) in summaryResult.keyPoints" :key="index">
+                  {{ point }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <div ref="editorWrapperRef" class="editor-content-wrapper" @contextmenu="handleContextMenu">
         <EditorContent :editor="editor" class="editor-content" />
+        
+        <!-- AI 스트리밍 프리뷰 (실시간으로 생성 중인 텍스트 표시) -->
+        <div v-if="isAIStreaming" class="ai-streaming-preview">
+          <div class="streaming-header">
+            <span class="streaming-dot"></span>
+            <span class="streaming-dot"></span>
+            <span class="streaming-dot"></span>
+            <span>AI {{ getActionLabel(aiStreamingAction) }} 중...</span>
+          </div>
+          <div class="streaming-content" v-html="streamPreviewHtml"></div>
+        </div>
+        
+        <!-- AI 완료 후 액션 바 -->
+        <Transition name="action-bar-slide">
+          <div v-if="showAIActionBar" class="ai-action-bar">
+            <span class="action-bar-label">✨ AI {{ getActionLabel(aiStreamingAction) }} 완료</span>
+            <div class="action-bar-buttons">
+              <button class="action-btn reject" @click="handleAIReject">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+                되돌리기
+              </button>
+              <button class="action-btn accept" @click="handleAIAccept">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                유지하기
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
+
+      <!-- AI 컨텍스트 메뉴 -->
+      <AIContextMenu
+        :visible="showAIMenu"
+        :position="aiMenuPosition"
+        :selected-text="selectedText"
+        @close="closeAIMenu"
+        @result="handleAIResult"
+        @stream-start="handleStreamStart"
+        @stream-chunk="handleStreamChunk"
+        @stream-end="handleStreamEnd"
+        @error="handleAIError"
+      />
 
       <p v-if="editorError" class="error-msg">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -68,8 +167,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import { useEditor, EditorContent } from '@tiptap/vue-3';
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
+import { useEditor, EditorContent, type Editor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Table } from '@tiptap/extension-table';
@@ -86,7 +185,10 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { Underline } from '@tiptap/extension-underline';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
+import { DOMSerializer } from '@tiptap/pm/model';
 import EditorToolbar from './EditorToolbar.vue';
+import AIContextMenu from './AIContextMenu.vue';
+import AIInlineDiff from './AIInlineDiff.vue';
 
 const lowlight = createLowlight(common);
 const CORE_BASE = 'http://127.0.0.1:8787';
@@ -97,6 +199,45 @@ const props = defineProps<{
 
 const editorError = ref('');
 const saving = ref(false);
+const summarizing = ref(false);
+
+interface SummaryResult {
+  summary: string;
+  keyPoints: string[];
+  wordCount: number;
+}
+const summaryResult = ref<SummaryResult | null>(null);
+const copied = ref(false);
+
+// AI 컨텍스트 메뉴 상태
+const showAIMenu = ref(false);
+const aiMenuPosition = ref({ x: 0, y: 0 });
+const selectedText = ref('');
+
+// AI 스트리밍 상태 (노션 AI 스타일)
+const isAIStreaming = ref(false);
+const aiStreamingAction = ref('');
+const originalText = ref('');  // 취소용 원본 텍스트 저장
+const streamInsertPos = ref(0);  // 스트리밍 삽입 시작 위치
+const showAIActionBar = ref(false);  // AI 완료 후 액션 바 표시
+const streamedContent = ref('');  // 스트리밍 중 누적된 텍스트
+
+// 스트리밍 프리뷰 HTML (실시간 미리보기)
+const streamPreviewHtml = computed(() => {
+  if (!streamedContent.value) return '';
+  return markdownToHtml(streamedContent.value);
+});
+
+// 선택 영역 저장 (나중에 적용할 때 사용)
+const savedSelection = ref<{ from: number; to: number } | null>(null);
+
+// 에디터 wrapper ref
+const editorWrapperRef = ref<HTMLElement | null>(null);
+
+// 레거시 diff 뷰 상태 (비활성화)
+const showDiffView = ref(false);
+const diffData = ref<any>(null);
+const diffPosition = ref({ x: 0, y: 0 });
 
 const editor = useEditor({
   content: '',
@@ -397,12 +538,482 @@ async function handleSave() {
   }
 }
 
+// AI 요약 기능
+async function handleSummarize() {
+  if (!editor.value) return;
+  
+  summarizing.value = true;
+  summaryResult.value = null;
+  
+  try {
+    const html = editor.value.getHTML();
+    const content = htmlToMarkdown(html);
+    
+    if (!content.trim()) {
+      editorError.value = '요약할 내용이 없습니다.';
+      return;
+    }
+    
+    const res = await fetch(`${CORE_BASE}/ai/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, language: 'ko' })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    
+    const data = await res.json();
+    summaryResult.value = {
+      summary: data.summary,
+      keyPoints: data.keyPoints || [],
+      wordCount: data.wordCount
+    };
+  } catch (error) {
+    editorError.value = '요약 생성에 실패했습니다. Ollama가 실행 중인지 확인하세요.';
+    console.error('Summarize failed:', error);
+  } finally {
+    summarizing.value = false;
+  }
+}
+
+// 요약 복사
+function copySummary() {
+  if (!summaryResult.value) return;
+  
+  const text = formatSummaryAsMarkdown();
+  navigator.clipboard.writeText(text).then(() => {
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  });
+}
+
+// 요약을 마크다운 형식으로 포맷
+function formatSummaryAsMarkdown(): string {
+  if (!summaryResult.value) return '';
+  
+  let md = `## 📝 요약\n\n${summaryResult.value.summary}\n`;
+  
+  if (summaryResult.value.keyPoints.length > 0) {
+    md += `\n### 핵심 포인트\n\n`;
+    summaryResult.value.keyPoints.forEach(point => {
+      md += `- ${point}\n`;
+    });
+  }
+  
+  return md;
+}
+
+// 요약을 노트 상단에 삽입
+function insertSummary() {
+  if (!editor.value || !summaryResult.value) return;
+  
+  const summaryHtml = formatSummaryAsHtml();
+  
+  // 에디터의 시작 위치에 삽입
+  editor.value.chain()
+    .focus()
+    .insertContentAt(0, summaryHtml + '<hr><p></p>')
+    .run();
+  
+  // 패널 닫기
+  summaryResult.value = null;
+}
+
+// 요약을 HTML 형식으로 포맷
+function formatSummaryAsHtml(): string {
+  if (!summaryResult.value) return '';
+  
+  let html = `<h2>📝 요약</h2><p>${summaryResult.value.summary}</p>`;
+  
+  if (summaryResult.value.keyPoints.length > 0) {
+    html += `<h3>핵심 포인트</h3><ul>`;
+    summaryResult.value.keyPoints.forEach(point => {
+      html += `<li><p>${point}</p></li>`;
+    });
+    html += `</ul>`;
+  }
+  
+  return html;
+}
+
 // Keyboard shortcut for save
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
     handleSave();
   }
+}
+
+// 선택된 영역의 텍스트를 마크다운으로 가져오기
+function getSelectedMarkdown(): string {
+  if (!editor.value) return '';
+  
+  const { from, to } = editor.value.state.selection;
+  if (from === to) return '';
+  
+  try {
+    // 선택된 부분의 slice를 가져와서 HTML로 변환 후 마크다운으로 변환
+    const { state } = editor.value;
+    const slice = state.doc.slice(from, to);
+    
+    // slice를 임시 fragment로 만들어서 HTML 생성
+    const serializer = DOMSerializer.fromSchema(state.schema);
+    const fragment = slice.content;
+    
+    // DOM으로 변환
+    const div = document.createElement('div');
+    fragment.forEach(node => {
+      const domNode = serializer.serializeNode(node);
+      div.appendChild(domNode);
+    });
+    
+    // HTML을 마크다운으로 변환
+    const html = div.innerHTML;
+    const markdown = htmlToMarkdown(html);
+    
+    // 결과가 비어있으면 plain text 사용
+    if (!markdown.trim()) {
+      return state.doc.textBetween(from, to, '\n');
+    }
+    
+    return markdown;
+  } catch (e) {
+    console.warn('Failed to get markdown, using plain text:', e);
+    return editor.value.state.doc.textBetween(from, to, '\n');
+  }
+}
+
+// 우클릭 컨텍스트 메뉴 처리
+function handleContextMenu(e: MouseEvent) {
+  if (!editor.value) return;
+  
+  const { state } = editor.value;
+  const { from, to } = state.selection;
+  
+  // 텍스트가 선택되어 있는 경우에만 AI 메뉴 표시
+  if (from !== to) {
+    e.preventDefault();
+    
+    // 선택된 텍스트를 마크다운으로 가져오기
+    const markdown = getSelectedMarkdown();
+    selectedText.value = markdown;
+    
+    // 메뉴 위치 설정 (화면 경계 고려)
+    const menuWidth = 260;
+    const menuHeight = 400;
+    let x = e.clientX;
+    let y = e.clientY;
+    
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 10;
+    }
+    if (y + menuHeight > window.innerHeight) {
+      y = window.innerHeight - menuHeight - 10;
+    }
+    
+    aiMenuPosition.value = { x, y };
+    showAIMenu.value = true;
+  }
+}
+
+// AI 메뉴 닫기
+function closeAIMenu() {
+  showAIMenu.value = false;
+  selectedText.value = '';
+}
+
+// AI 결과 처리
+interface AIResult {
+  action: string;
+  original: string;
+  result: string;
+  meta?: any;
+}
+
+function handleAIResult(data: AIResult) {
+  if (!editor.value) return;
+  
+  // 현재 선택 영역 저장
+  const { from, to } = editor.value.state.selection;
+  savedSelection.value = { from, to };
+  
+  // 선택 영역의 DOM 위치 계산
+  const coords = editor.value.view.coordsAtPos(from);
+  const wrapper = editorWrapperRef.value;
+  
+  if (coords && wrapper) {
+    const editorRect = wrapper.getBoundingClientRect();
+    const scrollTop = wrapper.scrollTop;
+    
+    // 선택 영역 시작 위치 기준으로 diff 뷰 위치 설정 (스크롤 고려)
+    diffPosition.value = {
+      x: 48, // 에디터 패딩과 일치
+      y: coords.top - editorRect.top + scrollTop
+    };
+  }
+  
+  // diff 데이터 설정
+  diffData.value = {
+    action: data.action,
+    original: data.original,
+    result: data.result,
+    meta: data.meta
+  };
+  
+  // diff 뷰 표시
+  showDiffView.value = true;
+  
+  // 선택 해제 (diff 뷰에서 원본을 보여주므로)
+  editor.value.commands.setTextSelection(from);
+}
+
+// 원본 HTML 저장 (되돌리기용)
+const originalHtml = ref('');
+
+// 스트리밍 시작 처리 - 원본 유지, 프리뷰만 표시
+function handleStreamStart(data: { action: string; original: string }) {
+  if (!editor.value) return;
+  
+  // 전체 문서의 현재 HTML 저장 (되돌리기용)
+  originalHtml.value = editor.value.getHTML();
+  
+  // 현재 선택 영역 저장
+  const { from, to } = editor.value.state.selection;
+  savedSelection.value = { from, to };
+  
+  // 원본 텍스트 저장
+  originalText.value = data.original;
+  aiStreamingAction.value = data.action;
+  streamedContent.value = '';
+  
+  // 원본은 삭제하지 않음 - 스트리밍 완료 후 교체
+  isAIStreaming.value = true;
+  showAIActionBar.value = false;
+}
+
+// 스트리밍 청크 수신 처리 - 누적만 (에디터에 삽입하지 않음)
+function handleStreamChunk(chunk: string) {
+  if (!isAIStreaming.value) return;
+  
+  // \r (캐리지 리턴) 제거 - Ollama가 각 토큰마다 \r을 추가하는 문제 해결
+  const cleanedChunk = chunk.replace(/\r/g, '');
+  
+  // 청크 누적만 (에디터 삽입은 종료 시 한 번에)
+  streamedContent.value += cleanedChunk;
+}
+
+// AI 모델 출력 보정 (잘못된 줄바꿈/공백 정리)
+function cleanupAIOutput(text: string): string {
+  let result = text;
+  
+  // 글자마다 줄바꿈이 있는지 감지
+  // 방법 1: 평균 줄 길이가 5자 미만이면 비정상
+  // 방법 2: 줄바꿈 개수가 전체 문자 수의 20% 이상이면 비정상
+  const lines = text.split('\n').filter(l => l.trim());
+  const avgLineLength = lines.length > 0 
+    ? lines.reduce((a, l) => a + l.length, 0) / lines.length 
+    : 100;
+  
+  const newlineCount = (text.match(/\n/g) || []).length;
+  const totalChars = text.replace(/\s/g, '').length;
+  const newlineRatio = totalChars > 0 ? newlineCount / totalChars : 0;
+  
+  const isCharByCharNewline = avgLineLength < 5 || newlineRatio > 0.2;
+  
+  if (isCharByCharNewline) {
+    // 글자마다 줄바꿈이 있는 경우 → 공격적으로 정리
+    
+    // 1. 마크다운 헤더를 임시 마커로 변환 (보존용)
+    result = result.replace(/^(#{1,6})\s*/gm, '___HEADER$1___');
+    
+    // 2. 모든 줄바꿈과 공백을 하나의 공백으로
+    result = result.replace(/[\n\r]+/g, ' ');
+    result = result.replace(/\s+/g, ' ');
+    
+    // 3. 한글 문자 사이 공백 제거 (반복 적용)
+    let prev = '';
+    let iterations = 0;
+    while (prev !== result && iterations < 50) {
+      prev = result;
+      // 한글-한글
+      result = result.replace(/([가-힣])\s+([가-힣])/g, '$1$2');
+      // 한글-숫자, 숫자-한글
+      result = result.replace(/([가-힣])\s+(\d)/g, '$1$2');
+      result = result.replace(/(\d)\s+([가-힣])/g, '$1$2');
+      // 숫자-숫자
+      result = result.replace(/(\d)\s+(\d)/g, '$1$2');
+      // 한글-구두점
+      result = result.replace(/([가-힣])\s+([,.!?:;])/g, '$1$2');
+      // 구두점-한글
+      result = result.replace(/([,.!?:;])\s+([가-힣])/g, '$1$2');
+      // 괄호 처리
+      result = result.replace(/\(\s+/g, '(');
+      result = result.replace(/\s+\)/g, ')');
+      result = result.replace(/\[\s+/g, '[');
+      result = result.replace(/\s+\]/g, ']');
+      iterations++;
+    }
+    
+    // 4. 영어 단어는 공백 유지 (영어-영어 사이만)
+    // 이미 공백이 하나로 정리되어 있으므로 추가 처리 불필요
+    
+    // 5. 마크다운 헤더 복원
+    result = result.replace(/___HEADER(#{1,6})___\s*/g, '\n\n$1 ');
+    
+    // 6. 문장 끝 뒤에 줄바꿈 추가 (한국어 문장 끝)
+    result = result.replace(/([.!?。])\s*(?=[가-힣A-Z#\[])/g, '$1\n\n');
+    
+    // 7. 리스트 마커 앞에 줄바꿈
+    result = result.replace(/\s*(-|\*|\d+\.)\s+/g, '\n$1 ');
+    
+    // 8. 앵커/인용 태그 처리
+    result = result.replace(/\[([^\]]+)\]/g, (match, content) => {
+      // 대괄호 안의 내용에서 공백 제거
+      return '[' + content.replace(/\s+/g, '') + ']';
+    });
+    
+  } else {
+    // 정상적인 출력 → 가벼운 정리만
+    
+    // 1. 3개 이상 연속 줄바꿈을 2개로
+    result = result.replace(/\n{3,}/g, '\n\n');
+    
+    // 2. 연속 공백 하나로
+    result = result.replace(/ +/g, ' ');
+    
+    // 3. 줄 끝 공백 제거
+    result = result.replace(/ +$/gm, '');
+  }
+  
+  // 공통: 시작/끝 정리
+  result = result.replace(/^\s+/, '');
+  result = result.replace(/\s+$/, '');
+  
+  // 연속 줄바꿈 정리
+  result = result.replace(/\n{3,}/g, '\n\n');
+  
+  return result.trim();
+}
+
+// 스트리밍 종료 처리 - 선택 영역을 AI 결과로 교체
+function handleStreamEnd() {
+  if (!editor.value || !savedSelection.value) return;
+  
+  isAIStreaming.value = false;
+  
+  // 스트리밍된 텍스트를 마크다운 HTML로 변환하여 선택 영역 교체
+  if (streamedContent.value.trim()) {
+    const html = markdownToHtml(streamedContent.value);
+    const { from, to } = savedSelection.value;
+    
+    // 선택 영역을 AI 결과로 교체
+    editor.value.chain()
+      .focus()
+      .setTextSelection({ from, to })
+      .deleteSelection()
+      .insertContent(html)
+      .run();
+  }
+  
+  showAIActionBar.value = true;
+}
+
+// AI 변경 적용
+function handleAIAccept() {
+  showAIActionBar.value = false;
+  originalText.value = '';
+  originalHtml.value = '';
+  streamedContent.value = '';
+  savedSelection.value = null;
+  handleSave();
+}
+
+// AI 변경 취소 (원본 복원)
+function handleAIReject() {
+  if (!editor.value) return;
+  
+  // 저장해둔 원본 HTML로 전체 문서 복원
+  if (originalHtml.value) {
+    editor.value.commands.setContent(originalHtml.value);
+  }
+  
+  showAIActionBar.value = false;
+  originalText.value = '';
+  originalHtml.value = '';
+  streamedContent.value = '';
+  savedSelection.value = null;
+}
+
+// AI 액션 라벨 반환
+function getActionLabel(action: string): string {
+  const labels: Record<string, string> = {
+    translate: '번역',
+    improve: '다듬기',
+    expand: '확장',
+    shorten: '축약',
+    summarize: '요약'
+  };
+  return labels[action] || '변환';
+}
+
+// diff Accept 처리
+function handleDiffAccept() {
+  if (!editor.value || !diffData.value || !savedSelection.value) return;
+  
+  const { action, result, meta } = diffData.value;
+  const { from, to } = savedSelection.value;
+  
+  // 요약의 경우 특별 처리 (교체하지 않고 아래에 추가)
+  if (action === 'summarize') {
+    let summaryContent = `\n\n> **📝 요약:** ${result}`;
+    if (meta?.keyPoints && meta.keyPoints.length > 0) {
+      summaryContent += '\n>\n> **핵심 포인트:**';
+      meta.keyPoints.forEach((point: string) => {
+        summaryContent += `\n> - ${point}`;
+      });
+    }
+    
+    // 선택 영역 끝에 요약 추가
+    editor.value.chain()
+      .focus()
+      .insertContentAt(to, summaryContent)
+      .run();
+  } else {
+    // 다른 작업들은 선택된 텍스트를 결과로 교체
+    editor.value.chain()
+      .focus()
+      .setTextSelection({ from, to })
+      .deleteSelection()
+      .insertContent(result)
+      .run();
+  }
+  
+  // diff 뷰 닫기
+  closeDiffView();
+}
+
+// diff Reject 처리
+function handleDiffReject() {
+  closeDiffView();
+}
+
+// diff 뷰 닫기
+function closeDiffView() {
+  showDiffView.value = false;
+  diffData.value = null;
+  savedSelection.value = null;
+}
+
+// AI 에러 처리
+function handleAIError(message: string) {
+  editorError.value = message;
+  setTimeout(() => {
+    editorError.value = '';
+  }, 5000);
 }
 
 onMounted(() => {
@@ -604,6 +1215,7 @@ watch(() => props.activeFile, (newFile) => {
   overflow-y: auto;
   padding: 32px 48px;
   background: var(--bg-primary);
+  position: relative;
 }
 
 .editor-content {
@@ -622,6 +1234,162 @@ watch(() => props.activeFile, (newFile) => {
   border-radius: 6px;
   color: #dc2626;
   font-size: 13px;
+}
+
+/* AI Summary Panel */
+.summary-panel {
+  margin: 0 20px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.05));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(139, 92, 246, 0.1);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a78bfa;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summary-title svg {
+  opacity: 0.8;
+}
+
+.summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 6px;
+  color: #a78bfa;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+.action-btn.insert-btn {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+}
+
+.action-btn.insert-btn:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+}
+
+.word-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.summary-content {
+  padding: 16px;
+}
+
+.summary-text {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 16px 0;
+}
+
+.key-points h4 {
+  color: #a78bfa;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 10px 0;
+}
+
+.key-points ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.key-points li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.key-points li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #a78bfa;
+  font-weight: bold;
+}
+
+/* Slide transition */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>
 
@@ -875,5 +1643,254 @@ watch(() => props.activeFile, (newFile) => {
 /* Selection */
 .ProseMirror ::selection {
   background: rgba(201, 167, 108, 0.25);
+}
+
+/* AI 스트리밍 프리뷰 - 우아한 글래스모피즘 디자인 */
+.ai-streaming-preview {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85%;
+  max-width: 680px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 35, 0.95) 0%,
+    rgba(25, 25, 30, 0.98) 100%
+  );
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  z-index: 100;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 60px -20px rgba(139, 92, 246, 0.3);
+}
+
+.ai-streaming-preview .streaming-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  color: #c4b5fd;
+  letter-spacing: 0.3px;
+}
+
+.ai-streaming-preview .streaming-header svg {
+  width: 16px;
+  height: 16px;
+  color: #a78bfa;
+}
+
+.ai-streaming-preview .streaming-content {
+  padding: 20px 24px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #e8e8ec;
+  font-family: var(--font-sans);
+}
+
+.ai-streaming-preview .streaming-content p {
+  margin: 0 0 12px 0;
+}
+
+.ai-streaming-preview .streaming-content p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-streaming-preview .streaming-content h1 {
+  font-size: 1.5em;
+  margin: 0 0 12px 0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.ai-streaming-preview .streaming-content h2 {
+  font-size: 1.3em;
+  margin: 0 0 10px 0;
+  color: #f0f0f5;
+  font-weight: 600;
+}
+
+.ai-streaming-preview .streaming-content h3 {
+  font-size: 1.1em;
+  margin: 0 0 8px 0;
+  color: #e0e0e8;
+  font-weight: 600;
+}
+
+.ai-streaming-preview .streaming-content ul,
+.ai-streaming-preview .streaming-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.ai-streaming-preview .streaming-content li {
+  margin: 4px 0;
+}
+
+.ai-streaming-preview .streaming-content code {
+  background: rgba(139, 92, 246, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: #c4b5fd;
+}
+
+.ai-streaming-preview .streaming-content blockquote {
+  border-left: 3px solid #a78bfa;
+  padding-left: 16px;
+  margin: 12px 0;
+  color: #b0b0b8;
+  font-style: italic;
+}
+
+/* 애니메이션 점 - 부드러운 펄스 효과 */
+.ai-streaming-preview .streaming-dot {
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  border-radius: 50%;
+  animation: ai-pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}
+
+.ai-streaming-preview .streaming-dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.ai-streaming-preview .streaming-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes ai-pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 0.6;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+  }
+  50% { 
+    transform: scale(1.2); 
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.6);
+  }
+}
+
+/* 스크롤바 스타일링 */
+.ai-streaming-preview::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-streaming-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-streaming-preview::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
+}
+
+.ai-streaming-preview::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+/* AI 액션 바 - 미니멀 플로팅 디자인 */
+.ai-action-bar {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 35, 0.98) 0%,
+    rgba(25, 25, 30, 0.99) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 40px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+}
+
+.action-bar-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #a0a0a8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-bar-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.ai-action-bar .action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.2px;
+}
+
+.ai-action-bar .action-btn.reject {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.ai-action-bar .action-btn.reject:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.ai-action-bar .action-btn.accept {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.ai-action-bar .action-btn.accept:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(16, 185, 129, 0.25) 100%);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+}
+
+/* 액션 바 트랜지션 */
+.action-bar-slide-enter-active,
+.action-bar-slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.action-bar-slide-enter-from,
+.action-bar-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
 }
 </style>

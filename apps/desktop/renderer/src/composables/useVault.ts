@@ -109,8 +109,28 @@ export function useVault() {
     }
   }
 
-  async function createFile(): Promise<string | null> {
+  async function createFile(fileName?: string): Promise<string | null> {
     try {
+      // 파일명이 주어진 경우 PUT으로 빈 파일 생성
+      if (fileName) {
+        const path = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
+        const res = await fetch(`${CORE_BASE}/vault/file`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path, content: `# ${fileName.replace(/\.md$/, '')}\n\n` })
+        });
+        
+        if (!res.ok) {
+          const error = await res.json();
+          console.error('Failed to create file:', error.detail);
+          return null;
+        }
+        
+        await refreshFiles();
+        return path;
+      }
+      
+      // 파일명이 없으면 기존 방식 (Untitled)
       const res = await fetch(`${CORE_BASE}/vault/file`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -129,6 +149,31 @@ export function useVault() {
       return data.path;
     } catch (error) {
       console.error('Failed to create file', error);
+      return null;
+    }
+  }
+
+  async function renameFile(oldPath: string, newPath: string): Promise<string | null> {
+    try {
+      const res = await fetch(`${CORE_BASE}/vault/file/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_path: oldPath, new_path: newPath })
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        console.error('Failed to rename file:', error.detail);
+        return null;
+      }
+      
+      const data = await res.json();
+      
+      // 파일 목록 갱신
+      await refreshFiles();
+      return data.new_path;
+    } catch (error) {
+      console.error('Failed to rename file', error);
       return null;
     }
   }
@@ -227,6 +272,7 @@ export function useVault() {
     refreshTodoCount,
     deleteFile,
     createFile,
+    renameFile,
     refreshTrash,
     restoreFile,
     permanentDelete,
