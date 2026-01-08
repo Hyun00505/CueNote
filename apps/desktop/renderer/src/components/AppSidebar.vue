@@ -37,45 +37,93 @@
       <div class="sidebar-section files-section" v-if="vaultPath">
         <div class="section-header-row">
           <div class="section-label">Notes</div>
-          <button class="new-file-btn" @click="handleCreateFile" title="New note" :disabled="isCreating">
+          <button class="new-file-btn" @click="startCreateFile" title="New note" :disabled="isCreating || isInputMode">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 5v14M5 12h14"/>
             </svg>
           </button>
         </div>
 
-        <ul class="file-list" v-if="vaultFiles.length > 0">
+        <!-- 새 파일 이름 입력 -->
+        <div v-if="isInputMode" class="new-file-input-wrapper">
+          <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <input
+            ref="inputRef"
+            v-model="newFileName"
+            type="text"
+            class="file-name-input"
+            placeholder="노트 이름 입력..."
+            @keydown.enter="handleCreateFile"
+            @keydown.escape="cancelCreate"
+            @blur="handleCreateFile"
+          />
+        </div>
+
+        <ul class="file-list" v-if="vaultFiles.length > 0 || isInputMode">
           <li
             v-for="(file, index) in vaultFiles"
             :key="file"
             class="file-item"
-            :class="{ active: file === activeFile }"
+            :class="{ active: file === activeFile, editing: editingFile === file }"
             :style="{ '--delay': `${index * 20}ms` }"
           >
-            <button class="file-btn" @click="$emit('select-file', file)">
+            <!-- 이름 변경 모드 -->
+            <div v-if="editingFile === file" class="file-edit-wrapper">
               <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
                 <polyline points="14 2 14 8 20 8"/>
-                <line x1="8" y1="13" x2="16" y2="13"/>
-                <line x1="8" y1="17" x2="12" y2="17"/>
               </svg>
-              <span class="file-name">{{ getFileName(file) }}</span>
-            </button>
-            <button 
-              class="delete-btn" 
-              @click.stop="handleDeleteFile(file)"
-              title="Move to trash"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/>
-              </svg>
-            </button>
+              <input
+                ref="editInputRef"
+                v-model="editingName"
+                type="text"
+                class="file-name-input"
+                @keydown.enter="handleRename"
+                @keydown.escape="cancelRename"
+                @blur="handleRename"
+              />
+            </div>
+            <!-- 일반 모드 -->
+            <template v-else>
+              <button class="file-btn" @click="$emit('select-file', file)" @dblclick.stop="startRename(file)">
+                <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="8" y1="13" x2="16" y2="13"/>
+                  <line x1="8" y1="17" x2="12" y2="17"/>
+                </svg>
+                <span class="file-name">{{ getFileName(file) }}</span>
+              </button>
+              <div class="file-actions">
+                <button 
+                  class="rename-btn" 
+                  @click.stop="startRename(file)"
+                  title="Rename"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  </svg>
+                </button>
+                <button 
+                  class="delete-btn" 
+                  @click.stop="handleDeleteFile(file)"
+                  title="Move to trash"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/>
+                  </svg>
+                </button>
+              </div>
+            </template>
           </li>
         </ul>
 
-        <div v-else class="empty-files">
+        <div v-else-if="!isInputMode" class="empty-files">
           <p>No notes yet</p>
-          <button class="create-first-btn" @click="handleCreateFile" :disabled="isCreating">
+          <button class="create-first-btn" @click="startCreateFile" :disabled="isCreating">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 5v14M5 12h14"/>
             </svg>
@@ -153,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import { useVault, useHealth } from '../composables';
 
 const props = defineProps<{
@@ -167,6 +215,7 @@ const emit = defineEmits<{
   'file-deleted': [file: string];
   'file-created': [file: string];
   'file-restored': [file: string];
+  'file-renamed': [oldPath: string, newPath: string];
 }>();
 
 const { 
@@ -178,6 +227,7 @@ const {
   openVault, 
   deleteFile, 
   createFile,
+  renameFile,
   restoreFile,
   permanentDelete,
   emptyTrash
@@ -187,6 +237,12 @@ const { coreStatus } = useHealth();
 // State
 const isCreating = ref(false);
 const trashExpanded = ref(true);
+const newFileName = ref('');
+const isInputMode = ref(false);
+const editingFile = ref<string | null>(null);
+const editingName = ref('');
+const inputRef = ref<HTMLInputElement | null>(null);
+const editInputRef = ref<HTMLInputElement | null>(null);
 
 function getFileName(path: string): string {
   const name = path.split(/[/\\]/).pop() || path;
@@ -197,17 +253,79 @@ function toggleTrash() {
   trashExpanded.value = !trashExpanded.value;
 }
 
-// 파일 생성 (팝업 없이 바로)
-async function handleCreateFile() {
+// 새 파일 생성 모드 시작
+async function startCreateFile() {
   if (isCreating.value) return;
+  isInputMode.value = true;
+  newFileName.value = '';
+  await nextTick();
+  inputRef.value?.focus();
+}
+
+// 파일 생성 확정
+async function handleCreateFile() {
+  const name = newFileName.value.trim();
+  if (!name) {
+    // 빈 이름이면 취소
+    isInputMode.value = false;
+    return;
+  }
   
   isCreating.value = true;
-  const createdPath = await createFile();
+  isInputMode.value = false;
+  
+  const createdPath = await createFile(name);
   isCreating.value = false;
   
   if (createdPath) {
     emit('file-created', createdPath);
   }
+  
+  newFileName.value = '';
+}
+
+// 파일 생성 취소
+function cancelCreate() {
+  isInputMode.value = false;
+  newFileName.value = '';
+}
+
+// 파일 이름 변경 모드 시작
+async function startRename(file: string) {
+  editingFile.value = file;
+  editingName.value = getFileName(file);
+  await nextTick();
+  editInputRef.value?.focus();
+  editInputRef.value?.select();
+}
+
+// 파일 이름 변경 확정
+async function handleRename() {
+  if (!editingFile.value) return;
+  
+  const newName = editingName.value.trim();
+  if (!newName || newName === getFileName(editingFile.value)) {
+    // 변경 없거나 빈 이름이면 취소
+    cancelRename();
+    return;
+  }
+  
+  const oldPath = editingFile.value;
+  const newPath = newName.endsWith('.md') ? newName : `${newName}.md`;
+  
+  const renamedPath = await renameFile(oldPath, newPath);
+  
+  if (renamedPath) {
+    emit('file-renamed', oldPath, renamedPath);
+  }
+  
+  cancelRename();
+}
+
+// 파일 이름 변경 취소
+function cancelRename() {
+  editingFile.value = null;
+  editingName.value = '';
 }
 
 // 파일 삭제 (팝업 없이 바로 휴지통으로 이동)
@@ -523,30 +641,86 @@ async function handleEmptyTrash() {
   font-weight: 450;
 }
 
-/* Delete Button */
+/* File Actions */
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  margin-right: 4px;
+}
+
+.file-item:hover .file-actions {
+  opacity: 1;
+}
+
+.rename-btn,
 .delete-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: none;
   border: none;
   border-radius: 4px;
   color: var(--text-muted);
   cursor: pointer;
-  opacity: 0;
   transition: all 0.15s ease;
-  margin-right: 4px;
 }
 
-.file-item:hover .delete-btn {
-  opacity: 1;
+.rename-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
 }
 
 .delete-btn:hover {
   background: rgba(220, 38, 38, 0.15);
   color: #dc2626;
+}
+
+/* New File Input */
+.new-file-input-wrapper,
+.file-edit-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  margin-bottom: 2px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 6px;
+}
+
+.file-edit-wrapper {
+  flex: 1;
+}
+
+.file-item.editing {
+  padding: 0;
+}
+
+.file-name-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 450;
+  padding: 2px 0;
+}
+
+.file-name-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.new-file-input-wrapper .file-icon,
+.file-edit-wrapper .file-icon {
+  color: #a78bfa;
+  opacity: 0.8;
 }
 
 /* Footer */

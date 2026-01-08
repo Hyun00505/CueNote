@@ -252,6 +252,26 @@
         </svg>
       </button>
     </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-group">
+      <button
+        class="toolbar-btn ai-btn"
+        :class="{ loading: summarizing }"
+        :disabled="summarizing"
+        @click="handleSummarize"
+        title="AI 요약"
+      >
+        <svg v-if="!summarizing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
+          <circle cx="9" cy="6" r="1" fill="currentColor"/>
+          <circle cx="15" cy="6" r="1" fill="currentColor"/>
+        </svg>
+        <span v-else class="spinner"></span>
+        <span class="ai-label">요약</span>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -260,7 +280,16 @@ import type { Editor } from '@tiptap/vue-3';
 
 const props = defineProps<{
   editor: Editor | null;
+  summarizing?: boolean;
 }>();
+
+const emit = defineEmits<{
+  (e: 'summarize'): void;
+}>();
+
+function handleSummarize() {
+  emit('summarize');
+}
 
 function setLink() {
   if (!props.editor) return;
@@ -366,5 +395,50 @@ function insertTable() {
 
 .toolbar-btn.active svg {
   opacity: 1;
+}
+
+/* AI Button Styles */
+.ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  padding: 0 10px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.ai-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+.ai-btn.loading {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.ai-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.ai-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ai-btn .spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
