@@ -1,29 +1,15 @@
 <template>
   <aside class="sidebar" :class="{ collapsed }">
-    <!-- Decorative Gradient Orb -->
-    <div class="sidebar-glow"></div>
-
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <defs>
-              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#818cf8"/>
-                <stop offset="100%" style="stop-color:#c084fc"/>
-              </linearGradient>
-            </defs>
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#logoGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="url(#logoGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="url(#logoGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <span class="logo-symbol">C</span>
         </div>
         <span class="logo-text">CueNote</span>
       </div>
       <button class="icon-btn" @click="$emit('toggle-collapse')" title="Toggle Sidebar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M21 3H3C1.89543 3 1 3.89543 1 5V19C1 20.1046 1.89543 21 3 21H21C22.1046 21 23 20.1046 23 19V5C23 3.89543 22.1046 3 21 3Z"/>
-          <path d="M9 3V21"/>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
       </button>
     </div>
@@ -31,82 +17,126 @@
     <div class="sidebar-content">
       <!-- Vault Section -->
       <div class="sidebar-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <span>Vault</span>
-        </div>
-
         <button class="vault-btn" @click="openVault">
-          <div class="vault-btn-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </div>
-          <span>{{ vaultPath ? 'Change Vault' : 'Open Vault' }}</span>
-          <svg class="vault-btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 18l6-6-6-6"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
+          <span>{{ vaultPath ? vaultPath.split(/[/\\]/).pop() : 'Open Vault' }}</span>
         </button>
 
-        <div v-if="vaultPath" class="vault-info">
-          <div class="vault-path" :title="vaultPath">
-            <div class="vault-path-icon">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <span>{{ vaultPath.split(/[/\\]/).pop() }}</span>
-          </div>
-          <div class="vault-stats" v-if="todoCount !== null">
-            <div class="stat">
-              <span class="stat-value">{{ vaultFiles.length }}</span>
-              <span class="stat-label">files</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat">
-              <span class="stat-value">{{ todoCount }}</span>
-              <span class="stat-label">todos</span>
-            </div>
-          </div>
+        <div v-if="vaultPath && todoCount !== null" class="vault-stats">
+          <span class="stat">{{ vaultFiles.length }} notes</span>
+          <span class="stat-dot">·</span>
+          <span class="stat">{{ todoCount }} tasks</span>
         </div>
 
         <p v-if="vaultError" class="error-msg">{{ vaultError }}</p>
       </div>
 
       <!-- Files List -->
-      <div class="sidebar-section files-section" v-if="vaultFiles.length > 0">
-        <div class="section-header">
-          <div class="section-icon">
+      <div class="sidebar-section files-section" v-if="vaultPath">
+        <div class="section-header-row">
+          <div class="section-label">Notes</div>
+          <button class="new-file-btn" @click="handleCreateFile" title="New note" :disabled="isCreating">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
+              <path d="M12 5v14M5 12h14"/>
             </svg>
-          </div>
-          <span>Files</span>
-          <span class="badge">{{ vaultFiles.length }}</span>
+          </button>
         </div>
 
-        <ul class="file-list">
+        <ul class="file-list" v-if="vaultFiles.length > 0">
           <li
             v-for="(file, index) in vaultFiles"
             :key="file"
             class="file-item"
             :class="{ active: file === activeFile }"
-            :style="{ '--delay': `${index * 30}ms` }"
-            @click="$emit('select-file', file)"
+            :style="{ '--delay': `${index * 20}ms` }"
           >
-            <div class="file-icon">
+            <button class="file-btn" @click="$emit('select-file', file)">
+              <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="8" y1="13" x2="16" y2="13"/>
+                <line x1="8" y1="17" x2="12" y2="17"/>
+              </svg>
+              <span class="file-name">{{ getFileName(file) }}</span>
+            </button>
+            <button 
+              class="delete-btn" 
+              @click.stop="handleDeleteFile(file)"
+              title="Move to trash"
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/>
+              </svg>
+            </button>
+          </li>
+        </ul>
+
+        <div v-else class="empty-files">
+          <p>No notes yet</p>
+          <button class="create-first-btn" @click="handleCreateFile" :disabled="isCreating">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Create your first note
+          </button>
+        </div>
+      </div>
+
+      <!-- Trash Section -->
+      <div class="sidebar-section trash-section" v-if="vaultPath && trashFiles.length > 0">
+        <div class="section-header-row">
+          <div class="section-label trash-label" @click="toggleTrash">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ rotated: !trashExpanded }">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+            Trash
+            <span class="trash-count">{{ trashFiles.length }}</span>
+          </div>
+          <button class="empty-trash-btn" @click="handleEmptyTrash" title="Empty trash">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/>
+            </svg>
+          </button>
+        </div>
+
+        <ul class="file-list trash-list" v-if="trashExpanded">
+          <li
+            v-for="file in trashFiles"
+            :key="file"
+            class="file-item trash-item"
+          >
+            <div class="trash-file-info">
+              <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
+              <span class="file-name">{{ getFileName(file) }}</span>
             </div>
-            <span class="file-name">{{ getFileName(file) }}</span>
-            <div class="file-hover-indicator"></div>
+            <div class="trash-actions">
+              <button 
+                class="restore-btn" 
+                @click="handleRestoreFile(file)"
+                title="Restore"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                  <path d="M21 3v5h-5"/>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                </svg>
+              </button>
+              <button 
+                class="permanent-delete-btn" 
+                @click="handlePermanentDelete(file)"
+                title="Delete permanently"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
           </li>
         </ul>
       </div>
@@ -116,31 +146,94 @@
     <div class="sidebar-footer">
       <div class="status-indicator" :class="coreStatus === 'ok' ? 'online' : 'offline'">
         <span class="status-dot"></span>
-        <span class="status-text">{{ coreStatus === 'ok' ? 'Connected' : coreStatus }}</span>
-        <span class="status-ping" v-if="coreStatus === 'ok'"></span>
+        <span class="status-text">{{ coreStatus === 'ok' ? 'Core Online' : 'Offline' }}</span>
       </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useVault, useHealth } from '../composables';
 
-defineProps<{
+const props = defineProps<{
   collapsed: boolean;
   activeFile: string | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   'toggle-collapse': [];
   'select-file': [file: string];
+  'file-deleted': [file: string];
+  'file-created': [file: string];
+  'file-restored': [file: string];
 }>();
 
-const { vaultPath, vaultFiles, vaultError, todoCount, openVault } = useVault();
+const { 
+  vaultPath, 
+  vaultFiles, 
+  trashFiles,
+  vaultError, 
+  todoCount, 
+  openVault, 
+  deleteFile, 
+  createFile,
+  restoreFile,
+  permanentDelete,
+  emptyTrash
+} = useVault();
 const { coreStatus } = useHealth();
 
+// State
+const isCreating = ref(false);
+const trashExpanded = ref(true);
+
 function getFileName(path: string): string {
-  return path.split(/[/\\]/).pop() || path;
+  const name = path.split(/[/\\]/).pop() || path;
+  return name.replace(/\.md$/i, '');
+}
+
+function toggleTrash() {
+  trashExpanded.value = !trashExpanded.value;
+}
+
+// 파일 생성 (팝업 없이 바로)
+async function handleCreateFile() {
+  if (isCreating.value) return;
+  
+  isCreating.value = true;
+  const createdPath = await createFile();
+  isCreating.value = false;
+  
+  if (createdPath) {
+    emit('file-created', createdPath);
+  }
+}
+
+// 파일 삭제 (팝업 없이 바로 휴지통으로 이동)
+async function handleDeleteFile(file: string) {
+  const success = await deleteFile(file);
+  if (success) {
+    emit('file-deleted', file);
+  }
+}
+
+// 휴지통에서 파일 복원
+async function handleRestoreFile(filename: string) {
+  const restoredPath = await restoreFile(filename);
+  if (restoredPath) {
+    emit('file-restored', restoredPath);
+  }
+}
+
+// 휴지통에서 영구 삭제
+async function handlePermanentDelete(filename: string) {
+  await permanentDelete(filename);
+}
+
+// 휴지통 비우기
+async function handleEmptyTrash() {
+  await emptyTrash();
 }
 </script>
 
@@ -152,23 +245,10 @@ function getFileName(path: string): string {
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  transition: width var(--transition-smooth);
+  transition: width 0.2s ease;
   position: relative;
   z-index: 10;
   overflow: hidden;
-}
-
-.sidebar-glow {
-  position: absolute;
-  top: -100px;
-  left: -100px;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-  opacity: 0.4;
-  pointer-events: none;
-  filter: blur(60px);
-  animation: float 8s ease-in-out infinite;
 }
 
 .sidebar.collapsed {
@@ -176,463 +256,471 @@ function getFileName(path: string): string {
 }
 
 .sidebar.collapsed .logo-text,
-.sidebar.collapsed .section-header span,
 .sidebar.collapsed .vault-btn span,
-.sidebar.collapsed .vault-btn-arrow,
-.sidebar.collapsed .vault-info,
+.sidebar.collapsed .vault-stats,
 .sidebar.collapsed .file-name,
-.sidebar.collapsed .badge,
+.sidebar.collapsed .section-label,
+.sidebar.collapsed .section-header-row,
+.sidebar.collapsed .delete-btn,
+.sidebar.collapsed .empty-files,
+.sidebar.collapsed .trash-section,
 .sidebar.collapsed .status-text {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
+  display: none;
 }
 
 .sidebar.collapsed .sidebar-header {
   justify-content: center;
-  padding: 16px 12px;
+  padding: 16px;
 }
 
 .sidebar.collapsed .vault-btn {
   justify-content: center;
-  padding: 12px;
+  padding: 10px;
 }
 
 .sidebar.collapsed .file-item {
   justify-content: center;
+}
+
+.sidebar.collapsed .file-btn {
+  justify-content: center;
   padding: 10px;
 }
 
+/* Header */
 .sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-subtle);
-  background: var(--gradient-surface);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  color: var(--accent-secondary);
-  box-shadow: var(--shadow-sm), var(--shadow-inset);
-  transition: all var(--transition-smooth);
-}
-
-.logo-icon:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-glow);
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-tertiary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  transition: all var(--transition-smooth);
-  white-space: nowrap;
-}
-
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.icon-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-default);
-  color: var(--text-primary);
-  transform: scale(1.05);
-}
-
-.icon-btn:active {
-  transform: scale(0.95);
-}
-
-.sidebar-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-.sidebar-section {
-  margin-bottom: 28px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-muted);
-  margin-bottom: 14px;
-  padding-left: 4px;
-}
-
-.section-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--glass-bg);
-  border-radius: var(--radius-xs);
-  color: var(--text-muted);
-}
-
-.badge {
-  margin-left: auto;
-  background: var(--gradient-primary);
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 600;
-  color: white;
-  box-shadow: var(--shadow-xs);
-}
-
-.vault-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-smooth);
-  position: relative;
-  overflow: hidden;
-}
-
-.vault-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--gradient-primary);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.vault-btn:hover {
-  border-color: var(--accent-primary);
-  color: var(--text-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.vault-btn:hover::before {
-  opacity: 0.1;
-}
-
-.vault-btn:active {
-  transform: translateY(0);
-}
-
-.vault-btn-icon {
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-hover);
-  border-radius: var(--radius-sm);
-  color: var(--accent-secondary);
-  transition: all var(--transition-fast);
-  position: relative;
-  z-index: 1;
+  background: #1a1a2e;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.vault-btn:hover .vault-btn-icon {
-  background: var(--accent-primary);
-  color: white;
+.logo-symbol {
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e8d5b7;
+  font-style: italic;
 }
 
-.vault-btn span {
-  position: relative;
-  z-index: 1;
+.logo-text {
+  font-family: 'Georgia', serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
 }
 
-.vault-btn-arrow {
-  margin-left: auto;
-  opacity: 0.5;
-  transition: all var(--transition-fast);
-  position: relative;
-  z-index: 1;
-}
-
-.vault-btn:hover .vault-btn-arrow {
-  opacity: 1;
-  transform: translateX(4px);
-}
-
-.vault-info {
-  margin-top: 16px;
-  padding: 16px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-smooth);
-  animation: slideUp 0.3s ease;
-}
-
-.vault-path {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.vault-path-icon {
-  width: 24px;
-  height: 24px;
+.icon-btn {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-glow);
-  border-radius: var(--radius-xs);
-  color: var(--accent-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+/* Content */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.sidebar-section {
+  margin-bottom: 20px;
+}
+
+/* Vault Button */
+.vault-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 
 .vault-stats {
   display: flex;
   align-items: center;
-  gap: 0;
-}
-
-.stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 10px;
-  font-weight: 500;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
   color: var(--text-muted);
+}
+
+.stat-dot {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* Files Section */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 10px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 32px;
-  background: var(--border-subtle);
+.new-file-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.files-section {
-  flex: 1;
+.new-file-btn:hover {
+  background: rgba(232, 213, 183, 0.1);
+  border-color: rgba(232, 213, 183, 0.2);
+  color: #e8d5b7;
+}
+
+.empty-files {
+  padding: 20px 12px;
+  text-align: center;
+}
+
+.empty-files p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.create-first-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(232, 213, 183, 0.08);
+  border: 1px solid rgba(232, 213, 183, 0.15);
+  border-radius: 6px;
+  color: #e8d5b7;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.create-first-btn:hover {
+  background: rgba(232, 213, 183, 0.12);
+  border-color: rgba(232, 213, 183, 0.25);
 }
 
 .file-list {
   list-style: none;
-  max-height: calc(100vh - 420px);
+  max-height: calc(100vh - 300px);
   overflow-y: auto;
-  padding: 4px;
-  margin: -4px;
 }
 
 .file-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  margin-bottom: 4px;
+  border-radius: 6px;
+  margin-bottom: 2px;
   position: relative;
-  animation: slideUp 0.3s ease backwards;
+  animation: fadeIn 0.2s ease backwards;
   animation-delay: var(--delay);
 }
 
-.file-item:hover {
-  background: var(--bg-hover);
+.file-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  min-width: 0;
+}
+
+.file-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
 }
 
-.file-item:hover .file-icon {
-  color: var(--accent-secondary);
-  transform: scale(1.1);
-}
-
-.file-item.active {
-  background: var(--gradient-primary);
-  color: white;
-  box-shadow: var(--shadow-md), 0 0 20px var(--accent-glow);
-}
-
-.file-item.active .file-icon {
-  color: white;
+.file-item.active .file-btn {
+  background: rgba(232, 213, 183, 0.1);
+  color: #e8d5b7;
 }
 
 .file-icon {
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  opacity: 0.6;
+}
+
+.file-item.active .file-icon {
+  opacity: 1;
+  color: #e8d5b7;
 }
 
 .file-name {
-  font-size: 13px;
-  font-weight: 450;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all var(--transition-smooth);
+  font-weight: 450;
 }
 
-.file-hover-indicator {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 0;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-full);
-  transition: height var(--transition-fast);
+/* Delete Button */
+.delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  margin-right: 4px;
 }
 
-.file-item:hover .file-hover-indicator {
-  height: 60%;
+.file-item:hover .delete-btn {
+  opacity: 1;
 }
 
-.file-item.active .file-hover-indicator {
-  display: none;
+.delete-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
 }
 
+/* Footer */
 .sidebar-footer {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border-subtle);
-  background: var(--gradient-surface);
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-size: 12px;
-  font-weight: 500;
   color: var(--text-muted);
-  padding: 10px 14px;
-  background: var(--glass-bg);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  padding: 8px 10px;
+  border-radius: 6px;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--text-muted);
-  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .status-indicator.online .status-dot {
-  background: var(--success);
-  box-shadow: 0 0 12px var(--success-glow);
-  animation: pulse 2s ease-in-out infinite;
+  background: #22c55e;
 }
 
 .status-indicator.offline .status-dot {
-  background: var(--error);
-  box-shadow: 0 0 8px var(--error-glow);
+  background: #dc2626;
 }
 
 .status-text {
-  transition: all var(--transition-smooth);
-}
-
-.status-ping {
-  margin-left: auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--success);
-  animation: pulse 1.5s ease-in-out infinite;
+  font-weight: 450;
 }
 
 .error-msg {
-  padding: 14px 16px;
-  background: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.2);
-  border-radius: var(--radius-md);
-  color: var(--error);
-  font-size: 13px;
-  margin-top: 16px;
-  animation: slideUp 0.3s ease;
+  padding: 10px 12px;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 12px;
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(10px, 10px); }
+/* Trash Section */
+.trash-section {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.trash-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+.trash-label svg {
+  transition: transform 0.15s ease;
+}
+
+.trash-label svg.rotated {
+  transform: rotate(-90deg);
+}
+
+.trash-count {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.empty-trash-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.trash-section:hover .empty-trash-btn {
+  opacity: 1;
+}
+
+.empty-trash-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+}
+
+.trash-list {
+  max-height: 150px;
+}
+
+.trash-item {
+  opacity: 0.7;
+}
+
+.trash-item:hover {
+  opacity: 1;
+}
+
+.trash-file-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+.trash-file-info .file-icon {
+  opacity: 0.5;
+}
+
+.trash-file-info .file-name {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.trash-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  margin-right: 4px;
+}
+
+.trash-item:hover .trash-actions {
+  opacity: 1;
+}
+
+.restore-btn,
+.permanent-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.restore-btn:hover {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.permanent-delete-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>
 

@@ -48,8 +48,8 @@
           <kbd>Ctrl+S</kbd>
         </button>
       </div>
-
-      <EditorToolbar :editor="editor" />
+      
+      <EditorToolbar :editor="editor as Editor" />
 
       <div class="editor-content-wrapper">
         <EditorContent :editor="editor" class="editor-content" />
@@ -440,32 +440,17 @@ watch(() => props.activeFile, (newFile) => {
   justify-content: center;
   text-align: center;
   padding: 48px;
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .empty-visual {
   position: relative;
-  width: 140px;
-  height: 140px;
-  margin-bottom: 32px;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 24px;
 }
 
 .empty-glow {
-  position: absolute;
-  inset: -20px;
-  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-  opacity: 0.5;
-  animation: pulse 3s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
+  display: none;
 }
 
 .empty-icon {
@@ -474,45 +459,41 @@ watch(() => props.activeFile, (newFile) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
   color: var(--text-muted);
 }
 
 .empty-state h2 {
-  font-size: 24px;
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .empty-state p {
   color: var(--text-muted);
-  font-size: 15px;
-  margin-bottom: 24px;
+  font-size: 14px;
+  margin-bottom: 20px;
 }
 
 .empty-hint {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
-  background: var(--glass-bg);
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-full);
+  border-radius: 20px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .empty-hint svg {
   color: var(--accent-secondary);
-  animation: bounce 2s ease-in-out infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px); }
+  opacity: 0.7;
 }
 
 .editor-container {
@@ -520,19 +501,13 @@ watch(() => props.activeFile, (newFile) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 10px 20px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -540,18 +515,18 @@ watch(() => props.activeFile, (newFile) => {
 .file-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .file-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-sm);
-  color: white;
+  background: rgba(232, 213, 183, 0.1);
+  border-radius: 6px;
+  color: #e8d5b7;
 }
 
 .file-details {
@@ -561,62 +536,63 @@ watch(() => props.activeFile, (newFile) => {
 }
 
 .file-name {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
 .file-ext {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
 .save-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--glass-bg);
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .save-btn:hover:not(:disabled) {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: white;
+  background: rgba(232, 213, 183, 0.15);
+  border-color: rgba(232, 213, 183, 0.3);
+  color: #e8d5b7;
 }
 
 .save-btn.saving {
-  background: var(--gradient-primary);
-  border-color: transparent;
-  color: white;
+  background: rgba(232, 213, 183, 0.1);
+  color: #e8d5b7;
 }
 
 .save-btn:disabled {
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .save-btn kbd {
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-xs);
-  font-size: 11px;
-  font-family: var(--font-sans);
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
 }
 
 .spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(232, 213, 183, 0.2);
+  border-top-color: #e8d5b7;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
@@ -627,24 +603,24 @@ watch(() => props.activeFile, (newFile) => {
   flex: 1;
   overflow-y: auto;
   padding: 32px 48px;
-  background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(15, 15, 25, 0.95) 100%);
+  background: var(--bg-primary);
 }
 
 .editor-content {
-  max-width: 800px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
 .error-msg {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  margin: 16px 20px;
-  background: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.2);
-  border-radius: var(--radius-md);
-  color: var(--error);
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 12px 20px;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 6px;
+  color: #dc2626;
   font-size: 13px;
 }
 </style>
@@ -656,7 +632,7 @@ watch(() => props.activeFile, (newFile) => {
   min-height: 500px;
   font-family: var(--font-sans);
   font-size: 16px;
-  line-height: 1.8;
+  line-height: 1.75;
   color: var(--text-primary);
 }
 
@@ -671,21 +647,24 @@ watch(() => props.activeFile, (newFile) => {
   color: var(--text-muted);
   pointer-events: none;
   height: 0;
+  font-style: italic;
 }
 
 /* Headings */
 .ProseMirror h1 {
-  font-size: 2.25em;
-  font-weight: 700;
+  font-family: var(--font-serif);
+  font-size: 2em;
+  font-weight: 600;
   line-height: 1.3;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
 }
 
 .ProseMirror h2 {
-  font-size: 1.75em;
+  font-family: var(--font-serif);
+  font-size: 1.5em;
   font-weight: 600;
   line-height: 1.35;
   margin-top: 1.4em;
@@ -694,7 +673,7 @@ watch(() => props.activeFile, (newFile) => {
 }
 
 .ProseMirror h3 {
-  font-size: 1.4em;
+  font-size: 1.25em;
   font-weight: 600;
   line-height: 1.4;
   margin-top: 1.3em;
@@ -705,7 +684,7 @@ watch(() => props.activeFile, (newFile) => {
 .ProseMirror h4,
 .ProseMirror h5,
 .ProseMirror h6 {
-  font-size: 1.1em;
+  font-size: 1.05em;
   font-weight: 600;
   margin-top: 1.2em;
   margin-bottom: 0.4em;
@@ -718,15 +697,17 @@ watch(() => props.activeFile, (newFile) => {
 
 /* Links */
 .ProseMirror a {
-  color: var(--accent-secondary);
+  color: #c9a76c;
   text-decoration: underline;
+  text-decoration-color: rgba(201, 167, 108, 0.4);
   text-underline-offset: 2px;
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .ProseMirror a:hover {
-  color: var(--accent-tertiary);
+  color: #e8d5b7;
+  text-decoration-color: rgba(232, 213, 183, 0.6);
 }
 
 /* Bold, Italic, etc */
@@ -745,25 +726,25 @@ watch(() => props.activeFile, (newFile) => {
 }
 
 .ProseMirror mark {
-  background: rgba(250, 204, 21, 0.4);
-  padding: 0 4px;
+  background: rgba(201, 167, 108, 0.25);
+  padding: 1px 4px;
   border-radius: 2px;
 }
 
 /* Code */
 .ProseMirror code {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--accent-tertiary);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8d5b7;
   padding: 2px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 0.9em;
+  font-size: 0.88em;
 }
 
 .ProseMirror pre {
-  background: var(--bg-tertiary);
+  background: #0a0a0c;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   padding: 16px 20px;
   overflow-x: auto;
   margin: 1em 0;
@@ -773,14 +754,14 @@ watch(() => props.activeFile, (newFile) => {
   background: transparent;
   padding: 0;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
 /* Blockquote */
 .ProseMirror blockquote {
-  border-left: 3px solid var(--accent-primary);
-  padding-left: 20px;
+  border-left: 2px solid #c9a76c;
+  padding-left: 16px;
   margin: 1em 0;
   color: var(--text-secondary);
   font-style: italic;
@@ -811,7 +792,7 @@ watch(() => props.activeFile, (newFile) => {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 8px 0;
+  margin: 6px 0;
 }
 
 .ProseMirror ul[data-type="taskList"] li > label {
@@ -819,15 +800,15 @@ watch(() => props.activeFile, (newFile) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
 }
 
 .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent-primary);
+  width: 16px;
+  height: 16px;
+  accent-color: #c9a76c;
   cursor: pointer;
 }
 
@@ -847,12 +828,12 @@ watch(() => props.activeFile, (newFile) => {
 .ProseMirror img {
   max-width: 100%;
   height: auto;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   margin: 1em 0;
 }
 
 .ProseMirror img.ProseMirror-selectednode {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid #c9a76c;
 }
 
 /* Tables */
@@ -861,14 +842,14 @@ watch(() => props.activeFile, (newFile) => {
   width: 100%;
   margin: 1em 0;
   overflow: hidden;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   border: 1px solid var(--border-default);
 }
 
 .ProseMirror th,
 .ProseMirror td {
   border: 1px solid var(--border-subtle);
-  padding: 12px 16px;
+  padding: 10px 14px;
   text-align: left;
   vertical-align: top;
 }
@@ -888,11 +869,11 @@ watch(() => props.activeFile, (newFile) => {
 }
 
 .ProseMirror .selectedCell {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(201, 167, 108, 0.1);
 }
 
 /* Selection */
 .ProseMirror ::selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(201, 167, 108, 0.25);
 }
 </style>

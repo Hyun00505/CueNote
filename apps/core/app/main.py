@@ -224,6 +224,199 @@ async def put_vault_file(payload: VaultFilePayload):
     return {"status": "ok", "todoCount": len(todos)}
 
 
+@app.post("/vault/file")
+async def create_vault_file():
+    """
+    Vault 내에 새로운 마크다운 파일을 자동 생성합니다.
+    파일명은 'Untitled', 'Untitled 1', 'Untitled 2' 등으로 자동 생성됩니다.
+    """
+    # 고유한 파일명 생성
+    base_name = "Untitled"
+    counter = 0
+    
+    while True:
+        if counter == 0:
+            filename = f"{base_name}.md"
+        else:
+            filename = f"{base_name} {counter}.md"
+        
+        file_path = VAULT_PATH / filename
+        if not file_path.exists():
+            break
+        counter += 1
+    
+    try:
+        # 기본 템플릿으로 파일 생성
+        title = filename.replace('.md', '')
+        default_content = f"# {title}\n\n"
+        file_path.write_text(default_content, encoding="utf-8")
+        logger.info("Created file: %s", filename)
+        return {"status": "ok", "path": filename}
+    except Exception as e:
+        logger.error("Failed to create file %s: %s", filename, e)
+        raise HTTPException(status_code=500, detail="Failed to create file")
+
+
+class DeleteFilePayload(BaseModel):
+    path: str
+
+
+# 휴지통 디렉토리
+TRASH_PATH = VAULT_PATH / ".trash"
+
+
+@app.delete("/vault/file")
+async def delete_vault_file(payload: DeleteFilePayload):
+    """
+    Vault 내의 마크다운 파일을 휴지통으로 이동합니다.
+    """
+    # 경로 순회 공격 방지
+    safe_path = Path(payload.path).as_posix()
+    if ".." in safe_path or safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    file_path = VAULT_PATH / safe_path
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if not file_path.is_file():
+        raise HTTPException(status_code=400, detail="Not a file")
+    
+    try:
+        # DB에서 해당 파일의 TODO 삭제
+        conn = get_conn()
+        try:
+            conn.execute("DELETE FROM todos WHERE note_path = ?", (safe_path,))
+            conn.commit()
+        finally:
+            conn.close()
+        
+        # 휴지통 디렉토리 생성
+        TRASH_PATH.mkdir(parents=True, exist_ok=True)
+        
+        # 휴지통에 동일한 이름이 있으면 고유한 이름 생성
+        trash_file = TRASH_PATH / file_path.name
+        counter = 0
+        while trash_file.exists():
+            counter += 1
+            stem = file_path.stem
+            suffix = file_path.suffix
+            trash_file = TRASH_PATH / f"{stem}_{counter}{suffix}"
+        
+        # 파일을 휴지통으로 이동
+        file_path.rename(trash_file)
+        logger.info("Moved to trash: %s -> %s", safe_path, trash_file.name)
+        return {"status": "ok", "path": safe_path}
+    except Exception as e:
+        logger.error("Failed to move file to trash %s: %s", safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to delete file")
+
+
+@app.get("/vault/trash")
+async def list_trash_files():
+    """
+    휴지통 내의 모든 파일을 조회합니다.
+    """
+    if not TRASH_PATH.exists():
+        return {"files": []}
+    
+    files: list[str] = []
+    for md_file in TRASH_PATH.glob("*.md"):
+        files.append(md_file.name)
+    
+    files.sort()
+    logger.info("Found %d files in trash", len(files))
+    return {"files": files}
+
+
+class RestoreFilePayload(BaseModel):
+    filename: str
+
+
+@app.post("/vault/trash/restore")
+async def restore_from_trash(payload: RestoreFilePayload):
+    """
+    휴지통에서 파일을 복원합니다.
+    """
+    filename = payload.filename.strip()
+    if not filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+    
+    trash_file = TRASH_PATH / filename
+    
+    if not trash_file.exists():
+        raise HTTPException(status_code=404, detail="File not found in trash")
+    
+    # 복원할 파일명 결정 (중복 시 번호 추가)
+    restore_name = filename
+    restore_path = VAULT_PATH / restore_name
+    counter = 0
+    while restore_path.exists():
+        counter += 1
+        stem = Path(filename).stem
+        # 기존 번호 제거 (예: Untitled_1 -> Untitled)
+        if "_" in stem and stem.rsplit("_", 1)[-1].isdigit():
+            stem = stem.rsplit("_", 1)[0]
+        restore_name = f"{stem}_{counter}.md"
+        restore_path = VAULT_PATH / restore_name
+    
+    try:
+        trash_file.rename(restore_path)
+        logger.info("Restored from trash: %s -> %s", filename, restore_name)
+        return {"status": "ok", "path": restore_name}
+    except Exception as e:
+        logger.error("Failed to restore file %s: %s", filename, e)
+        raise HTTPException(status_code=500, detail="Failed to restore file")
+
+
+class PermanentDeletePayload(BaseModel):
+    filename: str
+
+
+@app.delete("/vault/trash")
+async def permanent_delete(payload: PermanentDeletePayload):
+    """
+    휴지통에서 파일을 영구 삭제합니다.
+    """
+    filename = payload.filename.strip()
+    if not filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+    
+    trash_file = TRASH_PATH / filename
+    
+    if not trash_file.exists():
+        raise HTTPException(status_code=404, detail="File not found in trash")
+    
+    try:
+        trash_file.unlink()
+        logger.info("Permanently deleted: %s", filename)
+        return {"status": "ok", "filename": filename}
+    except Exception as e:
+        logger.error("Failed to permanently delete %s: %s", filename, e)
+        raise HTTPException(status_code=500, detail="Failed to delete file")
+
+
+@app.delete("/vault/trash/empty")
+async def empty_trash():
+    """
+    휴지통을 비웁니다.
+    """
+    if not TRASH_PATH.exists():
+        return {"status": "ok", "deleted": 0}
+    
+    deleted_count = 0
+    try:
+        for md_file in TRASH_PATH.glob("*.md"):
+            md_file.unlink()
+            deleted_count += 1
+        logger.info("Emptied trash: %d files deleted", deleted_count)
+        return {"status": "ok", "deleted": deleted_count}
+    except Exception as e:
+        logger.error("Failed to empty trash: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to empty trash")
+
+
 @app.get("/todos")
 async def get_todos(checked: Optional[bool] = Query(default=None)):
     conn = get_conn()

@@ -298,7 +298,7 @@ function insertTable() {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 16px;
+  padding: 6px 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   flex-wrap: wrap;
@@ -307,12 +307,12 @@ function insertTable() {
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
 }
 
 .toolbar-divider {
   width: 1px;
-  height: 24px;
+  height: 20px;
   background: var(--border-subtle);
   margin: 0 8px;
 }
@@ -321,44 +321,50 @@ function insertTable() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  border-radius: 4px;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.12s ease;
 }
 
 .toolbar-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
 
 .toolbar-btn:active:not(:disabled) {
-  background: var(--bg-active);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .toolbar-btn.active {
-  background: var(--accent-primary);
-  color: white;
+  background: rgba(201, 167, 108, 0.15);
+  color: #e8d5b7;
 }
 
 .toolbar-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
 .heading-icon {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
+  letter-spacing: -0.5px;
 }
 
 .toolbar-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
+  opacity: 0.85;
+}
+
+.toolbar-btn.active svg {
+  opacity: 1;
 }
 </style>
