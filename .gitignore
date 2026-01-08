@@ -1,7 +1,73 @@
+# Dependencies
 node_modules
 .pnp.*
+.pnpm-debug.log*
+.npm
+.yarn/
+
+# Build outputs
 dist
-.DS_Store
-apps/core/__pycache__/*
+build
+out
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+*.egg
+.pytest_cache/
+
+# Database
 apps/core/data/cuenote.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+nul
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Temporary files
+COMMIT_MESSAGE.txt
+PR_MESSAGE.md
+*.tmp
+*.temp
+
+# Project specific
 sLLM_python/data/
+.claude/
