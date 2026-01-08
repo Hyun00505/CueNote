@@ -3,9 +3,27 @@
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
-          <span class="logo-symbol">C</span>
+          <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- 메인 노트 형태 -->
+            <rect x="6" y="4" width="20" height="24" rx="3" fill="url(#logoGradient)" />
+            <!-- 노트 라인들 -->
+            <line x1="10" y1="11" x2="22" y2="11" stroke="rgba(26,26,46,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="10" y1="16" x2="18" y2="16" stroke="rgba(26,26,46,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="10" y1="21" x2="20" y2="21" stroke="rgba(26,26,46,0.2)" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- 큐 포인트 (왼쪽 마커) -->
+            <circle cx="6" cy="11" r="2.5" fill="#FF6B6B"/>
+            <circle cx="6" cy="11" r="1" fill="#fff"/>
+            <defs>
+              <linearGradient id="logoGradient" x1="6" y1="4" x2="26" y2="28" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#F0E6D3"/>
+                <stop offset="100%" stop-color="#D4C4A8"/>
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
-        <span class="logo-text">CueNote</span>
+        <span class="logo-text">
+          <span class="logo-cue">Cue</span><span class="logo-note">Note</span>
+        </span>
       </div>
       <button class="icon-btn" @click="$emit('toggle-collapse')" title="Toggle Sidebar">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -659,30 +677,53 @@ async function handleEmptyTrash() {
 }
 
 .logo-icon {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1a1a2e;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(145deg, #1f1f3a, #151528);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.logo-symbol {
-  font-family: 'Georgia', serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: #e8d5b7;
-  font-style: italic;
+.logo-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.logo-svg {
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .logo-text {
-  font-family: 'Georgia', serif;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: baseline;
+}
+
+.logo-cue {
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.logo-note {
   color: var(--text-primary);
-  letter-spacing: -0.3px;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  opacity: 0.9;
 }
 
 .icon-btn {
