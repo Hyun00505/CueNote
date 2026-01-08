@@ -104,7 +104,16 @@
         </div>
       </Transition>
 
-      <div ref="editorWrapperRef" class="editor-content-wrapper" @contextmenu="handleContextMenu">
+      <div 
+        ref="editorWrapperRef" 
+        class="editor-content-wrapper" 
+        :class="{ 'drag-over': isDraggingOver }"
+        @contextmenu="handleContextMenu"
+        @dragenter="handleDragEnter"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop"
+      >
         <EditorContent :editor="editor" class="editor-content" />
         
         <!-- AI 스트리밍 프리뷰 (실시간으로 생성 중인 텍스트 표시) -->
@@ -189,9 +198,13 @@ import { DOMSerializer } from '@tiptap/pm/model';
 import EditorToolbar from './EditorToolbar.vue';
 import AIContextMenu from './AIContextMenu.vue';
 import AIInlineDiff from './AIInlineDiff.vue';
+import { useSettings } from '../composables';
 
 const lowlight = createLowlight(common);
 const CORE_BASE = 'http://127.0.0.1:8787';
+
+// LLM 설정 가져오기
+const { settings: llmSettings } = useSettings();
 
 const props = defineProps<{
   activeFile: string | null;
@@ -233,6 +246,10 @@ const savedSelection = ref<{ from: number; to: number } | null>(null);
 
 // 에디터 wrapper ref
 const editorWrapperRef = ref<HTMLElement | null>(null);
+
+// 드래그 앤 드롭 상태
+const isDraggingOver = ref(false);
+let dragCounter = 0;
 
 // 레거시 diff 뷰 상태 (비활성화)
 const showDiffView = ref(false);
@@ -314,8 +331,8 @@ function markdownToHtml(md: string): string {
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-  // Images
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  // Images - Base64 이미지도 지원 (긴 URL 처리)
+  html = html.replace(/!\[([^\]]*)\]\((data:[^)]+|[^)]+)\)/g, '<img src="$2" alt="$1">');
 
   // Task lists
   html = html.replace(/^- \[x\] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked><span></span></label><div>$1</div></li></ul>');
@@ -423,9 +440,15 @@ function htmlToMarkdown(html: string): string {
   // Links
   md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
 
-  // Images
-  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
-  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+  // Images - 다양한 속성 순서와 Base64 이미지 지원
+  md = md.replace(/<img[^>]+>/gi, (match) => {
+    const srcMatch = match.match(/src="([^"]+)"/i);
+    const altMatch = match.match(/alt="([^"]*)"/i);
+    const src = srcMatch ? srcMatch[1] : '';
+    const alt = altMatch ? altMatch[1] : '';
+    if (!src) return ''; // src가 없으면 무시
+    return `![${alt}](${src})`;
+  });
 
   // Task lists
   md = md.replace(/<ul[^>]*data-type="taskList"[^>]*>([\s\S]*?)<\/ul>/gi, (_, content) => {
@@ -503,7 +526,9 @@ async function openFile(filePath: string) {
     const htmlContent = markdownToHtml(content);
 
     if (editor.value) {
-      editor.value.commands.setContent(htmlContent);
+      // 새 파일을 열 때 에디터 내용을 설정
+      // emitUpdate: false로 히스토리에 추가되지 않도록 함
+      editor.value.commands.setContent(htmlContent, { emitUpdate: false });
     }
   } catch (error) {
     editorError.value = '파일 열기 실패. 백엔드가 실행 중인지 확인하세요.';
@@ -554,10 +579,20 @@ async function handleSummarize() {
       return;
     }
     
+    // 스트리밍 API를 사용하여 요약 (LLM 설정 포함)
+    const body = {
+      content,
+      action: 'summarize',
+      language: 'ko',
+      provider: llmSettings.value.llm.provider,
+      api_key: llmSettings.value.llm.apiKey,
+      model: llmSettings.value.llm.model
+    };
+    
     const res = await fetch(`${CORE_BASE}/ai/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, language: 'ko' })
+      body: JSON.stringify(body)
     });
     
     if (!res.ok) {
@@ -571,7 +606,8 @@ async function handleSummarize() {
       wordCount: data.wordCount
     };
   } catch (error) {
-    editorError.value = '요약 생성에 실패했습니다. Ollama가 실행 중인지 확인하세요.';
+    const providerName = llmSettings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
+    editorError.value = `요약 생성에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`;
     console.error('Summarize failed:', error);
   } finally {
     summarizing.value = false;
@@ -1016,8 +1052,140 @@ function handleAIError(message: string) {
   }, 5000);
 }
 
+// 드래그 앤 드롭 핸들러
+function handleDragEnter(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  dragCounter++;
+  
+  if (e.dataTransfer?.types.includes('Files')) {
+    isDraggingOver.value = true;
+  }
+}
+
+function handleDragOver(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = 'copy';
+  }
+}
+
+function handleDragLeave(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  dragCounter--;
+  
+  if (dragCounter === 0) {
+    isDraggingOver.value = false;
+  }
+}
+
+async function handleDrop(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  dragCounter = 0;
+  isDraggingOver.value = false;
+  
+  if (!editor.value || !e.dataTransfer?.files.length) return;
+  
+  const files = Array.from(e.dataTransfer.files);
+  const imageFiles = files.filter(file => file.type.startsWith('image/'));
+  
+  if (imageFiles.length === 0) {
+    handleAIError('이미지 파일만 드롭할 수 있습니다.');
+    return;
+  }
+  
+  // 드롭 위치 계산
+  const view = editor.value.view;
+  const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
+  
+  for (const file of imageFiles) {
+    try {
+      // 파일을 Base64로 변환 후 서버에 업로드
+      const base64 = await fileToBase64(file);
+      const imageUrl = await uploadImage(base64);
+      
+      if (!imageUrl) {
+        handleAIError('이미지 업로드에 실패했습니다.');
+        continue;
+      }
+      
+      // 에디터에 이미지 삽입 (서버 URL 사용)
+      if (pos) {
+        editor.value.chain()
+          .focus()
+          .setTextSelection(pos.pos)
+          .setImage({ src: imageUrl })
+          .run();
+      } else {
+        // 위치를 찾을 수 없으면 현재 커서 위치에 삽입
+        editor.value.chain()
+          .focus()
+          .setImage({ src: imageUrl })
+          .run();
+      }
+    } catch (error) {
+      console.error('Image drop failed:', error);
+      handleAIError('이미지 삽입에 실패했습니다.');
+    }
+  }
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 이미지를 서버에 업로드하고 URL 반환
+async function uploadImage(base64Data: string): Promise<string | null> {
+  try {
+    // 현재 편집 중인 파일명 추출
+    const noteName = props.activeFile || undefined;
+    
+    const res = await fetch(`${CORE_BASE}/vault/image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        data: base64Data,
+        note_name: noteName  // 이미지 파일명에 노트 이름 포함
+      })
+    });
+    
+    if (!res.ok) {
+      console.error('Image upload failed:', res.status);
+      return null;
+    }
+    
+    const data = await res.json();
+    // 서버에서 반환한 URL 사용 (예: /vault/image/xxx.png)
+    return `${CORE_BASE}${data.url}`;
+  } catch (error) {
+    console.error('Image upload error:', error);
+    return null;
+  }
+}
+
+// Electron에서 파일 드롭 시 새 창 열리는 것 방지
+function preventDefaultDrop(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
+  
+  // 전역 드래그 앤 드롭 기본 동작 방지 (Electron에서 새 창 열리는 것 방지)
+  document.addEventListener('dragover', preventDefaultDrop);
+  document.addEventListener('drop', preventDefaultDrop);
+  
   if (props.activeFile) {
     openFile(props.activeFile);
   }
@@ -1025,6 +1193,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
+  document.removeEventListener('dragover', preventDefaultDrop);
+  document.removeEventListener('drop', preventDefaultDrop);
   editor.value?.destroy();
 });
 
@@ -1216,6 +1386,31 @@ watch(() => props.activeFile, (newFile) => {
   padding: 32px 48px;
   background: var(--bg-primary);
   position: relative;
+  transition: all 0.2s ease;
+}
+
+.editor-content-wrapper.drag-over {
+  background: rgba(201, 167, 108, 0.05);
+  outline: 2px dashed rgba(201, 167, 108, 0.5);
+  outline-offset: -8px;
+}
+
+.editor-content-wrapper.drag-over::after {
+  content: '이미지를 여기에 드롭하세요';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 40px;
+  background: rgba(30, 30, 35, 0.95);
+  border: 2px dashed rgba(201, 167, 108, 0.6);
+  border-radius: 16px;
+  color: #e8d5b7;
+  font-size: 16px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .editor-content {
@@ -1499,31 +1694,150 @@ watch(() => props.activeFile, (newFile) => {
   border-radius: 2px;
 }
 
-/* Code */
+/* Inline Code */
 .ProseMirror code {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(232, 213, 183, 0.12);
   color: #e8d5b7;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: var(--font-mono);
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
   font-size: 0.88em;
+  border: 1px solid rgba(232, 213, 183, 0.15);
 }
 
+/* Code Block Container */
 .ProseMirror pre {
-  background: #0a0a0c;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 16px 20px;
-  overflow-x: auto;
-  margin: 1em 0;
+  position: relative;
+  background: linear-gradient(135deg, #0d0d12 0%, #12121a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  margin: 1.5em 0;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Code Block Header Bar */
+.ProseMirror pre::before {
+  content: '';
+  display: block;
+  height: 36px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 16px;
+}
+
+/* Code Block Window Dots */
+.ProseMirror pre::after {
+  content: '●  ●  ●';
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.15);
 }
 
 .ProseMirror pre code {
+  display: block;
   background: transparent;
-  padding: 0;
-  color: var(--text-primary);
-  font-size: 13px;
-  line-height: 1.6;
+  padding: 16px 20px 20px;
+  color: #e4e4e7;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  font-size: 13.5px;
+  line-height: 1.7;
+  tab-size: 2;
+  border: none;
+  overflow-x: auto;
+}
+
+/* Syntax Highlighting Colors */
+.ProseMirror pre code .hljs-keyword,
+.ProseMirror pre code .hljs-selector-tag,
+.ProseMirror pre code .hljs-built_in {
+  color: #c792ea;
+}
+
+.ProseMirror pre code .hljs-string,
+.ProseMirror pre code .hljs-attr {
+  color: #c3e88d;
+}
+
+.ProseMirror pre code .hljs-number,
+.ProseMirror pre code .hljs-literal {
+  color: #f78c6c;
+}
+
+.ProseMirror pre code .hljs-function,
+.ProseMirror pre code .hljs-title {
+  color: #82aaff;
+}
+
+.ProseMirror pre code .hljs-comment {
+  color: #676e95;
+  font-style: italic;
+}
+
+.ProseMirror pre code .hljs-variable,
+.ProseMirror pre code .hljs-template-variable {
+  color: #f07178;
+}
+
+.ProseMirror pre code .hljs-type,
+.ProseMirror pre code .hljs-class {
+  color: #ffcb6b;
+}
+
+.ProseMirror pre code .hljs-meta {
+  color: #89ddff;
+}
+
+.ProseMirror pre code .hljs-tag {
+  color: #f07178;
+}
+
+.ProseMirror pre code .hljs-name {
+  color: #ff5370;
+}
+
+.ProseMirror pre code .hljs-attribute {
+  color: #c792ea;
+}
+
+.ProseMirror pre code .hljs-symbol,
+.ProseMirror pre code .hljs-bullet {
+  color: #89ddff;
+}
+
+.ProseMirror pre code .hljs-addition {
+  color: #c3e88d;
+  background: rgba(195, 232, 141, 0.1);
+}
+
+.ProseMirror pre code .hljs-deletion {
+  color: #ff5370;
+  background: rgba(255, 83, 112, 0.1);
+}
+
+/* Code Block Scrollbar */
+.ProseMirror pre code::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ProseMirror pre code::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+}
+
+.ProseMirror pre code::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.ProseMirror pre code::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Blockquote */

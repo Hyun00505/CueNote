@@ -1,12 +1,14 @@
 """
 CueNote Core - AI 라우터
 요약, 번역, 다듬기, 스트리밍 등 AI 기능
+Ollama 및 Gemini API 지원
 """
 from fastapi import APIRouter, HTTPException
 from sse_starlette.sse import EventSourceResponse
 
 from ..config import logger
-from ..ollama_client import call_json, process_long_text, stream_generate, MAX_INPUT_CHARS
+from .. import ollama_client
+from .. import gemini_client
 from ..schemas import (
     SummarizePayload, SummarizeResponse,
     TranslatePayload, TranslateResponse,
@@ -15,6 +17,23 @@ from ..schemas import (
     ShortenPayload, ShortenResponse,
     StreamPayload
 )
+
+# 기존 호환성을 위한 import
+from ..ollama_client import process_long_text, MAX_INPUT_CHARS
+
+
+def call_json_with_provider(
+    prompt: str,
+    schema_hint: str,
+    provider: str = "ollama",
+    api_key: str = "",
+    model: str = None
+):
+    """LLM 제공자에 따라 적절한 클라이언트로 JSON 호출"""
+    if provider == "gemini" and api_key:
+        return gemini_client.call_json(prompt, schema_hint, api_key, model)
+    else:
+        return ollama_client.call_json(prompt, schema_hint, model)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -53,7 +72,13 @@ async def summarize_note(payload: SummarizePayload):
     )
     
     try:
-        result = call_json(prompt, "SummarizeResult with fields summary, keyPoints")
+        result = call_json_with_provider(
+            prompt,
+            "SummarizeResult with fields summary, keyPoints",
+            provider=payload.provider,
+            api_key=payload.api_key,
+            model=payload.model if payload.model else None
+        )
         summary = result.get("summary", "요약 생성 실패")
         if truncation_warning:
             summary = f"{summary}\n\n{truncation_warning}"
@@ -102,7 +127,13 @@ async def translate_text(payload: TranslatePayload):
     )
     
     try:
-        result = call_json(prompt, "TranslateResult with fields translated, source_language")
+        result = call_json_with_provider(
+            prompt,
+            "TranslateResult with fields translated, source_language",
+            provider=payload.provider,
+            api_key=payload.api_key,
+            model=payload.model if payload.model else None
+        )
         translated = result.get("translated", content)
         if truncation_warning:
             translated = f"{translated}\n\n{truncation_warning}"
@@ -155,7 +186,13 @@ async def improve_text(payload: ImprovePayload):
     )
     
     try:
-        result = call_json(prompt, "ImproveResult with fields improved, changes")
+        result = call_json_with_provider(
+            prompt,
+            "ImproveResult with fields improved, changes",
+            provider=payload.provider,
+            api_key=payload.api_key,
+            model=payload.model if payload.model else None
+        )
         improved = result.get("improved", content)
         if truncation_warning:
             improved = f"{improved}\n\n{truncation_warning}"
@@ -198,7 +235,13 @@ async def expand_text(payload: ExpandPayload):
     )
     
     try:
-        result = call_json(prompt, "ExpandResult with field expanded")
+        result = call_json_with_provider(
+            prompt,
+            "ExpandResult with field expanded",
+            provider=payload.provider,
+            api_key=payload.api_key,
+            model=payload.model if payload.model else None
+        )
         expanded = result.get("expanded", content)
         if truncation_warning:
             expanded = f"{expanded}\n\n{truncation_warning}"
@@ -238,7 +281,13 @@ async def shorten_text(payload: ShortenPayload):
     )
     
     try:
-        result = call_json(prompt, "ShortenResult with field shortened")
+        result = call_json_with_provider(
+            prompt,
+            "ShortenResult with field shortened",
+            provider=payload.provider,
+            api_key=payload.api_key,
+            model=payload.model if payload.model else None
+        )
         shortened = result.get("shortened", content)
         if truncation_warning:
             shortened = f"{shortened}\n\n{truncation_warning}"
@@ -258,12 +307,18 @@ def build_stream_prompt(payload: StreamPayload) -> str:
     
     preserve_rules = (
         "CRITICAL RULES:\n"
-        "- Output ONLY the result text, no explanations\n"
-        "- Write words and sentences as continuous text\n"
-        "- Do NOT add line breaks between characters or words\n"
-        "- Do NOT add spaces between characters\n"
-        "- Keep original paragraph structure (line breaks between paragraphs only)\n"
-        "- PRESERVE markdown syntax: # headers, - lists, **bold**, *italic*\n"
+        "- Output ONLY the result text, no explanations or comments\n"
+        "- PRESERVE ALL SPACES between words exactly as normal text\n"
+        "- PRESERVE ALL LINE BREAKS and paragraph structure\n"
+        "- PRESERVE ALL MARKDOWN FORMATTING exactly:\n"
+        "  * Headers: # ## ### etc.\n"
+        "  * Lists: - item or * item\n"
+        "  * Checkboxes: - [ ] or - [x]\n"
+        "  * Bold: **text**\n"
+        "  * Italic: *text*\n"
+        "  * Links: [text](url)\n"
+        "  * Code: `code` or ```code```\n"
+        "- Write naturally with proper spacing between words\n"
     )
     
     if payload.action == "translate":
@@ -349,9 +404,20 @@ async def ai_stream(payload: StreamPayload):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
+    # LLM 제공자에 따른 스트리밍 함수 선택
+    provider = payload.provider
+    api_key = payload.api_key
+    model = payload.model if payload.model else None
+    
     async def event_generator():
         try:
-            async for chunk in stream_generate(prompt):
+            # Gemini 또는 Ollama 스트리밍 선택
+            if provider == "gemini" and api_key:
+                stream_func = gemini_client.stream_generate(prompt, api_key, model)
+            else:
+                stream_func = ollama_client.stream_generate(prompt, model)
+            
+            async for chunk in stream_func:
                 escaped_chunk = chunk.replace('\n', '\\n')
                 yield {"event": "message", "data": escaped_chunk}
             

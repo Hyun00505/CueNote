@@ -16,6 +16,7 @@
         :vault-name="vaultName"
         :current-view="currentView"
         @change-view="currentView = $event"
+        @open-settings="showSettings = true"
       />
 
       <div class="content-area">
@@ -30,18 +31,25 @@
         />
       </div>
     </main>
+
+    <!-- Settings Modal -->
+    <SettingsModal
+      :is-open="showSettings"
+      @close="showSettings = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { AppSidebar, MainHeader, EditorView, DashboardView } from './components';
+import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsModal } from './components';
 import { useVault, useHealth } from './composables';
 import type { ViewType } from './types';
 
 const sidebarCollapsed = ref(false);
 const currentView = ref<ViewType>('editor');
 const activeFile = ref<string | null>(null);
+const showSettings = ref(false);
 
 const { vaultPath, initVault } = useVault();
 const { checkHealth } = useHealth();

@@ -35,6 +35,13 @@ class PermanentDeletePayload(BaseModel):
     filename: str
 
 
+class ImageUploadPayload(BaseModel):
+    """Base64 이미지 업로드"""
+    data: str  # Base64 인코딩된 이미지 데이터 (data:image/png;base64,... 형식)
+    filename: Optional[str] = None  # 원본 파일명 (선택)
+    note_name: Optional[str] = None  # 현재 편집 중인 노트 이름 (이미지 파일명에 사용)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # TODO 스키마
 # ─────────────────────────────────────────────────────────────────────────────
@@ -62,6 +69,10 @@ class TodayPlan(BaseModel):
 class SummarizePayload(BaseModel):
     content: str = Field(..., description="노트 내용 (마크다운)")
     language: str = Field(default="ko", description="요약 언어 (ko, en 등)")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class SummarizeResponse(BaseModel):
@@ -73,6 +84,10 @@ class SummarizeResponse(BaseModel):
 class TranslatePayload(BaseModel):
     content: str = Field(..., description="번역할 텍스트")
     target_language: str = Field(default="en", description="대상 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class TranslateResponse(BaseModel):
@@ -84,6 +99,10 @@ class ImprovePayload(BaseModel):
     content: str = Field(..., description="개선할 텍스트")
     style: str = Field(default="professional", description="스타일")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class ImproveResponse(BaseModel):
@@ -94,6 +113,10 @@ class ImproveResponse(BaseModel):
 class ExpandPayload(BaseModel):
     content: str = Field(..., description="확장할 텍스트")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class ExpandResponse(BaseModel):
@@ -103,6 +126,10 @@ class ExpandResponse(BaseModel):
 class ShortenPayload(BaseModel):
     content: str = Field(..., description="축약할 텍스트")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class ShortenResponse(BaseModel):
@@ -115,3 +142,35 @@ class StreamPayload(BaseModel):
     target_language: str = Field(default="en", description="번역 대상 언어")
     style: str = Field(default="professional", description="개선 스타일")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LLM 설정 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LLMProvider(BaseModel):
+    id: str = Field(..., description="제공자 ID (ollama, gemini)")
+    name: str = Field(..., description="표시 이름")
+    requiresApiKey: bool = Field(..., description="API 키 필요 여부")
+
+
+class LLMModel(BaseModel):
+    id: str = Field(..., description="모델 ID")
+    name: str = Field(..., description="모델 표시 이름")
+    description: str = Field(default="", description="모델 설명")
+    free: bool = Field(default=True, description="무료 여부")
+    context_window: int = Field(default=4096, description="컨텍스트 윈도우 크기")
+
+
+class LLMSettingsPayload(BaseModel):
+    provider: str = Field(default="ollama", description="LLM 제공자")
+    api_key: str = Field(default="", description="API 키")
+    model: str = Field(default="", description="선택한 모델")
+
+
+class ValidateApiKeyPayload(BaseModel):
+    api_key: str = Field(..., description="검증할 API 키")

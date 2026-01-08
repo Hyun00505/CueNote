@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import init_db
-from .routers import vault_router, todos_router, ai_router
+from .routers import vault_router, todos_router, ai_router, llm_router, environment_router
 
 # 로거 설정
 logger = logging.getLogger("cuenote.core")
@@ -33,6 +33,8 @@ app.add_middleware(
 app.include_router(vault_router)
 app.include_router(todos_router)
 app.include_router(ai_router)
+app.include_router(llm_router)
+app.include_router(environment_router)
 
 
 @app.on_event("startup")

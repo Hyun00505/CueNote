@@ -9,7 +9,7 @@ from fastapi import APIRouter, Query
 
 from ..config import logger
 from ..db import get_conn
-from ..ollama_client import call_json, OLLAMA_MODEL_PLAN
+from ..ollama_client import call_json
 from ..schemas import TodoItem
 
 router = APIRouter(tags=["todos"])
@@ -108,5 +108,6 @@ async def today_plan():
         "Return JSON only."
     )
     schema_hint = "TodayPlan with fields tldr, overdue, dueSoon, nextActions, quickWins"
-    plan = call_json(prompt, schema_hint, model=OLLAMA_MODEL_PLAN)
+    # model=None이면 설정된 기본 모델 사용
+    plan = call_json(prompt, schema_hint, model=None)
     return plan

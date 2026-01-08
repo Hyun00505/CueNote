@@ -1,20 +1,21 @@
 # Welcome to CueNote 👋
 
-CueNote는 로컬 우선, AI 지원 마크다운 노트북 애플리케이션입니다.
+CueNote is a local-first, AI-powered markdown notebook application.
 
-## 시작하기
+## Getting Started
 
-이 파일은 CueNote의 기본 vault에 있는 샘플 파일입니다.
+This file is a sample file in CueNote's default vault.
 
-### TODO 예시
+### TODO Example
 
-- [ ] CueNote 기능 살펴보기
-- [ ] 새 노트 작성해보기
-- [x] 샘플 파일 확인하기
+- [ ] Explore CueNote features
 
-## 기능
+- [ ] Try writing a new note
 
-- **마크다운 편집**: 구문 강조가 지원되는 마크다운 에디터
-- **TODO 관리**: 마크다운 파일에서 TODO를 자동 인덱싱
-- **AI 지원**: Ollama를 통한 로컬 AI 일일 계획 생성
+- [x] Check the sample file
 
+## Features
+
+- **Markdown Editing**: Markdown editor with syntax highlighting
+- **TODO Management**: Automatic indexing of TODOs in markdown files
+- **AI Support**: Local AI daily plan generation via Ollama

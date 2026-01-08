@@ -15,15 +15,58 @@
     </div>
 
     <div class="sidebar-content">
+      <!-- Environment Section -->
+      <div class="sidebar-section environment-section">
+        <div class="env-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+          </svg>
+          <span class="env-label">환경</span>
+          <button class="env-add-btn" @click="showEnvModal = true" title="환경 추가">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="env-selector" @click="toggleEnvDropdown">
+          <div class="env-current">
+            <span class="env-name">{{ currentEnvironment?.name || '환경 선택' }}</span>
+            <svg :class="{ rotated: envDropdownOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div v-if="envDropdownOpen" class="env-dropdown">
+          <div 
+            v-for="env in environments" 
+            :key="env.id" 
+            class="env-item"
+            :class="{ active: env.id === currentId, invalid: !env.exists }"
+            @click="handleSelectEnvironment(env.id)"
+          >
+            <div class="env-item-info">
+              <span class="env-item-name">{{ env.name }}</span>
+              <span class="env-item-path">{{ truncatePath(env.path) }}</span>
+            </div>
+            <button 
+              v-if="environments.length > 1" 
+              class="env-remove-btn" 
+              @click.stop="handleRemoveEnvironment(env.id)"
+              title="환경 제거"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Vault Section -->
       <div class="sidebar-section">
-        <button class="vault-btn" @click="openVault">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span>{{ vaultPath ? vaultPath.split(/[/\\]/).pop() : 'Open Vault' }}</span>
-        </button>
-
         <div v-if="vaultPath && todoCount !== null" class="vault-stats">
           <span class="stat">{{ vaultFiles.length }} notes</span>
           <span class="stat-dot">·</span>
@@ -198,11 +241,88 @@
       </div>
     </div>
   </aside>
+
+  <!-- 환경 추가 모달 -->
+  <Teleport to="body">
+    <div v-if="showEnvModal" class="env-modal-overlay" @click.self="closeEnvModal">
+      <div class="env-modal">
+        <div class="env-modal-header">
+          <h3>새 환경 추가</h3>
+          <button class="env-modal-close" @click="closeEnvModal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="env-modal-body">
+          <div class="env-form-group">
+            <label>환경 이름</label>
+            <input 
+              v-model="newEnvName" 
+              type="text" 
+              placeholder="예: 개인 노트, 업무 프로젝트..."
+              @keydown.enter="handleAddEnvironment"
+            />
+          </div>
+          <div class="env-form-group">
+            <label>폴더 경로</label>
+            <div class="env-path-input">
+              <input 
+                v-model="newEnvPath" 
+                type="text" 
+                placeholder="폴더 경로를 입력하세요"
+                readonly
+              />
+              <button class="env-browse-btn" @click="browseFolder">찾아보기</button>
+            </div>
+          </div>
+          <p v-if="envError" class="env-error">{{ envError }}</p>
+        </div>
+        <div class="env-modal-footer">
+          <button class="env-modal-btn cancel" @click="closeEnvModal">취소</button>
+          <button class="env-modal-btn primary" @click="handleAddEnvironment" :disabled="!newEnvName || !newEnvPath">
+            추가
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <!-- 환경 삭제 확인 모달 -->
+  <Teleport to="body">
+    <div v-if="showDeleteEnvModal" class="env-modal-overlay delete-confirm" @click.self="closeDeleteEnvModal">
+      <div class="env-modal delete-modal">
+        <div class="delete-modal-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+        </div>
+        <div class="delete-modal-content">
+          <h3>환경 제거</h3>
+          <p class="delete-env-name">{{ envToDelete?.name }}</p>
+          <p class="delete-description">
+            이 환경을 목록에서 제거하시겠습니까?<br/>
+            <span class="delete-note">실제 폴더와 파일은 삭제되지 않습니다.</span>
+          </p>
+        </div>
+        <div class="delete-modal-footer">
+          <button class="env-modal-btn cancel" @click="closeDeleteEnvModal">취소</button>
+          <button class="env-modal-btn danger" @click="confirmDeleteEnvironment">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            제거
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
-import { useVault, useHealth } from '../composables';
+import { ref, nextTick, onMounted, watch } from 'vue';
+import { useVault, useHealth, useEnvironment } from '../composables';
 
 const props = defineProps<{
   collapsed: boolean;
@@ -216,6 +336,7 @@ const emit = defineEmits<{
   'file-created': [file: string];
   'file-restored': [file: string];
   'file-renamed': [oldPath: string, newPath: string];
+  'environment-changed': [];
 }>();
 
 const { 
@@ -230,9 +351,20 @@ const {
   renameFile,
   restoreFile,
   permanentDelete,
-  emptyTrash
+  emptyTrash,
+  refreshFiles
 } = useVault();
 const { coreStatus } = useHealth();
+const {
+  environments,
+  currentId,
+  currentEnvironment,
+  error: envError,
+  fetchEnvironments,
+  addEnvironment,
+  selectEnvironment,
+  removeEnvironment
+} = useEnvironment();
 
 // State
 const isCreating = ref(false);
@@ -243,6 +375,112 @@ const editingFile = ref<string | null>(null);
 const editingName = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 const editInputRef = ref<HTMLInputElement | null>(null);
+
+// Environment State
+const envDropdownOpen = ref(false);
+const showEnvModal = ref(false);
+const newEnvName = ref('');
+const newEnvPath = ref('');
+const showDeleteEnvModal = ref(false);
+const envToDelete = ref<{ id: string; name: string; path: string } | null>(null);
+
+// 환경 초기화
+onMounted(async () => {
+  await fetchEnvironments();
+});
+
+// 환경 드롭다운 토글
+function toggleEnvDropdown() {
+  envDropdownOpen.value = !envDropdownOpen.value;
+}
+
+// 환경 선택
+async function handleSelectEnvironment(id: string) {
+  if (id === currentId.value) {
+    envDropdownOpen.value = false;
+    return;
+  }
+  
+  const success = await selectEnvironment(id);
+  if (success) {
+    envDropdownOpen.value = false;
+    // 파일 목록 새로고침
+    await refreshFiles();
+    emit('environment-changed');
+  }
+}
+
+// 환경 제거 모달 열기
+function handleRemoveEnvironment(id: string) {
+  const env = environments.value.find(e => e.id === id);
+  if (env) {
+    envToDelete.value = { id: env.id, name: env.name, path: env.path };
+    showDeleteEnvModal.value = true;
+    envDropdownOpen.value = false;
+  }
+}
+
+// 환경 삭제 확인 모달 닫기
+function closeDeleteEnvModal() {
+  showDeleteEnvModal.value = false;
+  envToDelete.value = null;
+}
+
+// 환경 삭제 확정
+async function confirmDeleteEnvironment() {
+  if (!envToDelete.value) return;
+  
+  const success = await removeEnvironment(envToDelete.value.id);
+  if (success) {
+    await refreshFiles();
+    emit('environment-changed');
+  }
+  closeDeleteEnvModal();
+}
+
+// 환경 추가 모달 닫기
+function closeEnvModal() {
+  showEnvModal.value = false;
+  newEnvName.value = '';
+  newEnvPath.value = '';
+}
+
+// 폴더 선택 (Electron 다이얼로그)
+async function browseFolder() {
+  // Electron 환경에서 폴더 선택 다이얼로그 열기
+  if (window.cuenote?.selectVault) {
+    const result = await window.cuenote.selectVault();
+    if (result) {
+      newEnvPath.value = result;
+    }
+  } else {
+    // 웹 환경에서는 수동 입력
+    const path = prompt('폴더 경로를 입력하세요:');
+    if (path) {
+      newEnvPath.value = path;
+    }
+  }
+}
+
+// 환경 추가
+async function handleAddEnvironment() {
+  if (!newEnvName.value || !newEnvPath.value) return;
+  
+  const success = await addEnvironment(newEnvName.value, newEnvPath.value);
+  if (success) {
+    closeEnvModal();
+    await refreshFiles();
+    emit('environment-changed');
+  }
+}
+
+// 경로 truncate
+function truncatePath(path: string): string {
+  if (path.length <= 30) return path;
+  const parts = path.split(/[/\\]/);
+  if (parts.length <= 3) return path;
+  return `...${parts.slice(-2).join('/')}`;
+}
 
 function getFileName(path: string): string {
   const name = path.split(/[/\\]/).pop() || path;
@@ -895,6 +1133,454 @@ async function handleEmptyTrash() {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Environment Section */
+.environment-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.env-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.env-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.env-add-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.env-add-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.env-selector {
+  cursor: pointer;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.env-selector:hover {
+  border-color: var(--accent);
+}
+
+.env-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.env-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.env-current svg {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.env-current svg.rotated {
+  transform: rotate(180deg);
+}
+
+.env-dropdown {
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.env-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.env-item:last-child {
+  border-bottom: none;
+}
+
+.env-item:hover {
+  background: var(--bg-hover);
+}
+
+.env-item.active {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.env-item.invalid {
+  opacity: 0.5;
+}
+
+.env-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.env-item-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.env-item-path {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.env-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.env-item:hover .env-remove-btn {
+  opacity: 1;
+}
+
+.env-remove-btn:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+/* Environment Modal */
+.env-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.env-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: modalSlideUp 0.2s ease;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.env-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.env-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.env-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.env-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.env-modal-body {
+  padding: 24px;
+}
+
+.env-form-group {
+  margin-bottom: 16px;
+}
+
+.env-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.env-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.env-form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.env-form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+}
+
+.env-path-input {
+  display: flex;
+  gap: 8px;
+}
+
+.env-path-input input {
+  flex: 1;
+}
+
+.env-browse-btn {
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.env-browse-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.env-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.env-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.env-modal-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.env-modal-btn.cancel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.env-modal-btn.cancel:hover {
+  background: var(--bg-hover);
+}
+
+.env-modal-btn.primary {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: white;
+}
+
+.env-modal-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.env-modal-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.env-modal-btn.danger {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border: 1px solid #dc2626;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.env-modal-btn.danger:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Delete Confirmation Modal */
+.env-modal-overlay.delete-confirm {
+  backdrop-filter: blur(4px);
+}
+
+.env-modal.delete-modal {
+  width: 360px;
+  text-align: center;
+  padding: 0;
+}
+
+.delete-modal-icon {
+  padding: 24px 24px 0;
+  color: #f59e0b;
+}
+
+.delete-modal-icon svg {
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.3));
+}
+
+.delete-modal-content {
+  padding: 16px 24px 20px;
+}
+
+.delete-modal-content h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delete-env-name {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.delete-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.delete-note {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.delete-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  justify-content: center;
+}
+
+.delete-modal-footer .env-modal-btn {
+  flex: 1;
+  max-width: 120px;
+}
+
+/* Collapsed sidebar environment */
+.sidebar.collapsed .environment-section {
+  padding: 8px;
+}
+
+.sidebar.collapsed .env-header,
+.sidebar.collapsed .env-dropdown {
+  display: none;
+}
+
+.sidebar.collapsed .env-selector {
+  padding: 8px;
+}
+
+.sidebar.collapsed .env-name,
+.sidebar.collapsed .env-current svg {
+  display: none;
+}
+
+.sidebar.collapsed .env-selector::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24'/%3E%3C/svg%3E") center/contain no-repeat;
+  color: var(--text-muted);
 }
 </style>
 

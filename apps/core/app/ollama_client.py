@@ -10,9 +10,8 @@ except ImportError:
 
 OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
-# 모델 설정
-OLLAMA_MODEL_TEXT = "qwen2.5:7b"  # 글 편집/번역/요약용 (한국어 지원 우수)
-OLLAMA_MODEL_PLAN = "qwen2.5:7b"   # 일반 계획 생성용 (가벼운 작업)
+# 기본 모델 (설정에서 지정하지 않은 경우 사용)
+DEFAULT_OLLAMA_MODEL = "qwen2.5:7b"
 
 # 컨텍스트 설정
 MAX_CONTEXT_TOKENS = 8192  # Phi-3.5-mini의 최대 컨텍스트
@@ -62,6 +61,44 @@ def calculate_context_size(text: str) -> int:
     return min(max(needed_ctx, DEFAULT_CONTEXT_TOKENS), MAX_CONTEXT_TOKENS)
 
 
+def get_installed_models() -> list[dict]:
+    """Ollama에 설치된 모델 목록을 반환"""
+    try:
+        req = request.Request(
+            f"{OLLAMA_BASE_URL}/api/tags",
+            method="GET"
+        )
+        with request.urlopen(req, timeout=5) as response:
+            body = response.read().decode("utf-8")
+        data = json.loads(body)
+        
+        models = []
+        for model in data.get("models", []):
+            name = model.get("name", "")
+            size_bytes = model.get("size", 0)
+            
+            # 파일 크기를 읽기 좋게 포맷
+            if size_bytes >= 1024 ** 3:
+                size_str = f"{size_bytes / (1024 ** 3):.1f}GB"
+            elif size_bytes >= 1024 ** 2:
+                size_str = f"{size_bytes / (1024 ** 2):.1f}MB"
+            else:
+                size_str = f"{size_bytes / 1024:.1f}KB"
+            
+            models.append({
+                "id": name,
+                "name": name,
+                "description": f"크기: {size_str}",
+                "free": True,
+                "context_window": 8192  # 대부분의 모델 기본값
+            })
+        
+        return models
+    except Exception as e:
+        logger.warning(f"Failed to fetch Ollama models: {e}")
+        return []
+
+
 def generate(
     prompt: str, 
     temperature: float = 0.0, 
@@ -70,7 +107,7 @@ def generate(
 ) -> str:
     """Ollama API를 통해 텍스트 생성"""
     if model is None:
-        model = OLLAMA_MODEL_TEXT
+        model = DEFAULT_OLLAMA_MODEL
     
     if num_ctx is None:
         num_ctx = calculate_context_size(prompt)
@@ -140,7 +177,7 @@ def get_streaming_llm(model: str = None) -> ChatOllama:
     """스트리밍 지원 LLM 인스턴스 반환"""
     global _streaming_llm
     if model is None:
-        model = OLLAMA_MODEL_TEXT
+        model = DEFAULT_OLLAMA_MODEL
     
     # 모델이 변경되었거나 초기화되지 않은 경우 새로 생성
     if _streaming_llm is None or _streaming_llm.model != model:
