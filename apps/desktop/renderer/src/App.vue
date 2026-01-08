@@ -5,6 +5,9 @@
       :active-file="activeFile"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
       @select-file="handleSelectFile"
+      @file-deleted="handleFileDeleted"
+      @file-created="handleFileCreated"
+      @file-restored="handleFileRestored"
     />
 
     <main class="main-content">
@@ -48,6 +51,25 @@ const vaultName = computed(() => {
 });
 
 function handleSelectFile(file: string) {
+  activeFile.value = file;
+  currentView.value = 'editor';
+}
+
+function handleFileDeleted(file: string) {
+  // 삭제된 파일이 현재 열린 파일이면 선택 해제
+  if (activeFile.value === file) {
+    activeFile.value = null;
+  }
+}
+
+function handleFileCreated(file: string) {
+  // 새로 생성된 파일을 자동으로 선택하고 에디터로 이동
+  activeFile.value = file;
+  currentView.value = 'editor';
+}
+
+function handleFileRestored(file: string) {
+  // 복원된 파일을 자동으로 선택
   activeFile.value = file;
   currentView.value = 'editor';
 }
