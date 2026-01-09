@@ -166,3 +166,6 @@ local_data/
 data/*
 !data/*.md
 !data/.gitkeep
+
+# Cursor ignore
+.cursorignore

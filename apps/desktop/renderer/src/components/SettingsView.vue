@@ -173,14 +173,14 @@
             </span>
           </div>
 
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-key-link">
+          <button type="button" class="api-key-link" @click="openApiKeyPage">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
               <polyline points="15 3 21 3 21 9"/>
               <line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
-            Google AI Studio에서 API 키 발급받기
-          </a>
+            {{ t('settings.getApiKey') }}
+          </button>
         </section>
 
         <!-- Model Selection Section -->
@@ -621,6 +621,17 @@ async function handleValidateKey() {
 
 function handleReset() {
   resetSettings();
+}
+
+// 외부 브라우저로 API 키 페이지 열기
+function openApiKeyPage() {
+  const url = 'https://aistudio.google.com/app/apikey';
+  if (window.cuenote?.openExternal) {
+    window.cuenote.openExternal(url);
+  } else {
+    // 폴백: 일반 브라우저 환경
+    window.open(url, '_blank');
+  }
 }
 </script>
 

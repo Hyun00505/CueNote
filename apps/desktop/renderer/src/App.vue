@@ -54,7 +54,7 @@
         :active-file="activeFile"
         :vault-name="vaultName"
         :current-view="currentView"
-        @change-view="currentView = $event"
+        @change-view="handleChangeView"
         @open-settings="currentView = 'settings'"
       />
 
@@ -68,6 +68,7 @@
         />
 
         <DashboardView
+          ref="dashboardViewRef"
           v-show="currentView === 'dashboard'"
           :has-vault="!!vaultPath"
         />
@@ -82,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView } from './components';
 import { useVault, useHealth } from './composables';
 import type { ViewType } from './types';
@@ -99,10 +100,23 @@ const dirtyFiles = ref<string[]>([]);
 const showUnsavedModal = ref(false);
 const pendingFile = ref<string | null>(null);
 const editorViewRef = ref<InstanceType<typeof EditorView> | null>(null);
+const dashboardViewRef = ref<InstanceType<typeof DashboardView> | null>(null);
 
 // dirty 파일 목록 업데이트
 function handleDirtyFilesChange(files: string[]) {
   dirtyFiles.value = files;
+}
+
+// 뷰 전환 핸들러
+function handleChangeView(view: ViewType) {
+  currentView.value = view;
+  
+  // 캘린더 뷰로 전환할 때 오늘 날짜로 스크롤
+  if (view === 'dashboard') {
+    nextTick(() => {
+      dashboardViewRef.value?.scrollToToday();
+    });
+  }
 }
 
 // 사이드바 토글

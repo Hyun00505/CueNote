@@ -3,49 +3,51 @@
     <Transition name="menu-fade">
       <div
         v-if="visible"
+        ref="menuRef"
         class="ai-context-menu"
-        :style="{ top: `${position.y}px`, left: `${position.x}px` }"
+        :style="menuStyle"
         @click.stop
       >
         <div class="menu-header">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
           </svg>
-          <span>AI 어시스턴트</span>
+          <span>{{ t('ai.assistant') }}</span>
         </div>
 
+        <div class="menu-scroll-container">
         <div class="menu-section">
-          <div class="section-label">교정</div>
+          <div class="section-label">{{ t('ai.proofread') }}</div>
           <button class="menu-item" @click="handleAction('proofread')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11l3 3L22 4"/>
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
             </svg>
-            <span>맞춤법 수정</span>
+            <span>{{ t('ai.proofreading') }}</span>
             <span class="badge">KO/EN</span>
           </button>
         </div>
 
         <div class="menu-section">
-          <div class="section-label">변환</div>
+          <div class="section-label">{{ t('ai.transform') }}</div>
           <button class="menu-item" @click="handleAction('improve')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 20h9"/>
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
-            <span>글 다듬기</span>
+            <span>{{ t('ai.improve') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('expand')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
             </svg>
-            <span>더 길게</span>
+            <span>{{ t('ai.expand') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('shorten')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
             </svg>
-            <span>더 짧게</span>
+            <span>{{ t('ai.shorten') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('summarize')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -53,38 +55,38 @@
               <path d="M14 2v6h6"/>
               <path d="M16 13H8M16 17H8M10 9H8"/>
             </svg>
-            <span>요약하기</span>
+            <span>{{ t('ai.summarize') }}</span>
           </button>
         </div>
 
         <div class="menu-section">
-          <div class="section-label">번역</div>
+          <div class="section-label">{{ t('ai.translate') }}</div>
           <button class="menu-item" @click="handleAction('translate', 'ko')" :disabled="loading">
             <span class="lang-flag">🇰🇷</span>
-            <span>한국어로</span>
+            <span>{{ t('ai.toKorean') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('translate', 'en')" :disabled="loading">
             <span class="lang-flag">🇺🇸</span>
-            <span>영어로</span>
+            <span>{{ t('ai.toEnglish') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('translate', 'ja')" :disabled="loading">
             <span class="lang-flag">🇯🇵</span>
-            <span>일본어로</span>
+            <span>{{ t('ai.toJapanese') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('translate', 'zh')" :disabled="loading">
             <span class="lang-flag">🇨🇳</span>
-            <span>중국어로</span>
+            <span>{{ t('ai.toChinese') }}</span>
           </button>
         </div>
 
         <div class="menu-section">
-          <div class="section-label">스타일</div>
+          <div class="section-label">{{ t('ai.style') }}</div>
           <button class="menu-item" @click="handleAction('improve', 'professional')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
             </svg>
-            <span>전문적으로</span>
+            <span>{{ t('ai.professional') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('improve', 'casual')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -93,21 +95,22 @@
               <line x1="9" y1="9" x2="9.01" y2="9"/>
               <line x1="15" y1="9" x2="15.01" y2="9"/>
             </svg>
-            <span>친근하게</span>
+            <span>{{ t('ai.casual') }}</span>
           </button>
           <button class="menu-item" @click="handleAction('improve', 'academic')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
               <path d="M6 12v5c3 3 9 3 12 0v-5"/>
             </svg>
-            <span>학술적으로</span>
+            <span>{{ t('ai.academic') }}</span>
           </button>
+        </div>
         </div>
 
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-overlay">
           <div class="loading-spinner"></div>
-          <span>AI가 처리 중...</span>
+          <span>{{ t('ai.processing') }}</span>
         </div>
       </div>
     </Transition>
@@ -115,8 +118,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useSettings } from '../composables';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { useSettings, useI18n } from '../composables';
 
 const CORE_BASE = 'http://127.0.0.1:8787';
 
@@ -138,10 +141,84 @@ const emit = defineEmits<{
 
 const loading = ref(false);
 const { settings } = useSettings();
+const { t } = useI18n();
+
+// 메뉴 엘리먼트 참조
+const menuRef = ref<HTMLElement | null>(null);
+const adjustedPosition = ref({ x: 0, y: 0 });
+
+// 메뉴 위치 계산 (화면 경계 고려)
+function calculatePosition() {
+  const padding = 10; // 화면 가장자리 여백
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const menuWidth = 260; // 고정 너비
+  const headerHeight = 45; // 헤더 높이 대략
+  
+  let x = props.position.x;
+  let y = props.position.y;
+
+  // 오른쪽 경계 체크
+  if (x + menuWidth + padding > viewportWidth) {
+    x = viewportWidth - menuWidth - padding;
+  }
+  
+  // 왼쪽 경계 체크
+  if (x < padding) {
+    x = padding;
+  }
+
+  // 사용 가능한 아래쪽 공간
+  const spaceBelow = viewportHeight - y - padding;
+  // 사용 가능한 위쪽 공간  
+  const spaceAbove = props.position.y - padding;
+  
+  // 최대 높이 결정 (아래 또는 위 공간 중 큰 쪽 사용)
+  if (spaceBelow >= 300) {
+    // 아래에 충분한 공간이 있으면 아래로 표시
+    maxMenuHeight.value = Math.min(spaceBelow, 500);
+  } else if (spaceAbove > spaceBelow) {
+    // 위쪽 공간이 더 크면 위로 표시
+    y = Math.max(padding, props.position.y - Math.min(spaceAbove, 500));
+    maxMenuHeight.value = Math.min(spaceAbove, 500);
+  } else {
+    // 아래쪽으로 표시하되 높이 제한
+    maxMenuHeight.value = Math.max(spaceBelow, 200);
+  }
+  
+  // 위쪽 경계 체크
+  if (y < padding) {
+    y = padding;
+    maxMenuHeight.value = viewportHeight - padding * 2;
+  }
+
+  adjustedPosition.value = { x, y };
+}
+
+// visible이 true가 되면 위치 계산
+watch(() => props.visible, async (newVal) => {
+  if (newVal) {
+    // 초기 위치 설정
+    adjustedPosition.value = { x: props.position.x, y: props.position.y };
+    // DOM 업데이트 후 실제 크기로 재계산
+    await nextTick();
+    calculatePosition();
+  }
+});
+
+// 사용 가능한 최대 높이 계산
+const maxMenuHeight = ref(500);
+
+// 메뉴 스타일
+const menuStyle = computed(() => ({
+  top: `${adjustedPosition.value.y}px`,
+  left: `${adjustedPosition.value.x}px`,
+  '--menu-max-height': `${maxMenuHeight.value}px`
+}));
 
 async function handleAction(action: string, option?: string) {
   if (!props.selectedText.trim()) {
-    emit('error', '선택된 텍스트가 없습니다.');
+    emit('error', t('ai.noTextSelected'));
     return;
   }
 
@@ -268,17 +345,46 @@ onBeforeUnmount(() => {
 .ai-context-menu {
   position: fixed;
   z-index: 9999;
-  min-width: 200px;
-  max-width: 260px;
-  background: #1a1a1f;
+  width: 260px;
+  max-height: var(--menu-max-height, 500px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary, #16161a);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
   box-shadow: 
     0 4px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.05),
     0 0 40px rgba(139, 92, 246, 0.15);
-  overflow: hidden;
   backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+/* 스크롤 컨테이너 */
+.menu-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.4) transparent;
+}
+
+/* 스크롤바 스타일 (Webkit) */
+.menu-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.menu-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+}
+
+.menu-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
 }
 
 .menu-header {
@@ -377,10 +483,12 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: rgba(26, 26, 31, 0.95);
+  background: var(--bg-secondary, #16161a);
+  opacity: 0.98;
   backdrop-filter: blur(4px);
   color: #a78bfa;
   font-size: 12px;
+  border-radius: 12px;
 }
 
 .loading-spinner {

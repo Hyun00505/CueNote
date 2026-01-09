@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -28,6 +28,9 @@ if (isWSL) {
 let mainWindow;
 let viteServer;
 let coreProcess;
+
+// 다크 모드 강제 적용 (Windows 타이틀바 색상)
+nativeTheme.themeSource = 'dark';
 
 // Python 백엔드 경로 찾기
 function getCorePath() {
@@ -149,11 +152,18 @@ async function createViteServer() {
 
 async function createWindow() {
   try {
+    // 아이콘 경로 설정
+    const iconPath = isDev
+      ? path.join(__dirname, '..', '..', 'assets', 'icon.png')
+      : path.join(process.resourcesPath, 'icon.png');
+
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       backgroundColor: '#0f0f12',
       show: false,
+      autoHideMenuBar: true,
+      icon: iconPath,
       webPreferences: {
         preload: isDev 
           ? path.join(__dirname, 'renderer', 'preload.js')
@@ -204,6 +214,11 @@ app.whenReady().then(async () => {
       return null;
     }
     return result.filePaths[0] || null;
+  });
+
+  // 외부 링크 열기
+  ipcMain.handle('cuenote:open-external', async (_, url) => {
+    await shell.openExternal(url);
   });
 
   // 프로덕션 모드에서 Core 서버 시작

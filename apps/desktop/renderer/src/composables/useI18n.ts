@@ -108,6 +108,48 @@ type TranslationKeys = {
   'theme.dim': string;
   'theme.github': string;
   'theme.sepia': string;
+
+  // AI Context Menu
+  'ai.assistant': string;
+  'ai.proofread': string;
+  'ai.proofreading': string;
+  'ai.transform': string;
+  'ai.improve': string;
+  'ai.expand': string;
+  'ai.shorten': string;
+  'ai.summarize': string;
+  'ai.translate': string;
+  'ai.toKorean': string;
+  'ai.toEnglish': string;
+  'ai.toJapanese': string;
+  'ai.toChinese': string;
+  'ai.style': string;
+  'ai.professional': string;
+  'ai.casual': string;
+  'ai.academic': string;
+  'ai.processing': string;
+  'ai.noTextSelected': string;
+  'ai.completed': string;
+  'ai.revert': string;
+  'ai.keep': string;
+
+  // Proofread Panel
+  'proofread.title': string;
+  'proofread.checking': string;
+  'proofread.noErrors': string;
+  'proofread.noErrorsDesc': string;
+  'proofread.modified': string;
+  'proofread.applied': string;
+  'proofread.skipped': string;
+  'proofread.ignoreAll': string;
+  'proofread.applyAll': string;
+  'proofread.spelling': string;
+  'proofread.grammar': string;
+  'proofread.punctuation': string;
+  'proofread.spacing': string;
+  'proofread.korean': string;
+  'proofread.english': string;
+  'proofread.mixed': string;
 };
 
 // 한국어 번역
@@ -216,6 +258,48 @@ const ko: TranslationKeys = {
   'theme.dim': '딤',
   'theme.github': 'GitHub',
   'theme.sepia': '세피아',
+
+  // AI Context Menu
+  'ai.assistant': 'AI 어시스턴트',
+  'ai.proofread': '교정',
+  'ai.proofreading': '맞춤법 수정',
+  'ai.transform': '변환',
+  'ai.improve': '글 다듬기',
+  'ai.expand': '더 길게',
+  'ai.shorten': '더 짧게',
+  'ai.summarize': '요약하기',
+  'ai.translate': '번역',
+  'ai.toKorean': '한국어로',
+  'ai.toEnglish': '영어로',
+  'ai.toJapanese': '일본어로',
+  'ai.toChinese': '중국어로',
+  'ai.style': '스타일',
+  'ai.professional': '전문적으로',
+  'ai.casual': '친근하게',
+  'ai.academic': '학술적으로',
+  'ai.processing': 'AI가 처리 중...',
+  'ai.noTextSelected': '선택된 텍스트가 없습니다.',
+  'ai.completed': '완료',
+  'ai.revert': '되돌리기',
+  'ai.keep': '유지하기',
+
+  // Proofread Panel
+  'proofread.title': '맞춤법 검사',
+  'proofread.checking': '맞춤법을 검사하고 있습니다...',
+  'proofread.noErrors': '맞춤법 오류가 없습니다!',
+  'proofread.noErrorsDesc': '텍스트가 올바르게 작성되었습니다.',
+  'proofread.modified': '수정됨',
+  'proofread.applied': '적용됨',
+  'proofread.skipped': '무시됨',
+  'proofread.ignoreAll': '모두 무시',
+  'proofread.applyAll': '모두 적용',
+  'proofread.spelling': '맞춤법',
+  'proofread.grammar': '문법',
+  'proofread.punctuation': '구두점',
+  'proofread.spacing': '띄어쓰기',
+  'proofread.korean': '한국어',
+  'proofread.english': '영어',
+  'proofread.mixed': '혼합',
 };
 
 // 영어 번역
@@ -324,6 +408,48 @@ const en: TranslationKeys = {
   'theme.dim': 'Dim',
   'theme.github': 'GitHub',
   'theme.sepia': 'Sepia',
+
+  // AI Context Menu
+  'ai.assistant': 'AI Assistant',
+  'ai.proofread': 'Proofread',
+  'ai.proofreading': 'Fix Spelling',
+  'ai.transform': 'Transform',
+  'ai.improve': 'Improve Writing',
+  'ai.expand': 'Make Longer',
+  'ai.shorten': 'Make Shorter',
+  'ai.summarize': 'Summarize',
+  'ai.translate': 'Translate',
+  'ai.toKorean': 'To Korean',
+  'ai.toEnglish': 'To English',
+  'ai.toJapanese': 'To Japanese',
+  'ai.toChinese': 'To Chinese',
+  'ai.style': 'Style',
+  'ai.professional': 'Professional',
+  'ai.casual': 'Casual',
+  'ai.academic': 'Academic',
+  'ai.processing': 'AI is processing...',
+  'ai.noTextSelected': 'No text selected.',
+  'ai.completed': 'Complete',
+  'ai.revert': 'Revert',
+  'ai.keep': 'Keep',
+
+  // Proofread Panel
+  'proofread.title': 'Spell Check',
+  'proofread.checking': 'Checking spelling...',
+  'proofread.noErrors': 'No spelling errors!',
+  'proofread.noErrorsDesc': 'Your text is correct.',
+  'proofread.modified': 'modified',
+  'proofread.applied': 'Applied',
+  'proofread.skipped': 'Skipped',
+  'proofread.ignoreAll': 'Ignore All',
+  'proofread.applyAll': 'Apply All',
+  'proofread.spelling': 'Spelling',
+  'proofread.grammar': 'Grammar',
+  'proofread.punctuation': 'Punctuation',
+  'proofread.spacing': 'Spacing',
+  'proofread.korean': 'Korean',
+  'proofread.english': 'English',
+  'proofread.mixed': 'Mixed',
 };
 
 const translations: Record<Language, TranslationKeys> = { ko, en };

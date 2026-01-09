@@ -71,6 +71,10 @@
         "from": "../core-dist",
         "to": "core",
         "filter": ["**/*"]
+      },
+      {
+        "from": "../../assets/icon.png",
+        "to": "icon.png"
       }
     ],
     "win": {
