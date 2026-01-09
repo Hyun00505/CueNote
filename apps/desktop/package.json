@@ -54,6 +54,7 @@
   "build": {
     "appId": "com.cuenote.app",
     "productName": "CueNote",
+    "icon": "../../assets/icon.png",
     "directories": {
       "output": "release"
     },
@@ -73,6 +74,7 @@
       }
     ],
     "win": {
+      "icon": "../../assets/icon.png",
       "target": [
         {
           "target": "nsis",

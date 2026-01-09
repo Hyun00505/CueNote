@@ -149,16 +149,6 @@ async function createViteServer() {
 
 async function createWindow() {
   try {
-    let loadUrl;
-    
-    if (isDev) {
-      // 개발 모드: Vite 서버 사용
-      loadUrl = await createViteServer();
-    } else {
-      // 프로덕션 모드: 빌드된 파일 로드
-      loadUrl = `file://${path.join(__dirname, 'dist', 'index.html')}`;
-    }
-
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
@@ -179,9 +169,20 @@ async function createWindow() {
       mainWindow.show();
     });
 
-    mainWindow.loadURL(loadUrl).catch(err => {
-      console.error('Failed to load URL:', err);
-    });
+    if (isDev) {
+      // 개발 모드: Vite 서버 사용
+      const devUrl = await createViteServer();
+      mainWindow.loadURL(devUrl).catch(err => {
+        console.error('Failed to load URL:', err);
+      });
+    } else {
+      // 프로덕션 모드: loadFile 사용 (상대 경로 문제 해결)
+      const indexPath = path.join(__dirname, 'dist', 'index.html');
+      console.log('Loading:', indexPath);
+      mainWindow.loadFile(indexPath).catch(err => {
+        console.error('Failed to load file:', err);
+      });
+    }
     
     // 개발 모드에서 DevTools 열기 (선택사항)
     if (isDev) {

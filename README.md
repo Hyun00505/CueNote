@@ -29,6 +29,12 @@
 
 Unlike cloud-based note apps, CueNote ensures your notes never leave your device unless you explicitly choose to use cloud AI services. Your data stays in a simple SQLite database and markdown files on your local filesystem.
 
+<p align="center">
+  <img src="README_img/AIEdit.gif" alt="CueNote Demo" width="800" />
+  <br />
+  <em>AI-powered note editing in CueNote</em>
+</p>
+
 ---
 
 ## ✨ Features
@@ -48,16 +54,34 @@ Unlike cloud-based note apps, CueNote ensures your notes never leave your device
 - **Proofread** - Fix spelling, grammar, and punctuation errors (supports Korean & English)
 - **Real-time streaming** - Watch AI responses appear in real-time
 
+<p align="center">
+  <img src="README_img/Autofix.gif" alt="AI Writing Assistance Demo" width="700" />
+  <br />
+  <em>Real-time AI text analysis and proofreading</em>
+</p>
+
 ### 📅 Smart Schedule Extraction
 - **AI-powered schedule detection** - Automatically extract dates, times, and events from your notes
 - **Calendar integration** - View and manage extracted schedules in a built-in calendar
 - **Relative date parsing** - Understands "tomorrow", "next Monday", "this Friday", etc.
+
+<p align="center">
+  <img src="README_img/AutoSchedule.gif" alt="Smart Schedule Extraction Demo" width="700" />
+  <br />
+  <em>Automatically extract schedules from notes and add to calendar</em>
+</p>
 
 ### 📄 Document & Image Processing
 - **PDF text extraction** - Extract and convert PDF content to markdown
 - **OCR support** - Extract text from images using EasyOCR
 - **Handwriting recognition** - Recognize handwritten text using TrOCR
 - **Auto-formatting** - AI converts extracted text into clean, structured markdown
+
+<p align="center">
+  <img src="README_img/GetWord.gif" alt="Document Processing Demo" width="700" />
+  <br />
+  <em>Extract text from images and convert to markdown</em>
+</p>
 
 ### 🔒 Privacy-First Design
 - **100% local storage** - All notes stored in local SQLite database

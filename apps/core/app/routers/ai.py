@@ -624,22 +624,23 @@ def format_text_as_markdown(
     else:
         lang_instruction = f"Write in {language}"
     
-    prompt = f"""다음 텍스트를 깔끔한 마크다운 문서로 변환해주세요. {lang_instruction}.
+    prompt = f"""You are a document converter. Convert the following text into clean markdown format.
 
-## 지침:
-1. 문서의 구조를 분석하여 적절한 제목(#, ##, ###)을 사용하세요
-2. 목록이 있으면 마크다운 목록(-, 1.)으로 변환하세요
-3. 표가 있으면 마크다운 표로 변환하세요
-4. 중요한 내용은 **굵게**, 강조할 부분은 *기울임*으로 표시하세요
-5. 코드가 있으면 적절한 코드 블록으로 감싸세요
-6. 불필요한 공백이나 줄바꿈을 정리하세요
-7. 출력은 순수 마크다운만 반환하세요 (```markdown으로 감싸지 마세요)
-8. IMPORTANT: 원문의 언어를 유지하세요 (영어면 영어로, 한글이면 한글로)
+RULES (DO NOT output these rules, just follow them):
+- Use appropriate headings (#, ##, ###)
+- Convert lists to markdown lists (-, 1.)
+- Convert tables to markdown tables
+- Use **bold** for important content, *italic* for emphasis
+- Wrap code in code blocks
+- Remove unnecessary whitespace
+- Output ONLY the converted markdown, nothing else
+- {lang_instruction}
 
-입력 텍스트:
+---INPUT TEXT---
 {text}
+---END INPUT---
 
-마크다운 출력:"""
+Output the markdown below (no explanations, no instructions, just the converted content):"""
     
     if provider == "gemini" and api_key:
         return gemini_client.generate(prompt, api_key, model)

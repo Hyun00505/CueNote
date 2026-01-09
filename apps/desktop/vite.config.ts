@@ -30,6 +30,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'renderer', 'src')
     }
   },
+  base: './',  // Electron file:// 프로토콜에서 상대 경로 사용
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true
