@@ -1,0 +1,15 @@
+{
+  "environments": [
+    {
+      "id": "cea4bd6c57c6",
+      "name": "기본 노트",
+      "path": "C:\\Users\\SSAFY\\Desktop\\git\\CueNote\\data"
+    },
+    {
+      "id": "c4770ab3b1e9",
+      "name": "테스트2",
+      "path": "C:\\tmp\\cuenote_vault"
+    }
+  ],
+  "current_id": "cea4bd6c57c6"
+}

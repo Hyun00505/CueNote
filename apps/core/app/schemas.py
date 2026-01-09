@@ -35,6 +35,13 @@ class PermanentDeletePayload(BaseModel):
     filename: str
 
 
+class ImageUploadPayload(BaseModel):
+    """Base64 이미지 업로드"""
+    data: str  # Base64 인코딩된 이미지 데이터 (data:image/png;base64,... 형식)
+    filename: Optional[str] = None  # 원본 파일명 (선택)
+    note_name: Optional[str] = None  # 현재 편집 중인 노트 이름 (이미지 파일명에 사용)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # TODO 스키마
 # ─────────────────────────────────────────────────────────────────────────────
@@ -62,6 +69,10 @@ class TodayPlan(BaseModel):
 class SummarizePayload(BaseModel):
     content: str = Field(..., description="노트 내용 (마크다운)")
     language: str = Field(default="ko", description="요약 언어 (ko, en 등)")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class SummarizeResponse(BaseModel):
@@ -73,6 +84,10 @@ class SummarizeResponse(BaseModel):
 class TranslatePayload(BaseModel):
     content: str = Field(..., description="번역할 텍스트")
     target_language: str = Field(default="en", description="대상 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class TranslateResponse(BaseModel):
@@ -84,6 +99,10 @@ class ImprovePayload(BaseModel):
     content: str = Field(..., description="개선할 텍스트")
     style: str = Field(default="professional", description="스타일")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class ImproveResponse(BaseModel):
@@ -94,6 +113,10 @@ class ImproveResponse(BaseModel):
 class ExpandPayload(BaseModel):
     content: str = Field(..., description="확장할 텍스트")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class ExpandResponse(BaseModel):
@@ -103,6 +126,10 @@ class ExpandResponse(BaseModel):
 class ShortenPayload(BaseModel):
     content: str = Field(..., description="축약할 텍스트")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
 
 
 class ShortenResponse(BaseModel):
@@ -115,3 +142,87 @@ class StreamPayload(BaseModel):
     target_language: str = Field(default="en", description="번역 대상 언어")
     style: str = Field(default="professional", description="개선 스타일")
     language: str = Field(default="ko", description="응답 언어")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LLM 설정 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LLMProvider(BaseModel):
+    id: str = Field(..., description="제공자 ID (ollama, gemini)")
+    name: str = Field(..., description="표시 이름")
+    requiresApiKey: bool = Field(..., description="API 키 필요 여부")
+
+
+class LLMModel(BaseModel):
+    id: str = Field(..., description="모델 ID")
+    name: str = Field(..., description="모델 표시 이름")
+    description: str = Field(default="", description="모델 설명")
+    free: bool = Field(default=True, description="무료 여부")
+    context_window: int = Field(default=4096, description="컨텍스트 윈도우 크기")
+
+
+class LLMSettingsPayload(BaseModel):
+    provider: str = Field(default="ollama", description="LLM 제공자")
+    api_key: str = Field(default="", description="API 키")
+    model: str = Field(default="", description="선택한 모델")
+
+
+class ValidateApiKeyPayload(BaseModel):
+    api_key: str = Field(..., description="검증할 API 키")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 문서 추출 스키마 (PDF/이미지 → 마크다운)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class DocumentExtractPayload(BaseModel):
+    """PDF 또는 이미지에서 마크다운 추출"""
+    file_data: str = Field(..., description="Base64 인코딩된 파일 데이터 (data:...;base64,... 형식)")
+    file_type: str = Field(..., description="파일 유형 (pdf, image)")
+    language: str = Field(default="ko", description="출력 언어")
+    handwriting_mode: bool = Field(default=False, description="손글씨 인식 모드")
+    raw_text_only: bool = Field(default=False, description="AI 없이 텍스트만 추출")
+    # LLM 제공자 설정
+    provider: str = Field(default="gemini", description="LLM 제공자 (gemini 권장)")
+    api_key: str = Field(default="", description="Gemini API 키")
+    model: str = Field(default="", description="사용할 모델명")
+
+
+class DocumentExtractResponse(BaseModel):
+    """문서 추출 결과"""
+    markdown: str = Field(..., description="추출된 마크다운 텍스트")
+    page_count: int = Field(default=1, description="페이지 수 (PDF의 경우)")
+    has_images: bool = Field(default=False, description="이미지 포함 여부")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OCR 모델 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class OCRModelStatus(BaseModel):
+    """OCR 모델 상태"""
+    installed: bool = Field(..., description="EasyOCR 설치 여부")
+    model_downloaded: bool = Field(..., description="모델 다운로드 완료 여부")
+    model_path: str = Field(..., description="모델 저장 경로")
+    languages: list[str] = Field(..., description="지원 언어 목록")
+    downloading: bool = Field(default=False, description="다운로드 진행 중 여부")
+
+
+class OCRDownloadResponse(BaseModel):
+    """OCR 모델 다운로드 응답"""
+    success: bool = Field(..., description="성공 여부")
+    message: str = Field(..., description="결과 메시지")
+
+
+class HandwritingModelStatus(BaseModel):
+    """손글씨 OCR 모델 상태"""
+    installed: bool = Field(..., description="transformers 설치 여부")
+    model_downloaded: bool = Field(..., description="모델 다운로드 완료 여부")
+    model_name: str = Field(..., description="모델 이름")
+    model_path: str = Field(..., description="모델 저장 경로")
+    downloading: bool = Field(default=False, description="다운로드 진행 중 여부")

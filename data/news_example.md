@@ -2,12 +2,20 @@
 
 [Anchor]
 
-A severe cold wave with temperatures around minus 10 degrees Celsius hit this morning.
+A severe cold wave with temperatures around minus ten degrees is expected this morning.
 
-Temperatures in central regions will stay below zero even during the day.
+Temperatures in central regions will remain below freezing even during the day.
 
-Significant snowfall is expected across the country this weekend.
+Heavy snowfall is anticipated nationwide this weekend.
 
-For detailed weather updates, we'll connect to our meteorologist.
+For detailed weather updates, we'll connect to meteorologist Jeong-seyoung.
 
-Jeon Seyoung Meteorologist.
+[Anchor]
+
+A severe cold wave with temperatures around minus ten degrees is expected this morning.
+
+Temperatures in central regions will remain below freezing even during the day.
+
+Heavy snowfall is anticipated nationwide this weekend.
+
+For detailed weather updates, we'll connect to meteorologist Jeong-seyoung.

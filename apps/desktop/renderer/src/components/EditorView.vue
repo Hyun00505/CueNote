@@ -35,6 +35,7 @@
           <div class="file-details">
             <span class="file-name">{{ getFileName(activeFile) }}</span>
             <span class="file-ext">.md</span>
+            <span v-if="isDirty" class="unsaved-dot" title="저장되지 않은 변경사항"></span>
           </div>
         </div>
         <button class="save-btn" :class="{ saving }" :disabled="saving" @click="handleSave">
@@ -53,6 +54,7 @@
         :editor="editor as Editor" 
         :summarizing="summarizing"
         @summarize="handleSummarize"
+        @extract-result="handleExtractResult"
       />
 
       <!-- AI 요약 결과 패널 -->
@@ -104,7 +106,16 @@
         </div>
       </Transition>
 
-      <div ref="editorWrapperRef" class="editor-content-wrapper" @contextmenu="handleContextMenu">
+      <div 
+        ref="editorWrapperRef" 
+        class="editor-content-wrapper" 
+        :class="{ 'drag-over': isDraggingOver }"
+        @contextmenu="handleContextMenu"
+        @dragenter="handleDragEnter"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop"
+      >
         <EditorContent :editor="editor" class="editor-content" />
         
         <!-- AI 스트리밍 프리뷰 (실시간으로 생성 중인 텍스트 표시) -->
@@ -163,6 +174,7 @@
         {{ editorError }}
       </p>
     </div>
+
   </div>
 </template>
 
@@ -189,17 +201,26 @@ import { DOMSerializer } from '@tiptap/pm/model';
 import EditorToolbar from './EditorToolbar.vue';
 import AIContextMenu from './AIContextMenu.vue';
 import AIInlineDiff from './AIInlineDiff.vue';
+import { useSettings } from '../composables';
 
 const lowlight = createLowlight(common);
 const CORE_BASE = 'http://127.0.0.1:8787';
+
+// LLM 설정 가져오기
+const { settings: llmSettings } = useSettings();
 
 const props = defineProps<{
   activeFile: string | null;
 }>();
 
+const emit = defineEmits<{
+  'dirty-change': [isDirty: boolean];
+}>();
+
 const editorError = ref('');
 const saving = ref(false);
 const summarizing = ref(false);
+const isDirty = ref(false);
 
 interface SummaryResult {
   summary: string;
@@ -234,10 +255,18 @@ const savedSelection = ref<{ from: number; to: number } | null>(null);
 // 에디터 wrapper ref
 const editorWrapperRef = ref<HTMLElement | null>(null);
 
+// 드래그 앤 드롭 상태
+const isDraggingOver = ref(false);
+let dragCounter = 0;
+
 // 레거시 diff 뷰 상태 (비활성화)
 const showDiffView = ref(false);
 const diffData = ref<any>(null);
 const diffPosition = ref({ x: 0, y: 0 });
+
+// 파일별 변경사항 캐시 (저장하지 않은 상태 유지)
+const fileContentCache = new Map<string, { html: string; isDirty: boolean }>();
+const currentFilePath = ref<string | null>(null);
 
 const editor = useEditor({
   content: '',
@@ -278,6 +307,12 @@ const editor = useEditor({
       lowlight,
     }),
   ],
+  onUpdate: () => {
+    if (!isDirty.value) {
+      isDirty.value = true;
+      emit('dirty-change', true);
+    }
+  },
 });
 
 function getFileName(path: string): string {
@@ -314,8 +349,8 @@ function markdownToHtml(md: string): string {
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-  // Images
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  // Images - Base64 이미지도 지원 (긴 URL 처리)
+  html = html.replace(/!\[([^\]]*)\]\((data:[^)]+|[^)]+)\)/g, '<img src="$2" alt="$1">');
 
   // Task lists
   html = html.replace(/^- \[x\] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked><span></span></label><div>$1</div></li></ul>');
@@ -423,9 +458,15 @@ function htmlToMarkdown(html: string): string {
   // Links
   md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
 
-  // Images
-  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
-  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+  // Images - 다양한 속성 순서와 Base64 이미지 지원
+  md = md.replace(/<img[^>]+>/gi, (match) => {
+    const srcMatch = match.match(/src="([^"]+)"/i);
+    const altMatch = match.match(/alt="([^"]*)"/i);
+    const src = srcMatch ? srcMatch[1] : '';
+    const alt = altMatch ? altMatch[1] : '';
+    if (!src) return ''; // src가 없으면 무시
+    return `![${alt}](${src})`;
+  });
 
   // Task lists
   md = md.replace(/<ul[^>]*data-type="taskList"[^>]*>([\s\S]*?)<\/ul>/gi, (_, content) => {
@@ -489,6 +530,31 @@ function htmlToMarkdown(html: string): string {
 async function openFile(filePath: string) {
   editorError.value = '';
 
+  // 현재 파일의 변경사항을 캐시에 저장 (다른 파일로 전환 시)
+  if (currentFilePath.value && editor.value && isDirty.value) {
+    fileContentCache.set(currentFilePath.value, {
+      html: editor.value.getHTML(),
+      isDirty: true
+    });
+  }
+
+  // 현재 파일 경로 업데이트
+  currentFilePath.value = filePath;
+
+  // 캐시에 저장된 내용이 있는지 확인
+  const cachedContent = fileContentCache.get(filePath);
+  
+  if (cachedContent) {
+    // 캐시된 내용 사용
+    if (editor.value) {
+      editor.value.commands.setContent(cachedContent.html, { emitUpdate: false });
+    }
+    isDirty.value = cachedContent.isDirty;
+    emit('dirty-change', cachedContent.isDirty);
+    return;
+  }
+
+  // 캐시에 없으면 서버에서 로드
   try {
     const url = `${CORE_BASE}/vault/file?path=${encodeURIComponent(filePath)}`;
     const res = await fetch(url);
@@ -503,8 +569,14 @@ async function openFile(filePath: string) {
     const htmlContent = markdownToHtml(content);
 
     if (editor.value) {
-      editor.value.commands.setContent(htmlContent);
+      // 새 파일을 열 때 에디터 내용을 설정
+      // emitUpdate: false로 히스토리에 추가되지 않도록 함
+      editor.value.commands.setContent(htmlContent, { emitUpdate: false });
     }
+    
+    // 새 파일을 열면 dirty 상태 초기화
+    isDirty.value = false;
+    emit('dirty-change', false);
   } catch (error) {
     editorError.value = '파일 열기 실패. 백엔드가 실행 중인지 확인하세요.';
     console.error('Open file failed:', error);
@@ -530,6 +602,13 @@ async function handleSave() {
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
+    
+    // 저장 성공 시 dirty 상태 초기화
+    isDirty.value = false;
+    emit('dirty-change', false);
+    
+    // 저장 후 캐시에서 해당 파일 제거 (더 이상 저장되지 않은 변경사항 아님)
+    fileContentCache.delete(props.activeFile);
   } catch (error) {
     editorError.value = '저장 실패.';
     console.error('Save file failed', error);
@@ -554,10 +633,21 @@ async function handleSummarize() {
       return;
     }
     
+    // 스트리밍 API를 사용하여 요약 (LLM 설정 포함)
+    // language: 'auto'로 설정하여 원문과 같은 언어로 응답
+    const body = {
+      content,
+      action: 'summarize',
+      language: 'auto',
+      provider: llmSettings.value.llm.provider,
+      api_key: llmSettings.value.llm.apiKey,
+      model: llmSettings.value.llm.model
+    };
+    
     const res = await fetch(`${CORE_BASE}/ai/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, language: 'ko' })
+      body: JSON.stringify(body)
     });
     
     if (!res.ok) {
@@ -571,7 +661,8 @@ async function handleSummarize() {
       wordCount: data.wordCount
     };
   } catch (error) {
-    editorError.value = '요약 생성에 실패했습니다. Ollama가 실행 중인지 확인하세요.';
+    const providerName = llmSettings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
+    editorError.value = `요약 생성에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`;
     console.error('Summarize failed:', error);
   } finally {
     summarizing.value = false;
@@ -646,6 +737,23 @@ function handleKeydown(e: KeyboardEvent) {
     e.preventDefault();
     handleSave();
   }
+}
+
+// 문서 추출 결과 처리
+function handleExtractResult(markdown: string) {
+  if (!editor.value) return;
+  
+  // 마크다운을 HTML로 변환
+  const html = markdownToHtml(markdown);
+  
+  // 현재 커서 위치에 삽입
+  editor.value.chain()
+    .focus()
+    .insertContent(html)
+    .run();
+  
+  // 자동 저장
+  handleSave();
 }
 
 // 선택된 영역의 텍스트를 마크다운으로 가져오기
@@ -1016,8 +1124,140 @@ function handleAIError(message: string) {
   }, 5000);
 }
 
+// 드래그 앤 드롭 핸들러
+function handleDragEnter(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  dragCounter++;
+  
+  if (e.dataTransfer?.types.includes('Files')) {
+    isDraggingOver.value = true;
+  }
+}
+
+function handleDragOver(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = 'copy';
+  }
+}
+
+function handleDragLeave(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  dragCounter--;
+  
+  if (dragCounter === 0) {
+    isDraggingOver.value = false;
+  }
+}
+
+async function handleDrop(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  dragCounter = 0;
+  isDraggingOver.value = false;
+  
+  if (!editor.value || !e.dataTransfer?.files.length) return;
+  
+  const files = Array.from(e.dataTransfer.files);
+  const imageFiles = files.filter(file => file.type.startsWith('image/'));
+  
+  if (imageFiles.length === 0) {
+    handleAIError('이미지 파일만 드롭할 수 있습니다.');
+    return;
+  }
+  
+  // 드롭 위치 계산
+  const view = editor.value.view;
+  const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
+  
+  for (const file of imageFiles) {
+    try {
+      // 파일을 Base64로 변환 후 서버에 업로드
+      const base64 = await fileToBase64(file);
+      const imageUrl = await uploadImage(base64);
+      
+      if (!imageUrl) {
+        handleAIError('이미지 업로드에 실패했습니다.');
+        continue;
+      }
+      
+      // 에디터에 이미지 삽입 (서버 URL 사용)
+      if (pos) {
+        editor.value.chain()
+          .focus()
+          .setTextSelection(pos.pos)
+          .setImage({ src: imageUrl })
+          .run();
+      } else {
+        // 위치를 찾을 수 없으면 현재 커서 위치에 삽입
+        editor.value.chain()
+          .focus()
+          .setImage({ src: imageUrl })
+          .run();
+      }
+    } catch (error) {
+      console.error('Image drop failed:', error);
+      handleAIError('이미지 삽입에 실패했습니다.');
+    }
+  }
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 이미지를 서버에 업로드하고 URL 반환
+async function uploadImage(base64Data: string): Promise<string | null> {
+  try {
+    // 현재 편집 중인 파일명 추출
+    const noteName = props.activeFile || undefined;
+    
+    const res = await fetch(`${CORE_BASE}/vault/image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        data: base64Data,
+        note_name: noteName  // 이미지 파일명에 노트 이름 포함
+      })
+    });
+    
+    if (!res.ok) {
+      console.error('Image upload failed:', res.status);
+      return null;
+    }
+    
+    const data = await res.json();
+    // 서버에서 반환한 URL 사용 (예: /vault/image/xxx.png)
+    return `${CORE_BASE}${data.url}`;
+  } catch (error) {
+    console.error('Image upload error:', error);
+    return null;
+  }
+}
+
+// Electron에서 파일 드롭 시 새 창 열리는 것 방지
+function preventDefaultDrop(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
+  
+  // 전역 드래그 앤 드롭 기본 동작 방지 (Electron에서 새 창 열리는 것 방지)
+  document.addEventListener('dragover', preventDefaultDrop);
+  document.addEventListener('drop', preventDefaultDrop);
+  
   if (props.activeFile) {
     openFile(props.activeFile);
   }
@@ -1025,6 +1265,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown);
+  document.removeEventListener('dragover', preventDefaultDrop);
+  document.removeEventListener('drop', preventDefaultDrop);
   editor.value?.destroy();
 });
 
@@ -1032,6 +1274,13 @@ watch(() => props.activeFile, (newFile) => {
   if (newFile) {
     openFile(newFile);
   }
+});
+
+// 외부에서 접근 가능한 메서드/상태 노출
+defineExpose({
+  isDirty,
+  save: handleSave,
+  saveFile: handleSave
 });
 </script>
 
@@ -1157,6 +1406,21 @@ watch(() => props.activeFile, (newFile) => {
   color: var(--text-muted);
 }
 
+.unsaved-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+  margin-left: 8px;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .save-btn {
   display: flex;
   align-items: center;
@@ -1216,6 +1480,31 @@ watch(() => props.activeFile, (newFile) => {
   padding: 32px 48px;
   background: var(--bg-primary);
   position: relative;
+  transition: all 0.2s ease;
+}
+
+.editor-content-wrapper.drag-over {
+  background: rgba(201, 167, 108, 0.05);
+  outline: 2px dashed rgba(201, 167, 108, 0.5);
+  outline-offset: -8px;
+}
+
+.editor-content-wrapper.drag-over::after {
+  content: '이미지를 여기에 드롭하세요';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 40px;
+  background: rgba(30, 30, 35, 0.95);
+  border: 2px dashed rgba(201, 167, 108, 0.6);
+  border-radius: 16px;
+  color: #e8d5b7;
+  font-size: 16px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .editor-content {
@@ -1391,6 +1680,7 @@ watch(() => props.activeFile, (newFile) => {
   opacity: 0;
   transform: translateY(-10px);
 }
+
 </style>
 
 <style>
@@ -1499,31 +1789,157 @@ watch(() => props.activeFile, (newFile) => {
   border-radius: 2px;
 }
 
-/* Code */
+/* Inline Code */
 .ProseMirror code {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e8d5b7;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: var(--font-mono);
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--text-primary);
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
   font-size: 0.88em;
+  border: 1px solid var(--border-default);
 }
 
+/* Light mode inline code */
+[data-theme="light"] .ProseMirror code {
+  background: rgba(107, 114, 128, 0.1);
+  color: #1f2937;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Code Block Container */
 .ProseMirror pre {
-  background: #0a0a0c;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 16px 20px;
-  overflow-x: auto;
-  margin: 1em 0;
+  position: relative;
+  background: linear-gradient(135deg, #0d0d12 0%, #12121a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  margin: 1.5em 0;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Code Block Header Bar */
+.ProseMirror pre::before {
+  content: '';
+  display: block;
+  height: 36px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 16px;
+}
+
+/* Code Block Window Dots */
+.ProseMirror pre::after {
+  content: '●  ●  ●';
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.15);
 }
 
 .ProseMirror pre code {
+  display: block;
   background: transparent;
-  padding: 0;
-  color: var(--text-primary);
-  font-size: 13px;
-  line-height: 1.6;
+  padding: 16px 20px 20px;
+  color: #e4e4e7;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  font-size: 13.5px;
+  line-height: 1.7;
+  tab-size: 2;
+  border: none;
+  overflow-x: auto;
+}
+
+/* Syntax Highlighting Colors */
+.ProseMirror pre code .hljs-keyword,
+.ProseMirror pre code .hljs-selector-tag,
+.ProseMirror pre code .hljs-built_in {
+  color: #c792ea;
+}
+
+.ProseMirror pre code .hljs-string,
+.ProseMirror pre code .hljs-attr {
+  color: #c3e88d;
+}
+
+.ProseMirror pre code .hljs-number,
+.ProseMirror pre code .hljs-literal {
+  color: #f78c6c;
+}
+
+.ProseMirror pre code .hljs-function,
+.ProseMirror pre code .hljs-title {
+  color: #82aaff;
+}
+
+.ProseMirror pre code .hljs-comment {
+  color: #676e95;
+  font-style: italic;
+}
+
+.ProseMirror pre code .hljs-variable,
+.ProseMirror pre code .hljs-template-variable {
+  color: #f07178;
+}
+
+.ProseMirror pre code .hljs-type,
+.ProseMirror pre code .hljs-class {
+  color: #ffcb6b;
+}
+
+.ProseMirror pre code .hljs-meta {
+  color: #89ddff;
+}
+
+.ProseMirror pre code .hljs-tag {
+  color: #f07178;
+}
+
+.ProseMirror pre code .hljs-name {
+  color: #ff5370;
+}
+
+.ProseMirror pre code .hljs-attribute {
+  color: #c792ea;
+}
+
+.ProseMirror pre code .hljs-symbol,
+.ProseMirror pre code .hljs-bullet {
+  color: #89ddff;
+}
+
+.ProseMirror pre code .hljs-addition {
+  color: #c3e88d;
+  background: rgba(195, 232, 141, 0.1);
+}
+
+.ProseMirror pre code .hljs-deletion {
+  color: #ff5370;
+  background: rgba(255, 83, 112, 0.1);
+}
+
+/* Code Block Scrollbar */
+.ProseMirror pre code::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ProseMirror pre code::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+}
+
+.ProseMirror pre code::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.ProseMirror pre code::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Blockquote */
@@ -1892,5 +2308,103 @@ watch(() => props.activeFile, (newFile) => {
 .action-bar-slide-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(20px);
+}
+
+/* Light mode styles */
+[data-theme="light"] .ProseMirror pre {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ProseMirror pre::before {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ProseMirror pre::after {
+  color: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .ProseMirror pre code {
+  color: #1e293b;
+}
+
+[data-theme="light"] .ProseMirror blockquote {
+  border-left-color: var(--text-muted);
+}
+
+[data-theme="light"] .ProseMirror a {
+  color: #374151;
+}
+
+[data-theme="light"] .ProseMirror mark {
+  background: rgba(107, 114, 128, 0.2);
+}
+
+/* Dim theme code styles */
+[data-theme="dim"] .ProseMirror code {
+  background: rgba(139, 148, 158, 0.15);
+  color: #adbac7;
+  border-color: rgba(139, 148, 158, 0.2);
+}
+
+[data-theme="dim"] .ProseMirror pre {
+  background: linear-gradient(135deg, #171717 0%, #1c1c1c 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* GitHub Dark theme code styles */
+[data-theme="github-dark"] .ProseMirror code {
+  background: rgba(88, 166, 255, 0.1);
+  color: #79c0ff;
+  border-color: rgba(88, 166, 255, 0.2);
+}
+
+[data-theme="github-dark"] .ProseMirror pre {
+  background: linear-gradient(135deg, #010409 0%, #0d1117 100%);
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+[data-theme="github-dark"] .ProseMirror a {
+  color: #58a6ff;
+}
+
+/* Sepia theme code styles */
+[data-theme="sepia"] .ProseMirror code {
+  background: rgba(92, 75, 55, 0.1);
+  color: #5c4b37;
+  border-color: rgba(92, 75, 55, 0.2);
+}
+
+[data-theme="sepia"] .ProseMirror pre {
+  background: linear-gradient(135deg, #ebe3cf 0%, #f4ecd8 100%);
+  border-color: rgba(92, 75, 55, 0.15);
+  box-shadow: 0 2px 8px rgba(92, 75, 55, 0.1);
+}
+
+[data-theme="sepia"] .ProseMirror pre::before {
+  background: linear-gradient(90deg, rgba(92, 75, 55, 0.03) 0%, rgba(92, 75, 55, 0.01) 100%);
+  border-bottom-color: rgba(92, 75, 55, 0.1);
+}
+
+[data-theme="sepia"] .ProseMirror pre::after {
+  color: rgba(92, 75, 55, 0.25);
+}
+
+[data-theme="sepia"] .ProseMirror pre code {
+  color: #3d3327;
+}
+
+[data-theme="sepia"] .ProseMirror blockquote {
+  border-left-color: #9c8b78;
+}
+
+[data-theme="sepia"] .ProseMirror a {
+  color: #5c4b37;
+}
+
+[data-theme="sepia"] .ProseMirror mark {
+  background: rgba(92, 75, 55, 0.15);
 }
 </style>

@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useSettings } from '../composables';
 
 const CORE_BASE = 'http://127.0.0.1:8787';
 
@@ -123,6 +124,7 @@ const emit = defineEmits<{
 }>();
 
 const loading = ref(false);
+const { settings } = useSettings();
 
 async function handleAction(action: string, option?: string) {
   if (!props.selectedText.trim()) {
@@ -132,13 +134,18 @@ async function handleAction(action: string, option?: string) {
 
   loading.value = true;
 
-  // 스트리밍 API 사용
+  // 스트리밍 API 사용 - LLM 설정 포함
+  // language: 'auto'로 설정하여 원문과 같은 언어로 응답
   const body = {
     content: props.selectedText,
     action,
     target_language: action === 'translate' ? (option || 'en') : 'en',
     style: action === 'improve' ? (option || 'professional') : 'professional',
-    language: 'ko'
+    language: 'auto',
+    // LLM 설정 추가
+    provider: settings.value.llm.provider,
+    api_key: settings.value.llm.apiKey,
+    model: settings.value.llm.model
   };
 
   try {
@@ -203,7 +210,8 @@ async function handleAction(action: string, option?: string) {
 
   } catch (error) {
     console.error('AI streaming failed:', error);
-    emit('error', 'AI 처리에 실패했습니다. Ollama가 실행 중인지 확인하세요.');
+    const providerName = settings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
+    emit('error', `AI 처리에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`);
     emit('stream-end');
   } finally {
     loading.value = false;
