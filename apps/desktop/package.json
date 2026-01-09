@@ -1,11 +1,16 @@
 {
-  "name": "desktop",
+  "name": "cuenote",
   "version": "0.1.0",
+  "description": "AI-Powered Local-First Markdown Note-Taking App",
+  "author": "CueNote Team",
+  "license": "MIT",
   "private": true,
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
     "build:renderer": "vite build",
+    "build:electron": "pnpm build:renderer && electron-builder --win",
+    "build:all": "pnpm build:renderer && electron-builder --win",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
@@ -35,14 +40,53 @@
     "@tiptap/vue-3": "^3.15.3",
     "@vitejs/plugin-vue": "^5.0.4",
     "codemirror": "^6.0.2",
-    "electron": "^28.2.0",
     "lowlight": "^3.3.0",
     "vue": "^3.4.21"
   },
   "devDependencies": {
     "@types/node": "^22.0.2",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.3",
     "typescript": "^5.5.4",
     "vite": "^5.3.3",
     "vue-tsc": "^2.0.26"
+  },
+  "build": {
+    "appId": "com.cuenote.app",
+    "productName": "CueNote",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "dist/**/*",
+      "node_modules/**/*",
+      "!node_modules/*/{CHANGELOG.md,README.md,readme.md,README,readme}",
+      "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!node_modules/.cache/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../core-dist",
+        "to": "core",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CueNote"
+    }
   }
 }

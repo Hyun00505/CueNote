@@ -1,7 +1,10 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { createServer } = require('vite');
-const vue = require('@vitejs/plugin-vue');
+const { spawn } = require('child_process');
+const fs = require('fs');
+
+// 개발 모드 감지
+const isDev = !app.isPackaged;
 
 // WSL2 환경 감지
 const isWSL = process.platform === 'linux' && process.env.WSL_DISTRO_NAME;
@@ -24,15 +27,112 @@ if (isWSL) {
 
 let mainWindow;
 let viteServer;
+let coreProcess;
 
+// Python 백엔드 경로 찾기
+function getCorePath() {
+  if (isDev) {
+    // 개발 모드: apps/core 폴더
+    return path.join(__dirname, '..', 'core');
+  } else {
+    // 프로덕션 모드: resources/core 폴더 (PyInstaller로 빌드된 exe)
+    return path.join(process.resourcesPath, 'core');
+  }
+}
+
+// Python 백엔드 실행
+async function startCoreServer() {
+  const corePath = getCorePath();
+  
+  if (isDev) {
+    // 개발 모드: uvicorn 직접 실행 (사용자가 별도로 실행한다고 가정)
+    console.log('[Dev] Core server should be started separately with: pnpm dev:core');
+    return true;
+  }
+  
+  // 프로덕션 모드: 번들된 exe 실행
+  const coreExe = path.join(corePath, 'cuenote-core.exe');
+  
+  if (!fs.existsSync(coreExe)) {
+    console.error('Core executable not found:', coreExe);
+    return false;
+  }
+  
+  return new Promise((resolve) => {
+    console.log('Starting core server:', coreExe);
+    
+    coreProcess = spawn(coreExe, [], {
+      cwd: corePath,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true
+    });
+    
+    coreProcess.stdout.on('data', (data) => {
+      console.log('[Core]', data.toString());
+    });
+    
+    coreProcess.stderr.on('data', (data) => {
+      console.error('[Core Error]', data.toString());
+    });
+    
+    coreProcess.on('error', (err) => {
+      console.error('Failed to start core:', err);
+      resolve(false);
+    });
+    
+    // 서버 시작 대기 (최대 30초)
+    let attempts = 0;
+    const maxAttempts = 60;
+    
+    const checkServer = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8787/health');
+        if (response.ok) {
+          console.log('Core server started successfully');
+          resolve(true);
+          return;
+        }
+      } catch (e) {
+        // 서버 아직 준비 안됨
+      }
+      
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(checkServer, 500);
+      } else {
+        console.error('Core server failed to start in time');
+        resolve(false);
+      }
+    };
+    
+    // 1초 후 체크 시작
+    setTimeout(checkServer, 1000);
+  });
+}
+
+// Core 서버 종료
+function stopCoreServer() {
+  if (coreProcess) {
+    console.log('Stopping core server...');
+    coreProcess.kill();
+    coreProcess = null;
+  }
+}
+
+// 개발 모드: Vite 서버 시작
 async function createViteServer() {
+  if (!isDev) return null;
+  
   try {
+    const { createServer } = require('vite');
+    const vue = require('@vitejs/plugin-vue');
+    
     viteServer = await createServer({
       root: path.join(__dirname, 'renderer'),
       plugins: [(vue.default || vue)()],
       server: {
         port: 5173,
-        strictPort: false,  // 포트가 사용 중이면 다른 포트 사용
+        strictPort: false,
         host: '127.0.0.1'
       }
     });
@@ -49,38 +149,52 @@ async function createViteServer() {
 
 async function createWindow() {
   try {
-    const devUrl = await createViteServer();
+    let loadUrl;
+    
+    if (isDev) {
+      // 개발 모드: Vite 서버 사용
+      loadUrl = await createViteServer();
+    } else {
+      // 프로덕션 모드: 빌드된 파일 로드
+      loadUrl = `file://${path.join(__dirname, 'dist', 'index.html')}`;
+    }
 
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
-      backgroundColor: '#0f0f12', // 초기 배경색 설정으로 흰색 깜빡임 방지
-      show: false, // 준비될 때까지 숨김
+      backgroundColor: '#0f0f12',
+      show: false,
       webPreferences: {
-        preload: path.join(__dirname, 'renderer', 'preload.js'),
+        preload: isDev 
+          ? path.join(__dirname, 'renderer', 'preload.js')
+          : path.join(__dirname, 'dist', 'preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        // 성능 최적화
-        backgroundThrottling: false, // 백그라운드 스로틀링 비활성화
-        enableWebSQL: false, // 사용하지 않는 기능 비활성화
+        backgroundThrottling: false,
+        enableWebSQL: false,
       }
     });
 
-    // 창이 준비되면 표시 (부드러운 시작)
     mainWindow.once('ready-to-show', () => {
       mainWindow.show();
     });
 
-    mainWindow.loadURL(devUrl).catch(err => {
+    mainWindow.loadURL(loadUrl).catch(err => {
       console.error('Failed to load URL:', err);
     });
+    
+    // 개발 모드에서 DevTools 열기 (선택사항)
+    if (isDev) {
+      // mainWindow.webContents.openDevTools();
+    }
   } catch (err) {
     console.error('Failed to create window:', err);
     app.quit();
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // IPC 핸들러 등록
   ipcMain.handle('cuenote:select-vault', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory']
@@ -90,6 +204,19 @@ app.whenReady().then(() => {
     }
     return result.filePaths[0] || null;
   });
+
+  // 프로덕션 모드에서 Core 서버 시작
+  if (!isDev) {
+    const coreStarted = await startCoreServer();
+    if (!coreStarted) {
+      dialog.showErrorBox(
+        'CueNote 시작 오류',
+        'Core 서버를 시작할 수 없습니다. 앱을 다시 설치해주세요.'
+      );
+      app.quit();
+      return;
+    }
+  }
 
   createWindow();
 
@@ -107,7 +234,25 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', async () => {
+  // Vite 서버 종료
   if (viteServer) {
     await viteServer.close();
   }
+  // Core 서버 종료
+  stopCoreServer();
+});
+
+// 예기치 않은 종료 시에도 Core 서버 종료
+process.on('exit', () => {
+  stopCoreServer();
+});
+
+process.on('SIGINT', () => {
+  stopCoreServer();
+  process.exit();
+});
+
+process.on('SIGTERM', () => {
+  stopCoreServer();
+  process.exit();
 });

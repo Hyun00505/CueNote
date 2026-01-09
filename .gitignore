@@ -1,17 +1,41 @@
+# ============================================
+# CueNote .gitignore
+# ============================================
+
+# ============================================
 # Dependencies
-node_modules
+# ============================================
+node_modules/
 .pnp.*
 .pnpm-debug.log*
-.npm
+.npm/
 .yarn/
 
-# Build outputs
-dist
-build
-out
-*.local
+# ============================================
+# Build Outputs - Electron
+# ============================================
+# Vite build output
+apps/desktop/dist/
+# Electron-builder output (installers)
+apps/desktop/release/
+# Electron packaged apps
+apps/desktop/*.exe
+apps/desktop/*.msi
+apps/desktop/*.dmg
+apps/desktop/*.AppImage
 
+# ============================================
+# Build Outputs - Python (PyInstaller)
+# ============================================
+# PyInstaller build directories
+apps/core/build/
+apps/core/dist/
+# Bundled Python backend for Electron
+apps/core-dist/
+
+# ============================================
 # Python
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -20,54 +44,125 @@ __pycache__/
 venv/
 env/
 .venv/
+ENV/
 *.egg-info/
 *.egg
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Database
-apps/core/data/cuenote.db
+# ============================================
+# Database & User Data
+# ============================================
+# SQLite databases
 *.db
 *.sqlite
 *.sqlite3
+# But keep the schema/empty db if needed
+!apps/core/data/.gitkeep
 
-# Environment variables
+# User environment settings (contains API keys)
+apps/core/data/environments.json
+
+# ============================================
+# Environment Variables
+# ============================================
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 
-# IDE
+# ============================================
+# IDE & Editor
+# ============================================
 .vscode/
 .idea/
 .vs/
 *.swp
 *.swo
 *~
+*.sublime-workspace
+*.sublime-project
 
-# OS
+# ============================================
+# OS Generated
+# ============================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
-nul
+$RECYCLE.BIN/
 
+# ============================================
 # Logs
+# ============================================
 *.log
 logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Testing
+# ============================================
+# Testing & Coverage
+# ============================================
 coverage/
 .nyc_output/
 *.lcov
+.coverage
+htmlcov/
 
-# Temporary files
-COMMIT_MESSAGE.txt
-PR_MESSAGE.md
+# ============================================
+# Temporary Files
+# ============================================
 *.tmp
 *.temp
+*.bak
+*.backup
+COMMIT_MESSAGE.txt
+PR_MESSAGE.md
 
-# Project specific
+# ============================================
+# AI/ML Models (too large for git)
+# ============================================
+# EasyOCR models
+.EasyOCR/
+# Hugging Face models
+.cache/huggingface/
+# Torch models
+*.pt
+*.pth
+*.onnx
+# Except small config files
+!*.json
+
+# ============================================
+# Project Specific
+# ============================================
+# sLLM test data
 sLLM_python/data/
+sLLM_python/*.pth
+
+# Claude/Cursor AI
 .claude/
+.cursor/
+
+# Local development data
+local_data/
+
+# ============================================
+# Optional: Keep certain directories
+# ============================================
+# Keep data directory structure
+!data/
+data/*
+!data/*.md
+!data/.gitkeep

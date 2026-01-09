@@ -6,20 +6,49 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        <span>뒤로</span>
+        <span>{{ t('common.back') }}</span>
       </button>
       <div class="header-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
-        <span>설정</span>
+        <span>{{ t('settings.title') }}</span>
       </div>
     </div>
 
     <!-- Content -->
     <div class="settings-content">
       <div class="settings-inner">
+        <!-- Language Section -->
+        <section class="settings-section">
+          <h3 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            {{ t('settings.language') }}
+          </h3>
+          <p class="section-desc">{{ t('settings.languageDesc') }}</p>
+          
+          <div class="language-options">
+            <button
+              v-for="lang in ['ko', 'en'] as const"
+              :key="lang"
+              class="language-btn"
+              :class="{ active: currentLanguage === lang }"
+              @click="setLanguage(lang)"
+            >
+              <span class="lang-flag">{{ lang === 'ko' ? '🇰🇷' : '🇺🇸' }}</span>
+              <span class="lang-name">{{ languageNames[lang] }}</span>
+              <svg v-if="currentLanguage === lang" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="lang-check">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
         <!-- Theme Section -->
         <section class="settings-section">
           <h3 class="section-title">
@@ -27,7 +56,7 @@
               <circle cx="12" cy="12" r="5"/>
               <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
             </svg>
-            테마
+            {{ t('settings.theme') }}
           </h3>
           
           <div class="theme-grid">
@@ -401,10 +430,10 @@
           <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
           <path d="M8 16H3v5"/>
         </svg>
-        초기화
+        {{ t('common.reset') }}
       </button>
       <button class="save-btn" @click="$emit('back')">
-        완료
+        {{ t('common.done') }}
       </button>
     </div>
   </div>
@@ -412,7 +441,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useSettings } from '../composables';
+import { useSettings, useI18n } from '../composables';
 
 defineEmits<{
   back: [];
@@ -434,18 +463,20 @@ const {
   refreshOllamaModels
 } = useSettings();
 
+const { t, currentLanguage, setLanguage, languageNames } = useI18n();
+
 const isRefreshing = ref(false);
 
 // 테마 설정
 type ThemeId = 'dark' | 'light' | 'dim' | 'github-dark' | 'sepia';
 
-const themes = [
-  { id: 'dark' as ThemeId, name: '다크', colors: { bg: '#0f0f12', sidebar: '#16161a', accent: '#6b7280' } },
-  { id: 'light' as ThemeId, name: '라이트', colors: { bg: '#ffffff', sidebar: '#f5f5f5', accent: '#374151' } },
-  { id: 'dim' as ThemeId, name: '딤', colors: { bg: '#1c1c1c', sidebar: '#252525', accent: '#8b949e' } },
-  { id: 'github-dark' as ThemeId, name: 'GitHub', colors: { bg: '#0d1117', sidebar: '#161b22', accent: '#58a6ff' } },
-  { id: 'sepia' as ThemeId, name: '세피아', colors: { bg: '#f4ecd8', sidebar: '#e8e0cc', accent: '#5c4b37' } },
-];
+const themes = computed(() => [
+  { id: 'dark' as ThemeId, name: t('theme.dark'), colors: { bg: '#0f0f12', sidebar: '#16161a', accent: '#6b7280' } },
+  { id: 'light' as ThemeId, name: t('theme.light'), colors: { bg: '#ffffff', sidebar: '#f5f5f5', accent: '#374151' } },
+  { id: 'dim' as ThemeId, name: t('theme.dim'), colors: { bg: '#1c1c1c', sidebar: '#252525', accent: '#8b949e' } },
+  { id: 'github-dark' as ThemeId, name: t('theme.github'), colors: { bg: '#0d1117', sidebar: '#161b22', accent: '#58a6ff' } },
+  { id: 'sepia' as ThemeId, name: t('theme.sepia'), colors: { bg: '#f4ecd8', sidebar: '#e8e0cc', accent: '#5c4b37' } },
+]);
 
 const currentTheme = ref<ThemeId>('dark');
 
@@ -1296,6 +1327,58 @@ function handleReset() {
 
 .btn-download-handwriting:hover:not(:disabled) {
   background: linear-gradient(135deg, #a78bfa, #8b5cf6) !important;
+}
+
+/* Section Description */
+.section-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+/* Language Options */
+.language-options {
+  display: flex;
+  gap: 10px;
+}
+
+.language-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.language-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-default);
+}
+
+.language-btn.active {
+  background: var(--bg-active);
+  border-color: var(--border-strong);
+}
+
+.lang-flag {
+  font-size: 20px;
+}
+
+.lang-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.lang-check {
+  color: var(--text-secondary);
 }
 
 /* Theme Grid */

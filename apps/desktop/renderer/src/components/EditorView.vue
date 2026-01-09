@@ -163,6 +163,23 @@
         @stream-chunk="handleStreamChunk"
         @stream-end="handleStreamEnd"
         @error="handleAIError"
+        @proofread="handleProofread"
+      />
+
+      <!-- 맞춤법 검사 패널 -->
+      <AIProofreadPanel
+        :visible="showProofreadPanel"
+        :loading="proofreadLoading"
+        :original-text="proofreadOriginalText"
+        :corrected-text="proofreadCorrectedText"
+        :items="proofreadItems"
+        :language-detected="proofreadLanguage"
+        @close="handleProofreadClose"
+        @apply-item="handleProofreadApplyItem"
+        @apply-all="handleProofreadApplyAll"
+        @skip-item="handleProofreadSkipItem"
+        @skip-all="handleProofreadSkipAll"
+        @focus-item="handleProofreadFocusItem"
       />
 
       <p v-if="editorError" class="error-msg">
@@ -201,6 +218,7 @@ import { DOMSerializer } from '@tiptap/pm/model';
 import EditorToolbar from './EditorToolbar.vue';
 import AIContextMenu from './AIContextMenu.vue';
 import AIInlineDiff from './AIInlineDiff.vue';
+import AIProofreadPanel from './AIProofreadPanel.vue';
 import { useSettings } from '../composables';
 
 const lowlight = createLowlight(common);
@@ -215,7 +233,23 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'dirty-change': [isDirty: boolean];
+  'dirty-files-change': [files: string[]];
 }>();
+
+// dirty 파일 목록을 부모에게 전달하는 함수
+function emitDirtyFiles() {
+  const dirtyFiles: string[] = [];
+  fileContentCache.forEach((value, key) => {
+    if (value.isDirty) {
+      dirtyFiles.push(key);
+    }
+  });
+  // 현재 파일도 dirty이면 추가
+  if (currentFilePath.value && isDirty.value && !dirtyFiles.includes(currentFilePath.value)) {
+    dirtyFiles.push(currentFilePath.value);
+  }
+  emit('dirty-files-change', dirtyFiles);
+}
 
 const editorError = ref('');
 const saving = ref(false);
@@ -264,6 +298,113 @@ const showDiffView = ref(false);
 const diffData = ref<any>(null);
 const diffPosition = ref({ x: 0, y: 0 });
 
+// 맞춤법 패널 상태
+interface ProofreadItem {
+  original: string;
+  corrected: string;
+  reason: string;
+  type: string;
+  applied?: boolean;
+  skipped?: boolean;
+  positions?: Array<{ from: number; to: number }>; // 에디터에서의 위치들
+}
+
+const showProofreadPanel = ref(false);
+const proofreadLoading = ref(false);
+const proofreadOriginalText = ref('');
+const proofreadCorrectedText = ref('');
+const proofreadItems = ref<ProofreadItem[]>([]);
+const proofreadLanguage = ref('');
+
+// 에디터에서 텍스트의 모든 위치 찾기
+function findTextPositions(searchText: string): Array<{ from: number; to: number }> {
+  if (!editor.value) return [];
+  
+  const positions: Array<{ from: number; to: number }> = [];
+  const doc = editor.value.state.doc;
+  
+  doc.descendants((node, pos) => {
+    if (node.isText && node.text) {
+      let index = 0;
+      while (true) {
+        const foundIndex = node.text.indexOf(searchText, index);
+        if (foundIndex === -1) break;
+        
+        positions.push({
+          from: pos + foundIndex,
+          to: pos + foundIndex + searchText.length
+        });
+        index = foundIndex + 1;
+      }
+    }
+    return true;
+  });
+  
+  return positions;
+}
+
+// 맞춤법 오류 하이라이트 적용
+function applyProofreadHighlights() {
+  if (!editor.value) return;
+  
+  // 각 오류 항목에 대해 위치를 찾고 하이라이트 적용
+  proofreadItems.value.forEach((item, index) => {
+    if (!item.applied && !item.skipped) {
+      const positions = findTextPositions(item.original);
+      proofreadItems.value[index].positions = positions;
+      
+      // 각 위치에 하이라이트 적용
+      positions.forEach(({ from, to }) => {
+        editor.value?.chain()
+          .setTextSelection({ from, to })
+          .setHighlight({ color: '#ef444480' }) // 빨간색 반투명 하이라이트
+          .run();
+      });
+    }
+  });
+  
+  // 선택 해제
+  editor.value.commands.blur();
+}
+
+// 특정 항목의 하이라이트 제거 (위치 기반)
+function removeItemHighlight(index: number) {
+  if (!editor.value) return;
+  
+  const item = proofreadItems.value[index];
+  if (!item.positions || item.positions.length === 0) return;
+  
+  // 해당 위치의 텍스트에서 하이라이트 제거
+  const { from, to } = item.positions[0];
+  const docSize = editor.value.state.doc.content.size;
+  
+  if (from < docSize && to <= docSize) {
+    editor.value.chain()
+      .setTextSelection({ from, to })
+      .unsetHighlight()
+      .setTextSelection(from) // 선택 해제
+      .run();
+  }
+}
+
+// 모든 맞춤법 하이라이트 제거 (전체 문서에서)
+function removeAllProofreadHighlights() {
+  if (!editor.value) return;
+  
+  // 전체 문서를 선택하고 모든 하이라이트 제거
+  const { doc } = editor.value.state;
+  const docSize = doc.content.size;
+  
+  if (docSize > 0) {
+    editor.value.chain()
+      .setTextSelection({ from: 0, to: docSize })
+      .unsetHighlight()
+      .setTextSelection(0) // 커서를 문서 시작으로
+      .blur()
+      .run();
+  }
+}
+
 // 파일별 변경사항 캐시 (저장하지 않은 상태 유지)
 const fileContentCache = new Map<string, { html: string; isDirty: boolean }>();
 const currentFilePath = ref<string | null>(null);
@@ -311,6 +452,7 @@ const editor = useEditor({
     if (!isDirty.value) {
       isDirty.value = true;
       emit('dirty-change', true);
+      emitDirtyFiles();
     }
   },
 });
@@ -536,6 +678,7 @@ async function openFile(filePath: string) {
       html: editor.value.getHTML(),
       isDirty: true
     });
+    emitDirtyFiles();
   }
 
   // 현재 파일 경로 업데이트
@@ -609,6 +752,7 @@ async function handleSave() {
     
     // 저장 후 캐시에서 해당 파일 제거 (더 이상 저장되지 않은 변경사항 아님)
     fileContentCache.delete(props.activeFile);
+    emitDirtyFiles();
   } catch (error) {
     editorError.value = '저장 실패.';
     console.error('Save file failed', error);
@@ -1056,6 +1200,246 @@ function handleAIReject() {
   savedSelection.value = null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 맞춤법 검사 관련 함수
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 맞춤법 검사 시작
+async function handleProofread(text: string) {
+  if (!text.trim()) return;
+  
+  proofreadOriginalText.value = text;
+  proofreadLoading.value = true;
+  showProofreadPanel.value = true;
+  proofreadItems.value = [];
+  proofreadCorrectedText.value = '';
+  proofreadLanguage.value = '';
+  
+  // 현재 선택 영역 저장
+  if (editor.value) {
+    const { from, to } = editor.value.state.selection;
+    savedSelection.value = { from, to };
+  }
+  
+  try {
+    const body = {
+      content: text,
+      language: 'auto',
+      provider: llmSettings.value.llm.provider,
+      api_key: llmSettings.value.llm.apiKey,
+      model: llmSettings.value.llm.model
+    };
+    
+    const res = await fetch(`${CORE_BASE}/ai/proofread`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    
+    const data = await res.json();
+    proofreadCorrectedText.value = data.corrected || text;
+    proofreadLanguage.value = data.language_detected || '';
+    proofreadItems.value = (data.items || []).map((item: ProofreadItem) => ({
+      ...item,
+      applied: false,
+      skipped: false,
+      positions: []
+    }));
+    
+    // 오류 항목에 하이라이트 적용
+    if (proofreadItems.value.length > 0) {
+      setTimeout(() => {
+        applyProofreadHighlights();
+      }, 100);
+    }
+    
+  } catch (error) {
+    console.error('Proofread failed:', error);
+    const providerName = llmSettings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
+    handleAIError(`맞춤법 검사에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`);
+    showProofreadPanel.value = false;
+  } finally {
+    proofreadLoading.value = false;
+  }
+}
+
+// 개별 맞춤법 수정 적용
+function handleProofreadApplyItem(data: { index: number; original: string; corrected: string }) {
+  if (!editor.value) return;
+  
+  const { index, original, corrected } = data;
+  const item = proofreadItems.value[index];
+  
+  // 저장된 위치가 있으면 해당 위치에서 교체
+  if (item.positions && item.positions.length > 0) {
+    // 첫 번째 위치만 교체 (같은 오류가 여러 번 있을 수 있음)
+    const { from, to } = item.positions[0];
+    const docSize = editor.value.state.doc.content.size;
+    
+    if (from < docSize && to <= docSize) {
+      // 해당 위치의 텍스트가 여전히 원본과 일치하는지 확인
+      const currentText = editor.value.state.doc.textBetween(from, to);
+      
+      if (currentText === original) {
+        // 하이라이트 제거 후 텍스트 교체
+        editor.value.chain()
+          .setTextSelection({ from, to })
+          .unsetHighlight()
+          .deleteSelection()
+          .insertContent(corrected)
+          .blur()
+          .run();
+        
+        proofreadItems.value[index].applied = true;
+        
+        // 위치가 변경되었으므로 다른 항목들의 위치 업데이트 필요
+        updateProofreadPositions(index, corrected.length - original.length);
+        return;
+      }
+    }
+  }
+  
+  // 저장된 위치가 없거나 변경되었으면 텍스트로 직접 검색
+  const positions = findTextPositions(original);
+  
+  if (positions.length > 0) {
+    const { from, to } = positions[0];
+    
+    editor.value.chain()
+      .setTextSelection({ from, to })
+      .unsetHighlight()
+      .deleteSelection()
+      .insertContent(corrected)
+      .blur()
+      .run();
+    
+    proofreadItems.value[index].applied = true;
+    updateProofreadPositions(index, corrected.length - original.length);
+  } else {
+    // 텍스트를 찾을 수 없는 경우 (이미 수정되었거나 없음)
+    console.warn(`Could not find text to replace: "${original}"`);
+    proofreadItems.value[index].applied = true;
+  }
+}
+
+// 텍스트 교체 후 다른 항목들의 위치 업데이트
+function updateProofreadPositions(appliedIndex: number, lengthDiff: number) {
+  const appliedItem = proofreadItems.value[appliedIndex];
+  const appliedFrom = appliedItem.positions?.[0]?.from ?? 0;
+  
+  proofreadItems.value.forEach((item, index) => {
+    if (index !== appliedIndex && item.positions && !item.applied && !item.skipped) {
+      item.positions = item.positions.map(pos => {
+        if (pos.from > appliedFrom) {
+          return {
+            from: pos.from + lengthDiff,
+            to: pos.to + lengthDiff
+          };
+        }
+        return pos;
+      });
+    }
+  });
+}
+
+// 모든 맞춤법 수정 적용
+function handleProofreadApplyAll() {
+  if (!editor.value) return;
+  
+  // 뒤에서부터 적용하여 위치 변경 문제 방지
+  const sortedIndices = proofreadItems.value
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => !item.applied && !item.skipped && item.positions && item.positions.length > 0)
+    .sort((a, b) => {
+      const posA = a.item.positions?.[0]?.from ?? 0;
+      const posB = b.item.positions?.[0]?.from ?? 0;
+      return posB - posA; // 뒤에서부터 처리
+    });
+  
+  sortedIndices.forEach(({ item, index }) => {
+    if (item.positions && item.positions.length > 0) {
+      const { from, to } = item.positions[0];
+      const docSize = editor.value!.state.doc.content.size;
+      
+      if (from < docSize && to <= docSize) {
+        editor.value!.chain()
+          .setTextSelection({ from, to })
+          .unsetHighlight()
+          .deleteSelection()
+          .insertContent(item.corrected)
+          .run();
+        
+        proofreadItems.value[index].applied = true;
+      }
+    }
+  });
+  
+  editor.value.commands.blur();
+}
+
+// 개별 맞춤법 수정 무시
+function handleProofreadSkipItem(index: number) {
+  // 하이라이트 제거
+  removeItemHighlight(index);
+  proofreadItems.value[index].skipped = true;
+  editor.value?.commands.blur();
+}
+
+// 모든 맞춤법 수정 무시
+function handleProofreadSkipAll() {
+  proofreadItems.value.forEach((item, index) => {
+    if (!item.applied && !item.skipped) {
+      removeItemHighlight(index);
+      proofreadItems.value[index].skipped = true;
+    }
+  });
+  editor.value?.commands.blur();
+}
+
+// 맞춤법 패널 닫기
+function handleProofreadClose() {
+  // 남은 하이라이트 모두 제거
+  removeAllProofreadHighlights();
+  
+  showProofreadPanel.value = false;
+  proofreadItems.value = [];
+  proofreadOriginalText.value = '';
+  proofreadCorrectedText.value = '';
+  savedSelection.value = null;
+}
+
+// 특정 맞춤법 항목으로 포커스 이동
+function handleProofreadFocusItem(index: number) {
+  if (!editor.value) return;
+  
+  const item = proofreadItems.value[index];
+  if (!item.positions || item.positions.length === 0) {
+    // 위치 정보가 없으면 다시 찾기
+    const positions = findTextPositions(item.original);
+    if (positions.length > 0) {
+      proofreadItems.value[index].positions = positions;
+    }
+  }
+  
+  if (item.positions && item.positions.length > 0) {
+    const { from, to } = item.positions[0];
+    const docSize = editor.value.state.doc.content.size;
+    
+    if (from < docSize && to <= docSize) {
+      // 해당 위치로 스크롤 및 선택
+      editor.value.chain()
+        .focus()
+        .setTextSelection({ from, to })
+        .scrollIntoView()
+        .run();
+    }
+  }
+}
+
 // AI 액션 라벨 반환
 function getActionLabel(action: string): string {
   const labels: Record<string, string> = {
@@ -1063,7 +1447,8 @@ function getActionLabel(action: string): string {
     improve: '다듬기',
     expand: '확장',
     shorten: '축약',
-    summarize: '요약'
+    summarize: '요약',
+    proofread: '맞춤법'
   };
   return labels[action] || '변환';
 }
@@ -1789,6 +2174,24 @@ defineExpose({
   border-radius: 2px;
 }
 
+/* 맞춤법 오류 하이라이트 - 빨간색 물결 밑줄 효과 */
+.ProseMirror mark[data-color="#ef444480"] {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.15) 100%);
+  border-bottom: 2px wavy #ef4444;
+  padding: 0 2px;
+  border-radius: 2px;
+  animation: proofread-pulse 2s ease-in-out infinite;
+}
+
+@keyframes proofread-pulse {
+  0%, 100% { 
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.15) 100%);
+  }
+  50% { 
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.25) 100%);
+  }
+}
+
 /* Inline Code */
 .ProseMirror code {
   background: rgba(107, 114, 128, 0.15);
@@ -2342,6 +2745,11 @@ defineExpose({
   background: rgba(107, 114, 128, 0.2);
 }
 
+[data-theme="light"] .ProseMirror mark[data-color="#ef444480"] {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border-bottom: 2px wavy #dc2626;
+}
+
 /* Dim theme code styles */
 [data-theme="dim"] .ProseMirror code {
   background: rgba(139, 148, 158, 0.15);
@@ -2406,5 +2814,10 @@ defineExpose({
 
 [data-theme="sepia"] .ProseMirror mark {
   background: rgba(92, 75, 55, 0.15);
+}
+
+[data-theme="sepia"] .ProseMirror mark[data-color="#ef444480"] {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border-bottom: 2px wavy #b91c1c;
 }
 </style>

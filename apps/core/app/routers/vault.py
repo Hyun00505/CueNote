@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from ..config import VAULT_PATH, TRASH_PATH, TODO_PATTERN, logger, PROJECT_ROOT
 from ..db import get_conn
 from ..schemas import (
-    VaultOpenPayload, VaultFilePayload, DeleteFilePayload,
+    VaultOpenPayload, VaultFilePayload,
     RenameFilePayload, RestoreFilePayload, PermanentDeletePayload,
     TodoItem, ImageUploadPayload
 )
@@ -111,7 +111,13 @@ async def list_vault_files():
     files: list[str] = []
     for md_file in vault_path.rglob("*.md"):
         rel_path = md_file.relative_to(vault_path)
-        files.append(str(rel_path).replace("\\", "/"))
+        rel_path_str = str(rel_path).replace("\\", "/")
+        
+        # .trash 폴더 내의 파일은 제외
+        if rel_path_str.startswith(".trash/") or "/.trash/" in rel_path_str:
+            continue
+        
+        files.append(rel_path_str)
     
     files.sort()
     logger.info("Found %d markdown files in vault", len(files))
@@ -248,11 +254,11 @@ async def rename_vault_file(payload: RenameFilePayload):
 
 
 @router.delete("/file")
-async def delete_vault_file(payload: DeleteFilePayload):
+async def delete_vault_file(path: str = Query(..., description="Relative path to file to delete")):
     """Vault 내의 마크다운 파일을 휴지통으로 이동합니다."""
     vault_path = get_current_vault_path()
     trash_path = get_trash_path()
-    safe_path = Path(payload.path).as_posix()
+    safe_path = Path(path).as_posix()
     if ".." in safe_path or safe_path.startswith("/"):
         raise HTTPException(status_code=400, detail="Invalid path")
     

@@ -15,6 +15,7 @@ from ..schemas import (
     ImprovePayload, ImproveResponse,
     ExpandPayload, ExpandResponse,
     ShortenPayload, ShortenResponse,
+    ProofreadPayload, ProofreadResponse, CorrectionItem,
     StreamPayload,
     DocumentExtractPayload, DocumentExtractResponse,
     OCRModelStatus, OCRDownloadResponse,
@@ -332,6 +333,88 @@ async def shorten_text(payload: ShortenPayload):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 맞춤법 교정
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/proofread", response_model=ProofreadResponse)
+async def proofread_text(payload: ProofreadPayload):
+    """선택된 텍스트의 맞춤법과 문법을 교정합니다. 한국어와 영어를 지원합니다."""
+    content = payload.content.strip()
+    
+    if not content:
+        raise HTTPException(status_code=400, detail="Content is empty")
+    
+    content, truncation_warning = process_long_text(content)
+    
+    prompt = (
+        "You are a professional proofreader. Find and fix spelling, grammar, and punctuation errors.\n"
+        "Output MUST be JSON only and match the schema.\n\n"
+        "CRITICAL RULES:\n"
+        "- PRESERVE ALL MARKDOWN FORMATTING exactly as-is (headers, lists, bold, italic, links, code)\n"
+        "- Find ALL errors including:\n"
+        "  * Spelling mistakes (e.g., '안녕하세욧' → '안녕하세요', 'teh' → 'the')\n"
+        "  * Grammar errors (e.g., subject-verb agreement, tense)\n"
+        "  * Punctuation (e.g., missing periods, incorrect comma usage)\n"
+        "  * Spacing issues (e.g., '안녕 하세요' → '안녕하세요', 'helloworld' → 'hello world')\n"
+        "- DO NOT change the meaning or style of the text\n"
+        "- DO NOT translate - keep the original language\n"
+        "- If text mixes Korean and English, fix each language according to its rules\n"
+        "- Return EACH error as a separate item in the 'items' array\n"
+        "- For each item, provide: original text, corrected text, reason, and type\n"
+        "- Type must be one of: 'spelling', 'grammar', 'punctuation', 'spacing'\n"
+        "- If there are no errors, return empty items array\n\n"
+        f"Text to proofread:\n{content}\n\n"
+        "Schema:\n"
+        '{\n'
+        '  "corrected": "string (the full corrected text)",\n'
+        '  "items": [\n'
+        '    {\n'
+        '      "original": "wrong word or phrase",\n'
+        '      "corrected": "correct word or phrase",\n'
+        '      "reason": "brief explanation (in same language as the error)",\n'
+        '      "type": "spelling|grammar|punctuation|spacing"\n'
+        '    }\n'
+        '  ],\n'
+        '  "language_detected": "ko|en|mixed"\n'
+        '}\n'
+        "Return JSON only."
+    )
+    
+    try:
+        result = call_json_with_provider(
+            prompt,
+            "ProofreadResult with fields corrected, items, language_detected",
+            provider=payload.provider,
+            api_key=payload.api_key,
+            model=payload.model if payload.model else None
+        )
+        corrected = result.get("corrected", content)
+        if truncation_warning:
+            corrected = f"{corrected}\n\n{truncation_warning}"
+        
+        # items 파싱
+        raw_items = result.get("items", [])
+        items = []
+        for item in raw_items:
+            if isinstance(item, dict) and "original" in item and "corrected" in item:
+                items.append(CorrectionItem(
+                    original=item.get("original", ""),
+                    corrected=item.get("corrected", ""),
+                    reason=item.get("reason", ""),
+                    type=item.get("type", "spelling")
+                ))
+        
+        return ProofreadResponse(
+            corrected=corrected,
+            items=items,
+            language_detected=result.get("language_detected", "")
+        )
+    except Exception as e:
+        logger.error("Proofread failed: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to proofread text")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 스트리밍
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -415,6 +498,18 @@ def build_stream_prompt(payload: StreamPayload) -> str:
             f"Summarize the following text in 2-3 sentences. Keep the same language.\n"
             f"{preserve_rules}\n"
             f"---INPUT---\n{content}\n---SUMMARY---\n"
+        )
+    
+    elif payload.action == "proofread":
+        return (
+            f"Proofread and correct spelling, grammar, and punctuation errors in the following text.\n"
+            f"{preserve_rules}"
+            "- Fix spelling mistakes (e.g., '안녕하세욧' → '안녕하세요', 'teh' → 'the')\n"
+            "- Fix grammatical errors while preserving meaning\n"
+            "- Fix punctuation and spacing issues\n"
+            "- DO NOT translate - keep the original language\n"
+            "- If text mixes Korean and English, fix each language according to its rules\n\n"
+            f"---INPUT---\n{content}\n---CORRECTED---\n"
         )
     
     else:

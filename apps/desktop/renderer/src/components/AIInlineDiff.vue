@@ -100,6 +100,7 @@ const actionLabels: Record<string, string> = {
   shorten: '더 짧게',
   summarize: '요약',
   translate: '번역',
+  proofread: '맞춤법',
 };
 
 const actionLabel = computed(() => actionLabels[props.action] || 'AI 변환');

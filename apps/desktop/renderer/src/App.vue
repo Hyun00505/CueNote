@@ -4,7 +4,7 @@
       v-if="currentView !== 'settings'"
       :collapsed="sidebarCollapsed"
       :active-file="activeFile"
-      :dirty-file="isFileDirty ? activeFile : null"
+      :dirty-files="dirtyFiles"
       @toggle-collapse="handleToggleCollapse"
       @select-file="handleSelectFile"
       @file-deleted="handleFileDeleted"
@@ -64,6 +64,7 @@
           v-show="currentView === 'editor'"
           :active-file="activeFile"
           @dirty-change="isFileDirty = $event"
+          @dirty-files-change="handleDirtyFilesChange"
         />
 
         <DashboardView
@@ -92,11 +93,17 @@ const activeFile = ref<string | null>(null);
 const previousView = ref<ViewType>('editor');
 const isFileDirty = ref(false);
 const isResizing = ref(false);
+const dirtyFiles = ref<string[]>([]);
 
 // 저장 확인 모달 관련
 const showUnsavedModal = ref(false);
 const pendingFile = ref<string | null>(null);
 const editorViewRef = ref<InstanceType<typeof EditorView> | null>(null);
+
+// dirty 파일 목록 업데이트
+function handleDirtyFilesChange(files: string[]) {
+  dirtyFiles.value = files;
+}
 
 // 사이드바 토글
 function handleToggleCollapse() {

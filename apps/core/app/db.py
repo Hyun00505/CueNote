@@ -38,6 +38,27 @@ def init_db() -> None:
             );
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS schedules (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                date TEXT NOT NULL,
+                start_time TEXT,
+                end_time TEXT,
+                color TEXT DEFAULT '#c9a76c',
+                completed INTEGER DEFAULT 0,
+                created_at TEXT,
+                updated_at TEXT
+            );
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_schedules_date ON schedules(date);
+            """
+        )
         conn.commit()
     finally:
         conn.close()

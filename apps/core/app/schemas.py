@@ -136,9 +136,32 @@ class ShortenResponse(BaseModel):
     shortened: str = Field(..., description="축약된 텍스트")
 
 
+class ProofreadPayload(BaseModel):
+    content: str = Field(..., description="맞춤법 검사할 텍스트")
+    language: str = Field(default="auto", description="언어 (auto: 자동 감지, ko, en)")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")
+    model: str = Field(default="", description="사용할 모델명")
+
+
+class CorrectionItem(BaseModel):
+    """개별 맞춤법 수정 항목"""
+    original: str = Field(..., description="원본 텍스트")
+    corrected: str = Field(..., description="수정된 텍스트")
+    reason: str = Field(default="", description="수정 이유")
+    type: str = Field(default="spelling", description="오류 유형 (spelling, grammar, punctuation, spacing)")
+
+
+class ProofreadResponse(BaseModel):
+    corrected: str = Field(..., description="전체 교정된 텍스트")
+    items: list[CorrectionItem] = Field(default_factory=list, description="개별 수정 항목 목록")
+    language_detected: str = Field(default="", description="감지된 언어")
+
+
 class StreamPayload(BaseModel):
     content: str = Field(..., description="처리할 텍스트")
-    action: str = Field(..., description="작업 종류 (translate, improve, expand, shorten, summarize)")
+    action: str = Field(..., description="작업 종류 (translate, improve, expand, shorten, summarize, proofread)")
     target_language: str = Field(default="en", description="번역 대상 언어")
     style: str = Field(default="professional", description="개선 스타일")
     language: str = Field(default="ko", description="응답 언어")
@@ -226,3 +249,64 @@ class HandwritingModelStatus(BaseModel):
     model_name: str = Field(..., description="모델 이름")
     model_path: str = Field(..., description="모델 저장 경로")
     downloading: bool = Field(default=False, description="다운로드 진행 중 여부")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 일정(Schedule) 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ScheduleItem(BaseModel):
+    """일정 항목"""
+    id: str = Field(..., description="일정 고유 ID")
+    title: str = Field(..., description="일정 제목")
+    description: str = Field(default="", description="일정 설명")
+    date: str = Field(..., description="일정 날짜 (YYYY-MM-DD)")
+    startTime: str = Field(default="", description="시작 시간 (HH:MM)")
+    endTime: str = Field(default="", description="종료 시간 (HH:MM)")
+    color: str = Field(default="#c9a76c", description="일정 색상")
+    completed: bool = Field(default=False, description="완료 여부")
+    createdAt: str = Field(default="", description="생성 시간")
+    updatedAt: str = Field(default="", description="수정 시간")
+
+
+class ScheduleCreatePayload(BaseModel):
+    """일정 생성 요청"""
+    title: str = Field(..., description="일정 제목")
+    description: str = Field(default="", description="일정 설명")
+    date: str = Field(..., description="일정 날짜 (YYYY-MM-DD)")
+    startTime: str = Field(default="", description="시작 시간 (HH:MM)")
+    endTime: str = Field(default="", description="종료 시간 (HH:MM)")
+    color: str = Field(default="#c9a76c", description="일정 색상")
+
+
+class ScheduleUpdatePayload(BaseModel):
+    """일정 수정 요청"""
+    title: str = Field(default=None, description="일정 제목")
+    description: str = Field(default=None, description="일정 설명")
+    date: str = Field(default=None, description="일정 날짜 (YYYY-MM-DD)")
+    startTime: str = Field(default=None, description="시작 시간 (HH:MM)")
+    endTime: str = Field(default=None, description="종료 시간 (HH:MM)")
+    color: str = Field(default=None, description="일정 색상")
+    completed: bool = Field(default=None, description="완료 여부")
+
+
+class ScheduleCountByDate(BaseModel):
+    """날짜별 일정 개수"""
+    date: str = Field(..., description="날짜 (YYYY-MM-DD)")
+    count: int = Field(..., description="일정 개수")
+    completedCount: int = Field(default=0, description="완료된 일정 개수")
+
+
+class AIExtractSchedulePayload(BaseModel):
+    """AI 일정 추출 요청"""
+    content: str = Field(..., description="노트 내용")
+    language: str = Field(default="ko", description="언어")
+    provider: str = Field(default="ollama", description="LLM 제공자")
+    api_key: str = Field(default="", description="API 키")
+    model: str = Field(default="", description="모델명")
+
+
+class AIExtractScheduleResponse(BaseModel):
+    """AI 일정 추출 응답"""
+    schedules: list[ScheduleItem] = Field(default_factory=list, description="추출된 일정 목록")
+    confidence: float = Field(default=0.0, description="신뢰도")

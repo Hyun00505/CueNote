@@ -1,0 +1,383 @@
+import { ref, computed } from 'vue';
+
+export type Language = 'ko' | 'en';
+
+// 번역 데이터 타입
+type TranslationKeys = {
+  // Common
+  'common.back': string;
+  'common.cancel': string;
+  'common.save': string;
+  'common.delete': string;
+  'common.edit': string;
+  'common.add': string;
+  'common.done': string;
+  'common.reset': string;
+  'common.search': string;
+  'common.loading': string;
+  'common.error': string;
+  'common.confirm': string;
+  'common.close': string;
+  'common.today': string;
+
+  // Header
+  'header.editor': string;
+  'header.calendar': string;
+  'header.selectNote': string;
+
+  // Settings
+  'settings.title': string;
+  'settings.language': string;
+  'settings.languageDesc': string;
+  'settings.theme': string;
+  'settings.aiProvider': string;
+  'settings.apiKey': string;
+  'settings.apiKeyPlaceholder': string;
+  'settings.validate': string;
+  'settings.validKey': string;
+  'settings.invalidKey': string;
+  'settings.getApiKey': string;
+  'settings.modelSelect': string;
+  'settings.refresh': string;
+  'settings.noModels': string;
+  'settings.installHint': string;
+  'settings.ocrModel': string;
+  'settings.ocrDownloaded': string;
+  'settings.ocrNeeded': string;
+  'settings.downloadModel': string;
+  'settings.downloading': string;
+  'settings.ocrReady': string;
+  'settings.ocrHint': string;
+  'settings.handwritingOcr': string;
+  'settings.handwritingReady': string;
+  'settings.handwritingHint': string;
+  'settings.supportedLangs': string;
+  'settings.features': string;
+
+  // Calendar
+  'calendar.title': string;
+  'calendar.subtitle': string;
+  'calendar.aiExtract': string;
+  'calendar.addSchedule': string;
+  'calendar.loadMore': string;
+  'calendar.noSchedules': string;
+  'calendar.addFirst': string;
+
+  // Schedule Modal
+  'schedule.new': string;
+  'schedule.edit': string;
+  'schedule.titlePlaceholder': string;
+  'schedule.date': string;
+  'schedule.startTime': string;
+  'schedule.endTime': string;
+  'schedule.memo': string;
+  'schedule.memoPlaceholder': string;
+  'schedule.labelColor': string;
+  'schedule.deleteConfirm': string;
+  'schedule.deleteQuestion': string;
+
+  // AI Extract
+  'aiExtract.title': string;
+  'aiExtract.selectNote': string;
+  'aiExtract.directInput': string;
+  'aiExtract.selectDesc': string;
+  'aiExtract.inputDesc': string;
+  'aiExtract.inputPlaceholder': string;
+  'aiExtract.searchNotes': string;
+  'aiExtract.noNotes': string;
+  'aiExtract.noResults': string;
+  'aiExtract.extractedCount': string;
+  'aiExtract.confidence': string;
+  'aiExtract.extractBtn': string;
+  'aiExtract.extracting': string;
+  'aiExtract.addSelected': string;
+  'aiExtract.noSchedulesFound': string;
+
+  // Days
+  'days.sun': string;
+  'days.mon': string;
+  'days.tue': string;
+  'days.wed': string;
+  'days.thu': string;
+  'days.fri': string;
+  'days.sat': string;
+
+  // Themes
+  'theme.dark': string;
+  'theme.light': string;
+  'theme.dim': string;
+  'theme.github': string;
+  'theme.sepia': string;
+};
+
+// 한국어 번역
+const ko: TranslationKeys = {
+  // Common
+  'common.back': '뒤로',
+  'common.cancel': '취소',
+  'common.save': '저장',
+  'common.delete': '삭제',
+  'common.edit': '수정',
+  'common.add': '추가',
+  'common.done': '완료',
+  'common.reset': '초기화',
+  'common.search': '검색',
+  'common.loading': '로딩 중...',
+  'common.error': '오류',
+  'common.confirm': '확인',
+  'common.close': '닫기',
+  'common.today': '오늘',
+
+  // Header
+  'header.editor': '에디터',
+  'header.calendar': '캘린더',
+  'header.selectNote': '노트를 선택하세요',
+
+  // Settings
+  'settings.title': '설정',
+  'settings.language': '언어',
+  'settings.languageDesc': 'UI 표시 언어를 선택합니다',
+  'settings.theme': '테마',
+  'settings.aiProvider': 'AI 모델 제공자',
+  'settings.apiKey': 'API 키',
+  'settings.apiKeyPlaceholder': 'Gemini API 키를 입력하세요',
+  'settings.validate': '검증',
+  'settings.validKey': 'API 키가 유효합니다',
+  'settings.invalidKey': 'API 키가 유효하지 않습니다',
+  'settings.getApiKey': 'Google AI Studio에서 API 키 발급받기',
+  'settings.modelSelect': '모델 선택',
+  'settings.refresh': '새로고침',
+  'settings.noModels': '설치된 모델이 없습니다',
+  'settings.installHint': '터미널에서 다음 명령어로 모델을 설치하세요:',
+  'settings.ocrModel': 'OCR 모델 (문서 변환)',
+  'settings.ocrDownloaded': '다운로드 완료 - 사용 가능',
+  'settings.ocrNeeded': '다운로드 필요',
+  'settings.downloadModel': '모델 다운로드',
+  'settings.downloading': '다운로드 중...',
+  'settings.ocrReady': 'PDF/이미지 문서 변환 기능 사용 가능',
+  'settings.ocrHint': 'PDF나 이미지에서 텍스트를 추출하는 OCR 모델입니다. 에디터 툴바의 "문서 변환" 버튼으로 사용할 수 있습니다.',
+  'settings.handwritingOcr': '손글씨 OCR 모델',
+  'settings.handwritingReady': '손글씨 인식 기능 사용 가능',
+  'settings.handwritingHint': '손글씨 텍스트를 인식하는 AI 모델입니다. 문서 변환 시 "손글씨 인식 모드"를 선택하면 사용됩니다.',
+  'settings.supportedLangs': '지원 언어:',
+  'settings.features': '특징:',
+
+  // Calendar
+  'calendar.title': '일정 관리',
+  'calendar.subtitle': '스크롤하여 월별 일정을 확인하세요',
+  'calendar.aiExtract': 'AI 일정 추출',
+  'calendar.addSchedule': '일정 추가',
+  'calendar.loadMore': '더보기',
+  'calendar.noSchedules': '일정이 없어요',
+  'calendar.addFirst': '+ 새 일정',
+
+  // Schedule Modal
+  'schedule.new': '새 일정 만들기',
+  'schedule.edit': '일정 수정',
+  'schedule.titlePlaceholder': '무슨 일정인가요?',
+  'schedule.date': '날짜',
+  'schedule.startTime': '시작',
+  'schedule.endTime': '종료',
+  'schedule.memo': '메모',
+  'schedule.memoPlaceholder': '메모를 남겨보세요 (선택)',
+  'schedule.labelColor': '라벨 색상',
+  'schedule.deleteConfirm': '일정 삭제',
+  'schedule.deleteQuestion': '정말 이 일정을 삭제하시겠습니까?',
+
+  // AI Extract
+  'aiExtract.title': 'AI 일정 추출',
+  'aiExtract.selectNote': '노트 선택',
+  'aiExtract.directInput': '직접 입력',
+  'aiExtract.selectDesc': '노트를 선택하면 AI가 내용에서 일정 정보를 자동으로 추출합니다.',
+  'aiExtract.inputDesc': '텍스트를 직접 입력하면 AI가 날짜, 시간, 일정 정보를 자동으로 추출합니다.',
+  'aiExtract.inputPlaceholder': '예: 내일 오후 3시에 팀 미팅이 있어요.',
+  'aiExtract.searchNotes': '노트 검색...',
+  'aiExtract.noNotes': '노트가 없습니다',
+  'aiExtract.noResults': '검색 결과가 없습니다',
+  'aiExtract.extractedCount': '추출된 일정',
+  'aiExtract.confidence': '신뢰도',
+  'aiExtract.extractBtn': '일정 추출하기',
+  'aiExtract.extracting': '추출 중...',
+  'aiExtract.addSelected': '선택한 일정 추가',
+  'aiExtract.noSchedulesFound': '일정 정보를 찾을 수 없습니다.',
+
+  // Days
+  'days.sun': '일',
+  'days.mon': '월',
+  'days.tue': '화',
+  'days.wed': '수',
+  'days.thu': '목',
+  'days.fri': '금',
+  'days.sat': '토',
+
+  // Themes
+  'theme.dark': '다크',
+  'theme.light': '라이트',
+  'theme.dim': '딤',
+  'theme.github': 'GitHub',
+  'theme.sepia': '세피아',
+};
+
+// 영어 번역
+const en: TranslationKeys = {
+  // Common
+  'common.back': 'Back',
+  'common.cancel': 'Cancel',
+  'common.save': 'Save',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.add': 'Add',
+  'common.done': 'Done',
+  'common.reset': 'Reset',
+  'common.search': 'Search',
+  'common.loading': 'Loading...',
+  'common.error': 'Error',
+  'common.confirm': 'Confirm',
+  'common.close': 'Close',
+  'common.today': 'Today',
+
+  // Header
+  'header.editor': 'Editor',
+  'header.calendar': 'Calendar',
+  'header.selectNote': 'Select a note to begin',
+
+  // Settings
+  'settings.title': 'Settings',
+  'settings.language': 'Language',
+  'settings.languageDesc': 'Select UI display language',
+  'settings.theme': 'Theme',
+  'settings.aiProvider': 'AI Model Provider',
+  'settings.apiKey': 'API Key',
+  'settings.apiKeyPlaceholder': 'Enter your Gemini API key',
+  'settings.validate': 'Validate',
+  'settings.validKey': 'API key is valid',
+  'settings.invalidKey': 'API key is invalid',
+  'settings.getApiKey': 'Get API key from Google AI Studio',
+  'settings.modelSelect': 'Model Selection',
+  'settings.refresh': 'Refresh',
+  'settings.noModels': 'No models installed',
+  'settings.installHint': 'Install a model with the following command:',
+  'settings.ocrModel': 'OCR Model (Document Conversion)',
+  'settings.ocrDownloaded': 'Downloaded - Ready to use',
+  'settings.ocrNeeded': 'Download required',
+  'settings.downloadModel': 'Download Model',
+  'settings.downloading': 'Downloading...',
+  'settings.ocrReady': 'PDF/Image conversion ready',
+  'settings.ocrHint': 'OCR model extracts text from PDFs and images. Use the "Convert Document" button in the editor toolbar.',
+  'settings.handwritingOcr': 'Handwriting OCR Model',
+  'settings.handwritingReady': 'Handwriting recognition ready',
+  'settings.handwritingHint': 'AI model for recognizing handwritten text. Select "Handwriting mode" when converting documents.',
+  'settings.supportedLangs': 'Supported languages:',
+  'settings.features': 'Features:',
+
+  // Calendar
+  'calendar.title': 'Schedule Manager',
+  'calendar.subtitle': 'Scroll to view monthly schedules',
+  'calendar.aiExtract': 'AI Extract',
+  'calendar.addSchedule': 'Add Schedule',
+  'calendar.loadMore': 'Load more',
+  'calendar.noSchedules': 'No schedules',
+  'calendar.addFirst': '+ New Schedule',
+
+  // Schedule Modal
+  'schedule.new': 'New Schedule',
+  'schedule.edit': 'Edit Schedule',
+  'schedule.titlePlaceholder': 'What\'s the schedule?',
+  'schedule.date': 'Date',
+  'schedule.startTime': 'Start',
+  'schedule.endTime': 'End',
+  'schedule.memo': 'Memo',
+  'schedule.memoPlaceholder': 'Add a note (optional)',
+  'schedule.labelColor': 'Label Color',
+  'schedule.deleteConfirm': 'Delete Schedule',
+  'schedule.deleteQuestion': 'Are you sure you want to delete this schedule?',
+
+  // AI Extract
+  'aiExtract.title': 'AI Schedule Extract',
+  'aiExtract.selectNote': 'Select Note',
+  'aiExtract.directInput': 'Direct Input',
+  'aiExtract.selectDesc': 'Select a note and AI will automatically extract schedule information.',
+  'aiExtract.inputDesc': 'Enter text and AI will automatically extract dates, times, and schedules.',
+  'aiExtract.inputPlaceholder': 'e.g., Team meeting at 3pm tomorrow.',
+  'aiExtract.searchNotes': 'Search notes...',
+  'aiExtract.noNotes': 'No notes',
+  'aiExtract.noResults': 'No results found',
+  'aiExtract.extractedCount': 'Extracted schedules',
+  'aiExtract.confidence': 'Confidence',
+  'aiExtract.extractBtn': 'Extract Schedules',
+  'aiExtract.extracting': 'Extracting...',
+  'aiExtract.addSelected': 'Add Selected',
+  'aiExtract.noSchedulesFound': 'No schedule information found.',
+
+  // Days
+  'days.sun': 'Sun',
+  'days.mon': 'Mon',
+  'days.tue': 'Tue',
+  'days.wed': 'Wed',
+  'days.thu': 'Thu',
+  'days.fri': 'Fri',
+  'days.sat': 'Sat',
+
+  // Themes
+  'theme.dark': 'Dark',
+  'theme.light': 'Light',
+  'theme.dim': 'Dim',
+  'theme.github': 'GitHub',
+  'theme.sepia': 'Sepia',
+};
+
+const translations: Record<Language, TranslationKeys> = { ko, en };
+
+// 전역 언어 상태
+const STORAGE_KEY = 'cuenote-language';
+const currentLanguage = ref<Language>(loadLanguage());
+
+function loadLanguage(): Language {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'ko' || stored === 'en') {
+      return stored;
+    }
+  } catch (e) {
+    console.error('Failed to load language:', e);
+  }
+  // 브라우저 언어 감지
+  const browserLang = navigator.language.toLowerCase();
+  return browserLang.startsWith('ko') ? 'ko' : 'en';
+}
+
+function saveLanguage(lang: Language) {
+  try {
+    localStorage.setItem(STORAGE_KEY, lang);
+  } catch (e) {
+    console.error('Failed to save language:', e);
+  }
+}
+
+export function useI18n() {
+  // 번역 함수
+  function t(key: keyof TranslationKeys): string {
+    return translations[currentLanguage.value][key] || key;
+  }
+
+  // 언어 변경
+  function setLanguage(lang: Language) {
+    currentLanguage.value = lang;
+    saveLanguage(lang);
+  }
+
+  // 현재 번역 객체
+  const messages = computed(() => translations[currentLanguage.value]);
+
+  return {
+    t,
+    currentLanguage,
+    setLanguage,
+    messages,
+    languages: ['ko', 'en'] as Language[],
+    languageNames: {
+      ko: '한국어',
+      en: 'English',
+    } as Record<Language, string>,
+  };
+}
