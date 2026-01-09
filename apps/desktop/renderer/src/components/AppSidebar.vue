@@ -1,24 +1,26 @@
 <template>
-  <aside class="sidebar" :class="{ collapsed }">
+  <aside 
+    class="sidebar" 
+    :class="{ collapsed: isCollapsed }"
+    :style="{ width: isCollapsed ? 'var(--sidebar-collapsed)' : `${sidebarWidth}px` }"
+  >
+    <!-- 리사이즈 핸들 -->
+    <div 
+      class="resize-handle"
+      @mousedown="startResize"
+    ></div>
+    
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
           <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- 메인 노트 형태 -->
-            <rect x="6" y="4" width="20" height="24" rx="3" fill="url(#logoGradient)" />
+            <!-- 미니멀 노트 아이콘 -->
+            <rect x="7" y="4" width="18" height="24" rx="2" fill="currentColor" opacity="0.15"/>
+            <rect x="7" y="4" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
             <!-- 노트 라인들 -->
-            <line x1="10" y1="11" x2="22" y2="11" stroke="rgba(26,26,46,0.4)" stroke-width="1.5" stroke-linecap="round"/>
-            <line x1="10" y1="16" x2="18" y2="16" stroke="rgba(26,26,46,0.3)" stroke-width="1.5" stroke-linecap="round"/>
-            <line x1="10" y1="21" x2="20" y2="21" stroke="rgba(26,26,46,0.2)" stroke-width="1.5" stroke-linecap="round"/>
-            <!-- 큐 포인트 (왼쪽 마커) -->
-            <circle cx="6" cy="11" r="2.5" fill="#FF6B6B"/>
-            <circle cx="6" cy="11" r="1" fill="#fff"/>
-            <defs>
-              <linearGradient id="logoGradient" x1="6" y1="4" x2="26" y2="28" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#F0E6D3"/>
-                <stop offset="100%" stop-color="#D4C4A8"/>
-              </linearGradient>
-            </defs>
+            <line x1="11" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+            <line x1="11" y1="16" x2="18" y2="16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.3"/>
+            <line x1="11" y1="21" x2="19" y2="21" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.2"/>
           </svg>
         </div>
         <span class="logo-text">
@@ -157,6 +159,7 @@
                   <line x1="8" y1="17" x2="12" y2="17"/>
                 </svg>
                 <span class="file-name">{{ getFileName(file) }}</span>
+                <span v-if="file === dirtyFile" class="dirty-indicator" title="저장되지 않음"></span>
               </button>
               <div class="file-actions">
                 <button 
@@ -339,12 +342,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useVault, useHealth, useEnvironment } from '../composables';
 
 const props = defineProps<{
   collapsed: boolean;
   activeFile: string | null;
+  dirtyFile: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -355,7 +359,74 @@ const emit = defineEmits<{
   'file-restored': [file: string];
   'file-renamed': [oldPath: string, newPath: string];
   'environment-changed': [];
+  'sidebar-width-change': [width: number];
 }>();
+
+// 리사이즈 관련 상태
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 500;
+const DEFAULT_WIDTH = 260;
+const COLLAPSE_THRESHOLD = 120;
+
+const sidebarWidth = ref(DEFAULT_WIDTH);
+const isResizing = ref(false);
+const isCollapsed = computed(() => props.collapsed);
+
+// 리사이즈 시작
+function startResize(e: MouseEvent) {
+  if (isCollapsed.value) return;
+  
+  isResizing.value = true;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  
+  document.addEventListener('mousemove', handleResize);
+  document.addEventListener('mouseup', stopResize);
+}
+
+// 리사이즈 처리
+function handleResize(e: MouseEvent) {
+  if (!isResizing.value) return;
+  
+  const newWidth = e.clientX;
+  
+  // 너무 작으면 collapse
+  if (newWidth < COLLAPSE_THRESHOLD) {
+    emit('toggle-collapse');
+    stopResize();
+    return;
+  }
+  
+  // 범위 내로 제한
+  sidebarWidth.value = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth));
+  emit('sidebar-width-change', sidebarWidth.value);
+}
+
+// 리사이즈 종료
+function stopResize() {
+  isResizing.value = false;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
+  
+  // 로컬 스토리지에 너비 저장
+  localStorage.setItem('cuenote-sidebar-width', sidebarWidth.value.toString());
+}
+
+// 초기 너비 로드
+onMounted(() => {
+  const savedWidth = localStorage.getItem('cuenote-sidebar-width');
+  if (savedWidth) {
+    sidebarWidth.value = parseInt(savedWidth, 10);
+  }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
+});
 
 const { 
   vaultPath, 
@@ -613,20 +684,40 @@ async function handleEmptyTrash() {
 
 <style scoped>
 .sidebar {
-  width: var(--sidebar-width);
   height: 100%;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  transition: width 0.2s ease;
   position: relative;
   z-index: 10;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed {
-  width: var(--sidebar-collapsed);
+  width: var(--sidebar-collapsed) !important;
+}
+
+/* 리사이즈 핸들 */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s ease;
+  z-index: 100;
+}
+
+.resize-handle:hover {
+  background: var(--accent-primary);
+}
+
+.sidebar.collapsed .resize-handle {
+  display: none;
 }
 
 .sidebar.collapsed .logo-text,
@@ -638,13 +729,33 @@ async function handleEmptyTrash() {
 .sidebar.collapsed .delete-btn,
 .sidebar.collapsed .empty-files,
 .sidebar.collapsed .trash-section,
-.sidebar.collapsed .status-text {
+.sidebar.collapsed .status-text,
+.sidebar.collapsed .new-file-input-wrapper,
+.sidebar.collapsed .file-edit-wrapper,
+.sidebar.collapsed .modified-indicator {
   display: none;
 }
 
 .sidebar.collapsed .sidebar-header {
   justify-content: center;
-  padding: 16px;
+  padding: 12px 8px;
+  gap: 0;
+}
+
+.sidebar.collapsed .sidebar-header .logo {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header .icon-btn {
+  margin: 0 auto;
+}
+
+.sidebar.collapsed .sidebar-content {
+  padding: 8px 4px;
+}
+
+.sidebar.collapsed .sidebar-section {
+  padding: 4px;
 }
 
 .sidebar.collapsed .vault-btn {
@@ -658,7 +769,29 @@ async function handleEmptyTrash() {
 
 .sidebar.collapsed .file-btn {
   justify-content: center;
-  padding: 10px;
+  padding: 10px 0;
+  width: 100%;
+  min-height: 40px;
+}
+
+.sidebar.collapsed .file-btn .file-icon {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar.collapsed .file-item.active .file-btn {
+  background: var(--bg-active);
+  border-radius: 8px;
+}
+
+.sidebar.collapsed .files-section {
+  padding: 4px;
+}
+
+.sidebar.collapsed .file-list {
+  gap: 4px;
+  padding: 4px;
 }
 
 /* Header */
@@ -677,53 +810,41 @@ async function handleEmptyTrash() {
 }
 
 .logo-icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #1f1f3a, #151528);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
 }
 
 .logo-icon:hover {
-  transform: scale(1.05);
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
 }
 
 .logo-svg {
-  width: 22px;
-  height: 22px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  width: 24px;
+  height: 24px;
 }
 
 .logo-text {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
   display: flex;
   align-items: baseline;
 }
 
 .logo-cue {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 
 .logo-note {
-  color: var(--text-primary);
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  opacity: 0.9;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-weight: 400;
 }
 
 .icon-btn {
@@ -918,6 +1039,16 @@ async function handleEmptyTrash() {
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 450;
+}
+
+.dirty-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #f59e0b;
+  border-radius: 50%;
+  margin-left: 6px;
+  flex-shrink: 0;
 }
 
 /* File Actions */
@@ -1597,7 +1728,7 @@ async function handleEmptyTrash() {
 
 /* Collapsed sidebar environment */
 .sidebar.collapsed .environment-section {
-  padding: 8px;
+  padding: 4px;
 }
 
 .sidebar.collapsed .env-header,
@@ -1607,6 +1738,7 @@ async function handleEmptyTrash() {
 
 .sidebar.collapsed .env-selector {
   padding: 8px;
+  justify-content: center;
 }
 
 .sidebar.collapsed .env-name,
@@ -1622,6 +1754,11 @@ async function handleEmptyTrash() {
   background: currentColor;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24'/%3E%3C/svg%3E") center/contain no-repeat;
   color: var(--text-muted);
+}
+
+/* 리사이즈 중 트랜지션 비활성화 */
+.sidebar:not(.collapsed) {
+  transition: none;
 }
 </style>
 

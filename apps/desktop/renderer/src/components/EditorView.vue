@@ -35,6 +35,7 @@
           <div class="file-details">
             <span class="file-name">{{ getFileName(activeFile) }}</span>
             <span class="file-ext">.md</span>
+            <span v-if="isDirty" class="unsaved-dot" title="저장되지 않은 변경사항"></span>
           </div>
         </div>
         <button class="save-btn" :class="{ saving }" :disabled="saving" @click="handleSave">
@@ -53,6 +54,7 @@
         :editor="editor as Editor" 
         :summarizing="summarizing"
         @summarize="handleSummarize"
+        @extract-result="handleExtractResult"
       />
 
       <!-- AI 요약 결과 패널 -->
@@ -172,6 +174,7 @@
         {{ editorError }}
       </p>
     </div>
+
   </div>
 </template>
 
@@ -210,9 +213,14 @@ const props = defineProps<{
   activeFile: string | null;
 }>();
 
+const emit = defineEmits<{
+  'dirty-change': [isDirty: boolean];
+}>();
+
 const editorError = ref('');
 const saving = ref(false);
 const summarizing = ref(false);
+const isDirty = ref(false);
 
 interface SummaryResult {
   summary: string;
@@ -256,6 +264,10 @@ const showDiffView = ref(false);
 const diffData = ref<any>(null);
 const diffPosition = ref({ x: 0, y: 0 });
 
+// 파일별 변경사항 캐시 (저장하지 않은 상태 유지)
+const fileContentCache = new Map<string, { html: string; isDirty: boolean }>();
+const currentFilePath = ref<string | null>(null);
+
 const editor = useEditor({
   content: '',
   extensions: [
@@ -295,6 +307,12 @@ const editor = useEditor({
       lowlight,
     }),
   ],
+  onUpdate: () => {
+    if (!isDirty.value) {
+      isDirty.value = true;
+      emit('dirty-change', true);
+    }
+  },
 });
 
 function getFileName(path: string): string {
@@ -512,6 +530,31 @@ function htmlToMarkdown(html: string): string {
 async function openFile(filePath: string) {
   editorError.value = '';
 
+  // 현재 파일의 변경사항을 캐시에 저장 (다른 파일로 전환 시)
+  if (currentFilePath.value && editor.value && isDirty.value) {
+    fileContentCache.set(currentFilePath.value, {
+      html: editor.value.getHTML(),
+      isDirty: true
+    });
+  }
+
+  // 현재 파일 경로 업데이트
+  currentFilePath.value = filePath;
+
+  // 캐시에 저장된 내용이 있는지 확인
+  const cachedContent = fileContentCache.get(filePath);
+  
+  if (cachedContent) {
+    // 캐시된 내용 사용
+    if (editor.value) {
+      editor.value.commands.setContent(cachedContent.html, { emitUpdate: false });
+    }
+    isDirty.value = cachedContent.isDirty;
+    emit('dirty-change', cachedContent.isDirty);
+    return;
+  }
+
+  // 캐시에 없으면 서버에서 로드
   try {
     const url = `${CORE_BASE}/vault/file?path=${encodeURIComponent(filePath)}`;
     const res = await fetch(url);
@@ -530,6 +573,10 @@ async function openFile(filePath: string) {
       // emitUpdate: false로 히스토리에 추가되지 않도록 함
       editor.value.commands.setContent(htmlContent, { emitUpdate: false });
     }
+    
+    // 새 파일을 열면 dirty 상태 초기화
+    isDirty.value = false;
+    emit('dirty-change', false);
   } catch (error) {
     editorError.value = '파일 열기 실패. 백엔드가 실행 중인지 확인하세요.';
     console.error('Open file failed:', error);
@@ -555,6 +602,13 @@ async function handleSave() {
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
+    
+    // 저장 성공 시 dirty 상태 초기화
+    isDirty.value = false;
+    emit('dirty-change', false);
+    
+    // 저장 후 캐시에서 해당 파일 제거 (더 이상 저장되지 않은 변경사항 아님)
+    fileContentCache.delete(props.activeFile);
   } catch (error) {
     editorError.value = '저장 실패.';
     console.error('Save file failed', error);
@@ -580,10 +634,11 @@ async function handleSummarize() {
     }
     
     // 스트리밍 API를 사용하여 요약 (LLM 설정 포함)
+    // language: 'auto'로 설정하여 원문과 같은 언어로 응답
     const body = {
       content,
       action: 'summarize',
-      language: 'ko',
+      language: 'auto',
       provider: llmSettings.value.llm.provider,
       api_key: llmSettings.value.llm.apiKey,
       model: llmSettings.value.llm.model
@@ -682,6 +737,23 @@ function handleKeydown(e: KeyboardEvent) {
     e.preventDefault();
     handleSave();
   }
+}
+
+// 문서 추출 결과 처리
+function handleExtractResult(markdown: string) {
+  if (!editor.value) return;
+  
+  // 마크다운을 HTML로 변환
+  const html = markdownToHtml(markdown);
+  
+  // 현재 커서 위치에 삽입
+  editor.value.chain()
+    .focus()
+    .insertContent(html)
+    .run();
+  
+  // 자동 저장
+  handleSave();
 }
 
 // 선택된 영역의 텍스트를 마크다운으로 가져오기
@@ -1203,6 +1275,13 @@ watch(() => props.activeFile, (newFile) => {
     openFile(newFile);
   }
 });
+
+// 외부에서 접근 가능한 메서드/상태 노출
+defineExpose({
+  isDirty,
+  save: handleSave,
+  saveFile: handleSave
+});
 </script>
 
 <style scoped>
@@ -1325,6 +1404,21 @@ watch(() => props.activeFile, (newFile) => {
 .file-ext {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.unsaved-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+  margin-left: 8px;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .save-btn {
@@ -1586,6 +1680,7 @@ watch(() => props.activeFile, (newFile) => {
   opacity: 0;
   transform: translateY(-10px);
 }
+
 </style>
 
 <style>
@@ -1696,13 +1791,20 @@ watch(() => props.activeFile, (newFile) => {
 
 /* Inline Code */
 .ProseMirror code {
-  background: rgba(232, 213, 183, 0.12);
-  color: #e8d5b7;
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--text-primary);
   padding: 3px 7px;
   border-radius: 5px;
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
   font-size: 0.88em;
-  border: 1px solid rgba(232, 213, 183, 0.15);
+  border: 1px solid var(--border-default);
+}
+
+/* Light mode inline code */
+[data-theme="light"] .ProseMirror code {
+  background: rgba(107, 114, 128, 0.1);
+  color: #1f2937;
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Code Block Container */
@@ -2206,5 +2308,103 @@ watch(() => props.activeFile, (newFile) => {
 .action-bar-slide-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(20px);
+}
+
+/* Light mode styles */
+[data-theme="light"] .ProseMirror pre {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ProseMirror pre::before {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ProseMirror pre::after {
+  color: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .ProseMirror pre code {
+  color: #1e293b;
+}
+
+[data-theme="light"] .ProseMirror blockquote {
+  border-left-color: var(--text-muted);
+}
+
+[data-theme="light"] .ProseMirror a {
+  color: #374151;
+}
+
+[data-theme="light"] .ProseMirror mark {
+  background: rgba(107, 114, 128, 0.2);
+}
+
+/* Dim theme code styles */
+[data-theme="dim"] .ProseMirror code {
+  background: rgba(139, 148, 158, 0.15);
+  color: #adbac7;
+  border-color: rgba(139, 148, 158, 0.2);
+}
+
+[data-theme="dim"] .ProseMirror pre {
+  background: linear-gradient(135deg, #171717 0%, #1c1c1c 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* GitHub Dark theme code styles */
+[data-theme="github-dark"] .ProseMirror code {
+  background: rgba(88, 166, 255, 0.1);
+  color: #79c0ff;
+  border-color: rgba(88, 166, 255, 0.2);
+}
+
+[data-theme="github-dark"] .ProseMirror pre {
+  background: linear-gradient(135deg, #010409 0%, #0d1117 100%);
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+[data-theme="github-dark"] .ProseMirror a {
+  color: #58a6ff;
+}
+
+/* Sepia theme code styles */
+[data-theme="sepia"] .ProseMirror code {
+  background: rgba(92, 75, 55, 0.1);
+  color: #5c4b37;
+  border-color: rgba(92, 75, 55, 0.2);
+}
+
+[data-theme="sepia"] .ProseMirror pre {
+  background: linear-gradient(135deg, #ebe3cf 0%, #f4ecd8 100%);
+  border-color: rgba(92, 75, 55, 0.15);
+  box-shadow: 0 2px 8px rgba(92, 75, 55, 0.1);
+}
+
+[data-theme="sepia"] .ProseMirror pre::before {
+  background: linear-gradient(90deg, rgba(92, 75, 55, 0.03) 0%, rgba(92, 75, 55, 0.01) 100%);
+  border-bottom-color: rgba(92, 75, 55, 0.1);
+}
+
+[data-theme="sepia"] .ProseMirror pre::after {
+  color: rgba(92, 75, 55, 0.25);
+}
+
+[data-theme="sepia"] .ProseMirror pre code {
+  color: #3d3327;
+}
+
+[data-theme="sepia"] .ProseMirror blockquote {
+  border-left-color: #9c8b78;
+}
+
+[data-theme="sepia"] .ProseMirror a {
+  color: #5c4b37;
+}
+
+[data-theme="sepia"] .ProseMirror mark {
+  background: rgba(92, 75, 55, 0.15);
 }
 </style>

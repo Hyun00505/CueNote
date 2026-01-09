@@ -434,24 +434,307 @@
         <span v-else class="spinner"></span>
         <span class="ai-label">요약</span>
       </button>
+      <button
+        class="toolbar-btn ai-btn extract-btn"
+        :class="{ loading: extracting }"
+        :disabled="extracting"
+        @click="showExtractModal = true"
+        title="PDF/이미지 → 마크다운 변환"
+      >
+        <svg v-if="!extracting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M12 18v-6"/>
+          <path d="m9 15 3-3 3 3"/>
+        </svg>
+        <span v-else class="spinner"></span>
+        <span class="ai-label">문서 변환</span>
+      </button>
     </div>
+
+    <!-- 문서 추출 모달 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showExtractModal" class="extract-modal-overlay" @click.self="closeExtractModal">
+          <div class="extract-modal">
+            <div class="extract-modal-header">
+              <h3>📄 PDF/이미지 → 마크다운 변환</h3>
+              <button class="close-btn" @click="closeExtractModal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="extract-modal-content">
+              <p class="extract-description">
+                PDF 파일이나 이미지(스크린샷, 사진)를 업로드하면 AI가 내용을 분석하여 마크다운 문서로 변환합니다.
+              </p>
+              
+              <!-- 파일 업로드 영역 -->
+              <div 
+                class="extract-dropzone"
+                :class="{ 'drag-over': isExtractDragging, 'has-file': extractFile }"
+                @dragenter="isExtractDragging = true"
+                @dragleave="isExtractDragging = false"
+                @dragover.prevent
+                @drop.prevent="handleExtractFileDrop"
+                @click="triggerExtractFileInput"
+              >
+                <input 
+                  ref="extractFileInputRef"
+                  type="file" 
+                  accept=".pdf,image/*" 
+                  style="display: none"
+                  @change="handleExtractFileSelect"
+                />
+                <div v-if="!extractFile" class="dropzone-empty">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span>클릭하거나 파일을 드래그하세요</span>
+                  <span class="upload-hint">PDF, PNG, JPG, GIF, WebP 지원</span>
+                </div>
+                <div v-else class="dropzone-file">
+                  <div class="file-icon">
+                    <svg v-if="extractFileType === 'pdf'" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <path d="M10 12h4"/>
+                      <path d="M10 16h4"/>
+                    </svg>
+                    <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{ extractFile?.name }}</span>
+                    <span class="file-size">{{ formatFileSize(extractFile?.size || 0) }}</span>
+                  </div>
+                  <button class="remove-file-btn" @click.stop="clearExtractFile" title="파일 제거">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- OCR 모델 상태 -->
+              <div v-if="ocrStatus && !ocrStatus.model_downloaded" class="ocr-model-status">
+                <div class="model-status-header">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <div class="model-status-text">
+                    <span class="model-title">OCR 모델 다운로드 필요</span>
+                    <span class="model-desc">텍스트 인식을 위해 EasyOCR 모델을 다운로드해야 합니다 (~100MB)</span>
+                  </div>
+                </div>
+                <button 
+                  class="btn-download-model" 
+                  :disabled="ocrDownloading"
+                  @click="downloadOcrModel"
+                >
+                  <span v-if="ocrDownloading" class="spinner"></span>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  {{ ocrDownloading ? '다운로드 중...' : '모델 다운로드' }}
+                </button>
+              </div>
+
+              <!-- OCR 안내 (모델 준비됨) -->
+              <div v-else-if="extractFile && ocrStatus?.model_downloaded" class="ocr-info ocr-ready">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>OCR 모델 준비됨 - EasyOCR로 텍스트를 추출합니다.</span>
+              </div>
+
+              <!-- 텍스트만 가져오기 옵션 -->
+              <div v-if="extractFile" class="extract-options">
+                <label class="checkbox-wrapper">
+                  <input 
+                    type="checkbox" 
+                    v-model="rawTextOnly"
+                  />
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-label">
+                    📄 텍스트만 가져오기
+                    <span class="option-hint">(AI 없이 빠르게)</span>
+                  </span>
+                </label>
+                
+                <div v-if="rawTextOnly" class="raw-text-info">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                  </svg>
+                  <span>AI를 거치지 않고 OCR 결과를 그대로 가져옵니다. 마크다운 형식화가 필요하면 체크를 해제하세요.</span>
+                </div>
+              </div>
+
+              <!-- 손글씨 모드 옵션 -->
+              <div v-if="extractFile && extractFileType === 'image'" class="handwriting-option">
+                <label class="checkbox-wrapper">
+                  <input 
+                    type="checkbox" 
+                    v-model="handwritingMode"
+                    :disabled="!handwritingStatus?.model_downloaded"
+                  />
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-label">
+                    ✍️ 손글씨 인식 모드
+                    <span v-if="!handwritingStatus?.model_downloaded" class="need-download">(모델 다운로드 필요)</span>
+                  </span>
+                </label>
+                
+                <!-- 손글씨 모드 선택 시 경고 -->
+                <div v-if="handwritingMode" class="handwriting-warning">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <span>손글씨는 인식이 어려울 수 있습니다. 깔끔한 필체일수록 인식률이 높아집니다.</span>
+                </div>
+
+                <!-- 손글씨 모델 다운로드 필요 -->
+                <div v-if="!handwritingStatus?.model_downloaded" class="handwriting-download">
+                  <button 
+                    class="btn-download-handwriting"
+                    :disabled="handwritingDownloading"
+                    @click="downloadHandwritingModel"
+                  >
+                    <span v-if="handwritingDownloading" class="spinner"></span>
+                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    {{ handwritingDownloading ? '다운로드 중... (~1GB)' : '손글씨 모델 다운로드 (~1GB)' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 추출 결과 미리보기 -->
+              <div v-if="extractResult" class="extract-result">
+                <div class="result-header">
+                  <span class="result-title">✨ 변환 완료</span>
+                  <div class="result-meta">
+                    <span v-if="extractResult.page_count > 1">{{ extractResult.page_count }}페이지</span>
+                    <span v-if="extractResult.has_images">이미지 포함</span>
+                  </div>
+                </div>
+                <div class="result-preview">
+                  <pre>{{ extractResult.markdown.slice(0, 500) }}{{ extractResult.markdown.length > 500 ? '...' : '' }}</pre>
+                </div>
+              </div>
+
+              <!-- 에러 메시지 -->
+              <div v-if="extractError" class="extract-error">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>{{ extractError }}</span>
+              </div>
+            </div>
+            <div class="extract-modal-footer">
+              <button class="btn-cancel" @click="closeExtractModal">취소</button>
+              <button
+                v-if="!extractResult"
+                class="btn-extract"
+                :disabled="!extractFile || extracting"
+                @click="handleExtract"
+              >
+                <span v-if="extracting" class="spinner"></span>
+                <span>{{ extracting ? '변환 중...' : '변환하기' }}</span>
+              </button>
+              <button
+                v-else
+                class="btn-insert"
+                @click="insertExtractResult"
+              >
+                에디터에 삽입
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Editor } from '@tiptap/vue-3';
+import { useSettings } from '../composables';
 
 const CORE_BASE = 'http://127.0.0.1:8787';
 
 const props = defineProps<{
   editor: Editor | null;
   summarizing?: boolean;
+  llmSettings?: {
+    provider: string;
+    apiKey: string;
+    model: string;
+  };
 }>();
 
 const emit = defineEmits<{
   (e: 'summarize'): void;
+  (e: 'extract-result', markdown: string): void;
 }>();
+
+// 문서 추출 상태
+const showExtractModal = ref(false);
+const extracting = ref(false);
+const extractFile = ref<File | null>(null);
+const extractFileType = ref<'pdf' | 'image' | ''>('');
+const extractFileData = ref('');
+const isExtractDragging = ref(false);
+const extractFileInputRef = ref<HTMLInputElement | null>(null);
+const extractResult = ref<{ markdown: string; page_count: number; has_images: boolean } | null>(null);
+const extractError = ref('');
+
+// OCR 모델 상태
+interface OCRStatus {
+  installed: boolean;
+  model_downloaded: boolean;
+  model_path: string;
+  languages: string[];
+  downloading: boolean;
+}
+const ocrStatus = ref<OCRStatus | null>(null);
+const ocrDownloading = ref(false);
+
+// 손글씨 OCR 상태
+interface HandwritingStatus {
+  installed: boolean;
+  model_downloaded: boolean;
+  model_name: string;
+  model_path: string;
+  downloading: boolean;
+}
+const handwritingStatus = ref<HandwritingStatus | null>(null);
+const handwritingDownloading = ref(false);
+const handwritingMode = ref(false);
+const rawTextOnly = ref(false);
+
 
 // 이미지 모달 상태
 const showImageModal = ref(false);
@@ -622,6 +905,219 @@ function insertTableWithSize(rows: number, cols: number) {
   tableRows.value = 3;
   tableCols.value = 3;
 }
+
+// LLM 설정 가져오기
+const { settings: llmSettingsStore } = useSettings();
+
+// Gemini API 키 확인
+const hasGeminiApiKey = computed(() => {
+  return llmSettingsStore.value.llm.provider === 'gemini' && !!llmSettingsStore.value.llm.apiKey;
+});
+
+// 문서 추출 관련 함수들
+function triggerExtractFileInput() {
+  extractFileInputRef.value?.click();
+}
+
+function handleExtractFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (input.files?.length) {
+    setExtractFile(input.files[0]);
+  }
+}
+
+function handleExtractFileDrop(e: DragEvent) {
+  isExtractDragging.value = false;
+  const files = e.dataTransfer?.files;
+  if (files?.length) {
+    const file = files[0];
+    if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+      setExtractFile(file);
+    } else {
+      extractError.value = 'PDF 또는 이미지 파일만 지원합니다.';
+    }
+  }
+}
+
+async function setExtractFile(file: File) {
+  extractFile.value = file;
+  extractError.value = '';
+  extractResult.value = null;
+  
+  // 파일 타입 판단
+  if (file.type === 'application/pdf') {
+    extractFileType.value = 'pdf';
+  } else if (file.type.startsWith('image/')) {
+    extractFileType.value = 'image';
+  } else {
+    extractFileType.value = '';
+    extractError.value = 'PDF 또는 이미지 파일만 지원합니다.';
+    return;
+  }
+  
+  // Base64로 변환
+  try {
+    extractFileData.value = await fileToBase64(file);
+  } catch (error) {
+    extractError.value = '파일을 읽을 수 없습니다.';
+  }
+}
+
+function clearExtractFile() {
+  extractFile.value = null;
+  extractFileType.value = '';
+  extractFileData.value = '';
+  extractResult.value = null;
+  extractError.value = '';
+}
+
+function closeExtractModal() {
+  showExtractModal.value = false;
+  clearExtractFile();
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+async function handleExtract() {
+  if (!extractFile.value || !extractFileData.value) return;
+  
+  extracting.value = true;
+  extractError.value = '';
+  extractResult.value = null;
+  
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_data: extractFileData.value,
+        file_type: extractFileType.value,
+        language: 'auto',  // 원문 언어 자동 감지
+        handwriting_mode: handwritingMode.value,
+        raw_text_only: rawTextOnly.value,
+        provider: llmSettingsStore.value.llm.provider,
+        api_key: llmSettingsStore.value.llm.apiKey,
+        model: llmSettingsStore.value.llm.model
+      })
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: '알 수 없는 오류' }));
+      throw new Error(errorData.detail || `HTTP ${res.status}`);
+    }
+    
+    const data = await res.json();
+    extractResult.value = {
+      markdown: data.markdown,
+      page_count: data.page_count || 1,
+      has_images: data.has_images || false
+    };
+  } catch (error) {
+    console.error('Extract error:', error);
+    extractError.value = error instanceof Error ? error.message : '문서 변환에 실패했습니다.';
+  } finally {
+    extracting.value = false;
+  }
+}
+
+function insertExtractResult() {
+  if (!props.editor || !extractResult.value) return;
+  
+  // 마크다운을 에디터에 삽입
+  emit('extract-result', extractResult.value.markdown);
+  closeExtractModal();
+}
+
+// OCR 모델 상태 확인
+async function checkOcrStatus() {
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/status`);
+    if (res.ok) {
+      ocrStatus.value = await res.json();
+    }
+  } catch (error) {
+    console.error('Failed to check OCR status:', error);
+  }
+}
+
+// OCR 모델 다운로드
+async function downloadOcrModel() {
+  ocrDownloading.value = true;
+  extractError.value = '';
+  
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/download`, {
+      method: 'POST'
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      // 상태 갱신
+      await checkOcrStatus();
+    } else {
+      extractError.value = data.message || '모델 다운로드에 실패했습니다.';
+    }
+  } catch (error) {
+    console.error('OCR model download failed:', error);
+    extractError.value = '모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
+  } finally {
+    ocrDownloading.value = false;
+  }
+}
+
+// 손글씨 모델 상태 확인
+async function checkHandwritingStatus() {
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/status`);
+    if (res.ok) {
+      handwritingStatus.value = await res.json();
+    }
+  } catch (error) {
+    console.error('Failed to check handwriting status:', error);
+  }
+}
+
+// 손글씨 모델 다운로드
+async function downloadHandwritingModel() {
+  handwritingDownloading.value = true;
+  extractError.value = '';
+  
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/download`, {
+      method: 'POST'
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      await checkHandwritingStatus();
+    } else {
+      extractError.value = data.message || '손글씨 모델 다운로드에 실패했습니다.';
+    }
+  } catch (error) {
+    console.error('Handwriting model download failed:', error);
+    extractError.value = '손글씨 모델 다운로드에 실패했습니다.';
+  } finally {
+    handwritingDownloading.value = false;
+  }
+}
+
+// 모달 열 때 OCR 상태 확인
+watch(showExtractModal, (isOpen) => {
+  if (isOpen) {
+    checkOcrStatus();
+    checkHandwritingStatus();
+    handwritingMode.value = false; // 모달 열 때 초기화
+    rawTextOnly.value = false; // 모달 열 때 초기화
+  }
+});
 </script>
 
 <style scoped>
@@ -706,8 +1202,13 @@ function insertTableWithSize(rows: number, cols: number) {
   gap: 5px;
   width: auto;
   padding: 0 10px;
+  margin-left: 6px;
   background: rgba(139, 92, 246, 0.1);
   border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.ai-btn:first-child {
+  margin-left: 0;
 }
 
 .ai-btn:hover:not(:disabled) {
@@ -1111,6 +1612,579 @@ function insertTableWithSize(rows: number, cols: number) {
 
 .modal-enter-from .image-modal,
 .modal-leave-to .image-modal {
+  transform: scale(0.95) translateY(-10px);
+}
+
+/* Extract Button Style */
+.extract-btn {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.extract-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #34d399 !important;
+}
+
+/* Extract Modal */
+.extract-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.extract-modal {
+  width: 520px;
+  max-width: 90vw;
+  max-height: 85vh;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.extract-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.extract-modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.extract-modal-header .close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.extract-modal-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.extract-modal-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.extract-description {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.extract-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed var(--border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.extract-dropzone:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.extract-dropzone.drag-over {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.extract-dropzone.has-file {
+  border-style: solid;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.dropzone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.dropzone-empty svg {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.dropzone-empty span {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.dropzone-empty .upload-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dropzone-file {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.dropzone-file .file-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 10px;
+  color: #34d399;
+}
+
+.dropzone-file .file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dropzone-file .file-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropzone-file .file-size {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.remove-file-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.remove-file-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+/* OCR 모델 상태 */
+.ocr-model-status {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(245, 158, 11, 0.05));
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  border-radius: 12px;
+}
+
+.model-status-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.model-status-header svg {
+  flex-shrink: 0;
+  color: #fbbf24;
+  margin-top: 2px;
+}
+
+.model-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.model-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.btn-download-model {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download-model:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-download-model:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-download-model .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.ocr-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #60a5fa;
+}
+
+.ocr-info svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ocr-info.ocr-ready {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+/* 텍스트만 가져오기 옵션 */
+.extract-options {
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+}
+
+.extract-options .option-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.raw-text-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #60a5fa;
+  line-height: 1.5;
+}
+
+.raw-text-info svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* 손글씨 모드 옵션 */
+.handwriting-option {
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 10px;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.checkbox-wrapper input:checked + .checkbox-custom {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+.checkbox-wrapper input:checked + .checkbox-custom::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-wrapper input:disabled + .checkbox-custom {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.checkbox-label .need-download {
+  font-size: 11px;
+  font-weight: 400;
+  color: #fbbf24;
+  margin-left: 6px;
+}
+
+.handwriting-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #fbbf24;
+  line-height: 1.5;
+}
+
+.handwriting-warning svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.handwriting-download {
+  margin-top: 12px;
+}
+
+.btn-download-handwriting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download-handwriting:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+}
+
+.btn-download-handwriting:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-download-handwriting .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.extract-result {
+  margin-top: 16px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.result-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.result-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.result-preview {
+  padding: 14px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.result-preview pre {
+  margin: 0;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.extract-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #f87171;
+}
+
+.extract-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.extract-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-extract {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  color: #fff;
+}
+
+.btn-extract:hover:not(:disabled) {
+  background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+.btn-extract:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-extract .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.modal-enter-from .extract-modal,
+.modal-leave-to .extract-modal {
   transform: scale(0.95) translateY(-10px);
 }
 </style>

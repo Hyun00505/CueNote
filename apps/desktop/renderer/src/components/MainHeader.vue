@@ -146,8 +146,8 @@ function getFileName(path: string): string {
 }
 
 .tab-btn.active {
-  color: #e8d5b7;
-  background: rgba(232, 213, 183, 0.1);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .tab-btn svg {

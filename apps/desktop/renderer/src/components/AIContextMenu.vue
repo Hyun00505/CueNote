@@ -135,12 +135,13 @@ async function handleAction(action: string, option?: string) {
   loading.value = true;
 
   // 스트리밍 API 사용 - LLM 설정 포함
+  // language: 'auto'로 설정하여 원문과 같은 언어로 응답
   const body = {
     content: props.selectedText,
     action,
     target_language: action === 'translate' ? (option || 'en') : 'en',
     style: action === 'improve' ? (option || 'professional') : 'professional',
-    language: 'ko',
+    language: 'auto',
     // LLM 설정 추가
     provider: settings.value.llm.provider,
     api_key: settings.value.llm.apiKey,

@@ -174,3 +174,55 @@ class LLMSettingsPayload(BaseModel):
 
 class ValidateApiKeyPayload(BaseModel):
     api_key: str = Field(..., description="검증할 API 키")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 문서 추출 스키마 (PDF/이미지 → 마크다운)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class DocumentExtractPayload(BaseModel):
+    """PDF 또는 이미지에서 마크다운 추출"""
+    file_data: str = Field(..., description="Base64 인코딩된 파일 데이터 (data:...;base64,... 형식)")
+    file_type: str = Field(..., description="파일 유형 (pdf, image)")
+    language: str = Field(default="ko", description="출력 언어")
+    handwriting_mode: bool = Field(default=False, description="손글씨 인식 모드")
+    raw_text_only: bool = Field(default=False, description="AI 없이 텍스트만 추출")
+    # LLM 제공자 설정
+    provider: str = Field(default="gemini", description="LLM 제공자 (gemini 권장)")
+    api_key: str = Field(default="", description="Gemini API 키")
+    model: str = Field(default="", description="사용할 모델명")
+
+
+class DocumentExtractResponse(BaseModel):
+    """문서 추출 결과"""
+    markdown: str = Field(..., description="추출된 마크다운 텍스트")
+    page_count: int = Field(default=1, description="페이지 수 (PDF의 경우)")
+    has_images: bool = Field(default=False, description="이미지 포함 여부")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OCR 모델 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class OCRModelStatus(BaseModel):
+    """OCR 모델 상태"""
+    installed: bool = Field(..., description="EasyOCR 설치 여부")
+    model_downloaded: bool = Field(..., description="모델 다운로드 완료 여부")
+    model_path: str = Field(..., description="모델 저장 경로")
+    languages: list[str] = Field(..., description="지원 언어 목록")
+    downloading: bool = Field(default=False, description="다운로드 진행 중 여부")
+
+
+class OCRDownloadResponse(BaseModel):
+    """OCR 모델 다운로드 응답"""
+    success: bool = Field(..., description="성공 여부")
+    message: str = Field(..., description="결과 메시지")
+
+
+class HandwritingModelStatus(BaseModel):
+    """손글씨 OCR 모델 상태"""
+    installed: bool = Field(..., description="transformers 설치 여부")
+    model_downloaded: bool = Field(..., description="모델 다운로드 완료 여부")
+    model_name: str = Field(..., description="모델 이름")
+    model_path: str = Field(..., description="모델 저장 경로")
+    downloading: bool = Field(default=False, description="다운로드 진행 중 여부")

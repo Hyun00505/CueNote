@@ -15,7 +15,10 @@ from ..schemas import (
     ImprovePayload, ImproveResponse,
     ExpandPayload, ExpandResponse,
     ShortenPayload, ShortenResponse,
-    StreamPayload
+    StreamPayload,
+    DocumentExtractPayload, DocumentExtractResponse,
+    OCRModelStatus, OCRDownloadResponse,
+    HandwritingModelStatus
 )
 
 # 기존 호환성을 위한 import
@@ -56,7 +59,13 @@ async def summarize_note(payload: SummarizePayload):
     if word_count < 20:
         return SummarizeResponse(summary=content, keyPoints=[], wordCount=word_count)
     
-    lang_instruction = "한국어로" if payload.language == "ko" else f"in {payload.language}"
+    # 언어 설정: auto이면 원문과 같은 언어로 응답
+    if payload.language == "auto":
+        lang_instruction = "in the SAME language as the input text"
+    elif payload.language == "ko":
+        lang_instruction = "한국어로"
+    else:
+        lang_instruction = f"in {payload.language}"
     
     prompt = (
         f"You are a helpful assistant that summarizes notes. Respond {lang_instruction}.\n"
@@ -64,7 +73,8 @@ async def summarize_note(payload: SummarizePayload):
         "Rules:\n"
         "- summary: A concise 2-3 sentence summary of the main content\n"
         "- keyPoints: Up to 5 bullet points highlighting the most important information\n"
-        "- Be accurate and preserve the key meaning\n\n"
+        "- Be accurate and preserve the key meaning\n"
+        "- IMPORTANT: Match the language of the input text when language is 'auto'\n\n"
         f"Note content:\n{content}\n\n"
         "Schema:\n"
         '{\n  "summary": "string",\n  "keyPoints": ["string"]\n}\n'
@@ -169,7 +179,14 @@ async def improve_text(payload: ImprovePayload):
         "detailed": "Add more detail and explanation"
     }
     style_inst = style_instructions.get(payload.style, style_instructions["professional"])
-    lang_instruction = "한국어로 작성" if payload.language == "ko" else f"Write in {payload.language}"
+    
+    # 언어 설정: auto이면 원문과 같은 언어로 응답
+    if payload.language == "auto":
+        lang_instruction = "Write in the SAME language as the input text"
+    elif payload.language == "ko":
+        lang_instruction = "한국어로 작성"
+    else:
+        lang_instruction = f"Write in {payload.language}"
     
     prompt = (
         f"Improve the following text. {style_inst}. {lang_instruction}.\n"
@@ -178,7 +195,8 @@ async def improve_text(payload: ImprovePayload):
         "- PRESERVE ALL MARKDOWN FORMATTING exactly as-is\n"
         "- Improve grammar, clarity, and flow\n"
         "- Preserve the original meaning\n"
-        "- List 2-3 key changes made\n\n"
+        "- List 2-3 key changes made\n"
+        "- IMPORTANT: Match the language of the input text when language is 'auto'\n\n"
         f"Text to improve:\n{content}\n\n"
         "Schema:\n"
         '{\n  "improved": "string",\n  "changes": ["string"]\n}\n'
@@ -218,7 +236,14 @@ async def expand_text(payload: ExpandPayload):
         raise HTTPException(status_code=400, detail="Content is empty")
     
     content, truncation_warning = process_long_text(content, max_chars=8000)
-    lang_instruction = "한국어로 작성" if payload.language == "ko" else f"Write in {payload.language}"
+    
+    # 언어 설정: auto이면 원문과 같은 언어로 응답
+    if payload.language == "auto":
+        lang_instruction = "Write in the SAME language as the input text"
+    elif payload.language == "ko":
+        lang_instruction = "한국어로 작성"
+    else:
+        lang_instruction = f"Write in {payload.language}"
     
     prompt = (
         f"Expand and elaborate on the following text. {lang_instruction}.\n"
@@ -227,7 +252,8 @@ async def expand_text(payload: ExpandPayload):
         "- PRESERVE ALL MARKDOWN FORMATTING exactly as-is\n"
         "- Add more detail and explanation\n"
         "- Keep the same tone and style\n"
-        "- Make it about 2-3x longer\n\n"
+        "- Make it about 2-3x longer\n"
+        "- IMPORTANT: Match the language of the input text when language is 'auto'\n\n"
         f"Text to expand:\n{content}\n\n"
         "Schema:\n"
         '{\n  "expanded": "string"\n}\n'
@@ -264,7 +290,14 @@ async def shorten_text(payload: ShortenPayload):
         raise HTTPException(status_code=400, detail="Content is empty")
     
     content, truncation_warning = process_long_text(content)
-    lang_instruction = "한국어로 작성" if payload.language == "ko" else f"Write in {payload.language}"
+    
+    # 언어 설정: auto이면 원문과 같은 언어로 응답
+    if payload.language == "auto":
+        lang_instruction = "Write in the SAME language as the input text"
+    elif payload.language == "ko":
+        lang_instruction = "한국어로 작성"
+    else:
+        lang_instruction = f"Write in {payload.language}"
     
     prompt = (
         f"Shorten and condense the following text. {lang_instruction}.\n"
@@ -273,7 +306,8 @@ async def shorten_text(payload: ShortenPayload):
         "- PRESERVE ALL MARKDOWN FORMATTING exactly as-is\n"
         "- Keep the essential meaning\n"
         "- Remove redundancy\n"
-        "- Make it about half the length\n\n"
+        "- Make it about half the length\n"
+        "- IMPORTANT: Match the language of the input text when language is 'auto'\n\n"
         f"Text to shorten:\n{content}\n\n"
         "Schema:\n"
         '{\n  "shortened": "string"\n}\n'
@@ -430,3 +464,395 @@ async def ai_stream(payload: StreamPayload):
             yield {"event": "error", "data": str(e)}
     
     return EventSourceResponse(event_generator())
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 문서 추출 (PDF/이미지 → 마크다운)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def extract_text_from_pdf(pdf_data: str) -> tuple[str, int]:
+    """
+    PDF에서 텍스트 추출
+    
+    Args:
+        pdf_data: Base64 인코딩된 PDF 데이터
+    
+    Returns:
+        (추출된 텍스트, 페이지 수)
+    """
+    import base64
+    import io
+    
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        raise ImportError("PyMuPDF is required for PDF processing. Install with: pip install PyMuPDF")
+    
+    # Base64 디코딩
+    if pdf_data.startswith("data:"):
+        _, base64_content = pdf_data.split(",", 1)
+    else:
+        base64_content = pdf_data
+    
+    pdf_bytes = base64.b64decode(base64_content)
+    
+    # PDF 열기
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    page_count = len(doc)
+    
+    text_parts = []
+    for page_num, page in enumerate(doc, 1):
+        text = page.get_text("text")
+        if text.strip():
+            text_parts.append(f"<!-- 페이지 {page_num} -->\n{text}")
+    
+    doc.close()
+    
+    return "\n\n".join(text_parts), page_count
+
+
+def format_text_as_markdown(
+    text: str,
+    provider: str,
+    api_key: str,
+    language: str,
+    model: str = None
+) -> str:
+    """
+    추출된 텍스트를 마크다운 형식으로 정리
+    """
+    # 언어 설정: auto이면 원문과 같은 언어로 응답
+    if language == "auto":
+        lang_instruction = "Write in the SAME language as the input text"
+    elif language == "ko":
+        lang_instruction = "한국어로 작성"
+    else:
+        lang_instruction = f"Write in {language}"
+    
+    prompt = f"""다음 텍스트를 깔끔한 마크다운 문서로 변환해주세요. {lang_instruction}.
+
+## 지침:
+1. 문서의 구조를 분석하여 적절한 제목(#, ##, ###)을 사용하세요
+2. 목록이 있으면 마크다운 목록(-, 1.)으로 변환하세요
+3. 표가 있으면 마크다운 표로 변환하세요
+4. 중요한 내용은 **굵게**, 강조할 부분은 *기울임*으로 표시하세요
+5. 코드가 있으면 적절한 코드 블록으로 감싸세요
+6. 불필요한 공백이나 줄바꿈을 정리하세요
+7. 출력은 순수 마크다운만 반환하세요 (```markdown으로 감싸지 마세요)
+8. IMPORTANT: 원문의 언어를 유지하세요 (영어면 영어로, 한글이면 한글로)
+
+입력 텍스트:
+{text}
+
+마크다운 출력:"""
+    
+    if provider == "gemini" and api_key:
+        return gemini_client.generate(prompt, api_key, model)
+    else:
+        return ollama_client.generate(prompt, model=model)
+
+
+@router.post("/extract", response_model=DocumentExtractResponse)
+async def extract_document(payload: DocumentExtractPayload):
+    """
+    PDF 또는 이미지에서 마크다운을 추출합니다.
+    
+    - PDF: PyMuPDF로 텍스트 추출 (실패 시 OCR) 후 LLM으로 마크다운 형식화
+    - 이미지: EasyOCR로 텍스트 추출 후 LLM으로 마크다운 형식화
+    """
+    from .. import ocr_client
+    
+    file_data = payload.file_data.strip()
+    
+    if not file_data:
+        raise HTTPException(status_code=400, detail="File data is empty")
+    
+    try:
+        if payload.file_type == "pdf":
+            # PDF 처리: 먼저 텍스트 추출 시도
+            raw_text, page_count = extract_text_from_pdf(file_data)
+            
+            # 텍스트가 없으면 OCR로 fallback
+            if not raw_text.strip():
+                logger.info("PDF text extraction failed, falling back to OCR...")
+                try:
+                    raw_text, page_count = ocr_client.extract_text_from_pdf_images(file_data)
+                except ImportError as e:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"OCR 라이브러리가 필요합니다: {str(e)}"
+                    )
+                
+                if not raw_text.strip():
+                    raise HTTPException(
+                        status_code=400, 
+                        detail="PDF에서 텍스트를 추출할 수 없습니다."
+                    )
+            
+            # 텍스트가 너무 길면 잘라내기
+            if len(raw_text) > MAX_INPUT_CHARS * 2:
+                raw_text = raw_text[:MAX_INPUT_CHARS * 2]
+                logger.warning(f"PDF text truncated to {MAX_INPUT_CHARS * 2} chars")
+            
+            # raw_text_only 옵션: AI 없이 텍스트만 반환
+            if payload.raw_text_only:
+                # 기본적인 마크다운 형식화 (줄바꿈 유지)
+                markdown = raw_text.strip()
+                return DocumentExtractResponse(
+                    markdown=markdown,
+                    page_count=page_count,
+                    has_images=False
+                )
+            
+            # LLM으로 마크다운 형식화
+            markdown = format_text_as_markdown(
+                raw_text,
+                payload.provider,
+                payload.api_key,
+                payload.language,
+                payload.model if payload.model else None
+            )
+            
+            return DocumentExtractResponse(
+                markdown=markdown,
+                page_count=page_count,
+                has_images=False
+            )
+        
+        elif payload.file_type == "image":
+            # 이미지 처리
+            try:
+                if payload.handwriting_mode:
+                    # 손글씨 모드: TrOCR 사용
+                    logger.info("Using handwriting OCR (TrOCR)")
+                    raw_text = ocr_client.extract_handwriting_from_image(file_data)
+                else:
+                    # 일반 모드: EasyOCR 사용
+                    raw_text = ocr_client.extract_text_from_base64_image(file_data)
+            except ImportError as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"OCR 라이브러리가 필요합니다: {str(e)}"
+                )
+            
+            if not raw_text.strip():
+                raise HTTPException(
+                    status_code=400,
+                    detail="이미지에서 텍스트를 추출할 수 없습니다."
+                )
+            
+            # 텍스트가 너무 길면 잘라내기
+            if len(raw_text) > MAX_INPUT_CHARS * 2:
+                raw_text = raw_text[:MAX_INPUT_CHARS * 2]
+                logger.warning(f"Image text truncated to {MAX_INPUT_CHARS * 2} chars")
+            
+            # raw_text_only 옵션: AI 없이 텍스트만 반환
+            if payload.raw_text_only:
+                markdown = raw_text.strip()
+                return DocumentExtractResponse(
+                    markdown=markdown,
+                    page_count=1,
+                    has_images=False
+                )
+            
+            # LLM으로 마크다운 형식화
+            markdown = format_text_as_markdown(
+                raw_text,
+                payload.provider,
+                payload.api_key,
+                payload.language,
+                payload.model if payload.model else None
+            )
+            
+            return DocumentExtractResponse(
+                markdown=markdown,
+                page_count=1,
+                has_images=False
+            )
+        
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"지원하지 않는 파일 유형입니다: {payload.file_type}"
+            )
+    
+    except ImportError as e:
+        logger.error(f"Missing dependency: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document extraction failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"문서 추출에 실패했습니다: {str(e)}"
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OCR 모델 관리
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 다운로드 상태 추적
+_ocr_downloading = False
+
+
+@router.get("/ocr/status", response_model=OCRModelStatus)
+async def get_ocr_status():
+    """OCR 모델 상태 확인"""
+    from .. import ocr_client
+    
+    info = ocr_client.get_model_info()
+    
+    return OCRModelStatus(
+        installed=info["installed"],
+        model_downloaded=info["model_downloaded"],
+        model_path=info["model_path"],
+        languages=info["languages"],
+        downloading=_ocr_downloading
+    )
+
+
+@router.post("/ocr/download", response_model=OCRDownloadResponse)
+async def download_ocr_model():
+    """
+    OCR 모델 다운로드
+    모델이 이미 다운로드되어 있으면 스킵
+    """
+    global _ocr_downloading
+    from .. import ocr_client
+    
+    # 이미 다운로드 중인지 확인
+    if _ocr_downloading:
+        return OCRDownloadResponse(
+            success=False,
+            message="이미 다운로드가 진행 중입니다."
+        )
+    
+    # 이미 다운로드되어 있는지 확인
+    if ocr_client.is_model_downloaded():
+        return OCRDownloadResponse(
+            success=True,
+            message="모델이 이미 다운로드되어 있습니다."
+        )
+    
+    # EasyOCR 설치 확인
+    if not ocr_client.is_ocr_available():
+        return OCRDownloadResponse(
+            success=False,
+            message="EasyOCR이 설치되어 있지 않습니다. pip install easyocr를 실행해주세요."
+        )
+    
+    try:
+        _ocr_downloading = True
+        logger.info("Starting OCR model download...")
+        
+        # 모델 다운로드 (시간이 걸림)
+        success = ocr_client.download_model()
+        
+        if success:
+            return OCRDownloadResponse(
+                success=True,
+                message="OCR 모델 다운로드가 완료되었습니다."
+            )
+        else:
+            return OCRDownloadResponse(
+                success=False,
+                message="모델 다운로드에 실패했습니다."
+            )
+    
+    except Exception as e:
+        logger.error(f"OCR model download failed: {e}")
+        return OCRDownloadResponse(
+            success=False,
+            message=f"다운로드 오류: {str(e)}"
+        )
+    
+    finally:
+        _ocr_downloading = False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 손글씨 OCR 모델 관리
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 손글씨 모델 다운로드 상태 추적
+_handwriting_downloading = False
+
+
+@router.get("/ocr/handwriting/status", response_model=HandwritingModelStatus)
+async def get_handwriting_status():
+    """손글씨 OCR 모델 상태 확인"""
+    from .. import ocr_client
+    
+    info = ocr_client.get_handwriting_model_info()
+    
+    return HandwritingModelStatus(
+        installed=info["installed"],
+        model_downloaded=info["model_downloaded"],
+        model_name=info["model_name"],
+        model_path=info["model_path"],
+        downloading=_handwriting_downloading
+    )
+
+
+@router.post("/ocr/handwriting/download", response_model=OCRDownloadResponse)
+async def download_handwriting_model():
+    """
+    손글씨 OCR 모델 다운로드 (TrOCR)
+    모델이 이미 다운로드되어 있으면 스킵
+    """
+    global _handwriting_downloading
+    from .. import ocr_client
+    
+    # 이미 다운로드 중인지 확인
+    if _handwriting_downloading:
+        return OCRDownloadResponse(
+            success=False,
+            message="이미 다운로드가 진행 중입니다."
+        )
+    
+    # 이미 다운로드되어 있는지 확인
+    if ocr_client.is_handwriting_model_downloaded():
+        return OCRDownloadResponse(
+            success=True,
+            message="손글씨 모델이 이미 다운로드되어 있습니다."
+        )
+    
+    # transformers 설치 확인
+    if not ocr_client.is_handwriting_ocr_available():
+        return OCRDownloadResponse(
+            success=False,
+            message="transformers 라이브러리가 필요합니다. pip install transformers torch를 실행해주세요."
+        )
+    
+    try:
+        _handwriting_downloading = True
+        logger.info("Starting handwriting OCR model download...")
+        
+        # 모델 다운로드 (시간이 걸림 - 약 1GB)
+        success = ocr_client.download_handwriting_model()
+        
+        if success:
+            return OCRDownloadResponse(
+                success=True,
+                message="손글씨 OCR 모델 다운로드가 완료되었습니다."
+            )
+        else:
+            return OCRDownloadResponse(
+                success=False,
+                message="손글씨 모델 다운로드에 실패했습니다."
+            )
+    
+    except Exception as e:
+        logger.error(f"Handwriting OCR model download failed: {e}")
+        return OCRDownloadResponse(
+            success=False,
+            message=f"다운로드 오류: {str(e)}"
+        )
+    
+    finally:
+        _handwriting_downloading = False

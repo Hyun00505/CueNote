@@ -14,5 +14,5 @@ export type TodayPlan = {
   quickWins: string[];
 };
 
-export type ViewType = 'editor' | 'dashboard';
+export type ViewType = 'editor' | 'dashboard' | 'settings';
 
