@@ -86,10 +86,9 @@ export function useVault() {
 
   async function deleteFile(path: string): Promise<boolean> {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/file`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path })
+      // Query parameter로 경로 전달 (DELETE body는 일부 환경에서 무시될 수 있음)
+      const res = await fetch(`${CORE_BASE}/vault/file?path=${encodeURIComponent(path)}`, {
+        method: 'DELETE'
       });
       
       if (!res.ok) {

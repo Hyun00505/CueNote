@@ -4,5 +4,5 @@ export { usePlan } from './usePlan';
 export { useHealth } from './useHealth';
 export { useSettings } from './useSettings';
 export { useEnvironment } from './useEnvironment';
-
-
+export { useSchedule } from './useSchedule';
+export { useI18n } from './useI18n';

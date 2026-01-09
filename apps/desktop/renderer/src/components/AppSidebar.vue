@@ -159,7 +159,7 @@
                   <line x1="8" y1="17" x2="12" y2="17"/>
                 </svg>
                 <span class="file-name">{{ getFileName(file) }}</span>
-                <span v-if="file === dirtyFile" class="dirty-indicator" title="저장되지 않음"></span>
+                <span v-if="dirtyFiles.includes(file)" class="dirty-indicator" title="저장되지 않음"></span>
               </button>
               <div class="file-actions">
                 <button 
@@ -348,7 +348,7 @@ import { useVault, useHealth, useEnvironment } from '../composables';
 const props = defineProps<{
   collapsed: boolean;
   activeFile: string | null;
-  dirtyFile: string | null;
+  dirtyFiles: string[];
 }>();
 
 const emit = defineEmits<{

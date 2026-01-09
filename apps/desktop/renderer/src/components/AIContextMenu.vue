@@ -15,6 +15,18 @@
         </div>
 
         <div class="menu-section">
+          <div class="section-label">교정</div>
+          <button class="menu-item" @click="handleAction('proofread')" :disabled="loading">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <span>맞춤법 수정</span>
+            <span class="badge">KO/EN</span>
+          </button>
+        </div>
+
+        <div class="menu-section">
           <div class="section-label">변환</div>
           <button class="menu-item" @click="handleAction('improve')" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -121,6 +133,7 @@ const emit = defineEmits<{
   (e: 'stream-chunk', chunk: string): void;
   (e: 'stream-end'): void;
   (e: 'error', message: string): void;
+  (e: 'proofread', text: string): void;
 }>();
 
 const loading = ref(false);
@@ -129,6 +142,13 @@ const { settings } = useSettings();
 async function handleAction(action: string, option?: string) {
   if (!props.selectedText.trim()) {
     emit('error', '선택된 텍스트가 없습니다.');
+    return;
+  }
+
+  // 맞춤법 검사는 별도 처리 (패널 사용)
+  if (action === 'proofread') {
+    emit('proofread', props.selectedText);
+    emit('close');
     return;
   }
 
@@ -333,6 +353,19 @@ onBeforeUnmount(() => {
 
 .lang-flag {
   font-size: 14px;
+}
+
+.badge {
+  margin-left: auto;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2));
+  color: #4ade80;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 /* Loading Overlay */

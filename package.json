@@ -10,7 +10,10 @@
   "scripts": {
     "dev:desktop": "pnpm --filter desktop dev",
     "dev:core": "cd apps/core && uvicorn app.main:app --reload --host 127.0.0.1 --port 8787",
-    "dev:all": "concurrently \"pnpm dev:core\" \"pnpm dev:desktop\""
+    "dev:all": "concurrently \"pnpm dev:core\" \"pnpm dev:desktop\"",
+    "build:core": "cd apps/core && pyinstaller cuenote-core.spec --noconfirm && xcopy /E /I /Y dist\\cuenote-core ..\\core-dist",
+    "build:desktop": "pnpm --filter cuenote build:all",
+    "build:all": "powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
