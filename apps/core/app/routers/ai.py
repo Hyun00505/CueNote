@@ -512,6 +512,30 @@ def build_stream_prompt(payload: StreamPayload) -> str:
             f"---INPUT---\n{content}\n---CORRECTED---\n"
         )
     
+    elif payload.action == "custom":
+        # 사용자 정의 프롬프트
+        user_instruction = payload.custom_prompt or "Edit the text as requested"
+        
+        # 선택된 텍스트가 있는 경우와 없는 경우 구분
+        if content.strip():
+            return (
+                f"You are a helpful writing assistant. Follow the user's instruction exactly.\n"
+                f"{preserve_rules}\n"
+                f"USER INSTRUCTION: {user_instruction}\n\n"
+                f"Apply this instruction to the following text:\n"
+                f"---INPUT TEXT---\n{content}\n---OUTPUT---\n"
+            )
+        else:
+            # 선택된 텍스트 없이 새 글 생성
+            return (
+                f"You are a helpful writing assistant that writes high-quality content.\n"
+                f"{preserve_rules}\n"
+                f"IMPORTANT: Generate NEW content based on the user's request. Write naturally and creatively.\n"
+                f"Match the language of the user's instruction (if Korean instruction, write in Korean).\n\n"
+                f"USER REQUEST: {user_instruction}\n\n"
+                f"---OUTPUT---\n"
+            )
+    
     else:
         raise ValueError(f"Unknown action: {payload.action}")
 
@@ -521,7 +545,8 @@ async def ai_stream(payload: StreamPayload):
     """스트리밍 방식으로 AI 텍스트 생성 (SSE)"""
     content = payload.content.strip()
     
-    if not content:
+    # custom action은 content 없이도 허용 (새 글 생성)
+    if not content and payload.action != "custom":
         raise HTTPException(status_code=400, detail="Content is empty")
     
     max_chars = 8000 if payload.action == "expand" else MAX_INPUT_CHARS

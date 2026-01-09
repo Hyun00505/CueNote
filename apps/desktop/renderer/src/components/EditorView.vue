@@ -38,15 +38,20 @@
             <span v-if="isDirty" class="unsaved-dot" title="저장되지 않은 변경사항"></span>
           </div>
         </div>
-        <button class="save-btn" :class="{ saving }" :disabled="saving" @click="handleSave">
-          <svg v-if="!saving" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="save-btn" :class="{ saving, saved }" :disabled="saving" @click="handleSave">
+          <svg v-if="saved" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <svg v-else-if="!saving" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
             <polyline points="17 21 17 13 7 13 7 21"/>
             <polyline points="7 3 7 8 15 8"/>
           </svg>
           <span class="spinner" v-else></span>
-          <span>{{ saving ? '저장 중...' : '저장' }}</span>
-          <kbd>Ctrl+S</kbd>
+          <span v-if="saved">{{ t('common.save') }} ✓</span>
+          <span v-else-if="saving">{{ t('common.loading') }}</span>
+          <span v-else>{{ t('common.save') }}</span>
+          <kbd v-if="!saved">Ctrl+S</kbd>
         </button>
       </div>
       
@@ -121,10 +126,12 @@
         <!-- AI 스트리밍 프리뷰 (실시간으로 생성 중인 텍스트 표시) -->
         <div v-if="isAIStreaming" class="ai-streaming-preview">
           <div class="streaming-header">
-            <span class="streaming-dot"></span>
-            <span class="streaming-dot"></span>
-            <span class="streaming-dot"></span>
-            <span>AI {{ getActionLabel(aiStreamingAction) }} 중...</span>
+            <div class="streaming-dots">
+              <span class="streaming-dot"></span>
+              <span class="streaming-dot"></span>
+              <span class="streaming-dot"></span>
+            </div>
+            <span class="streaming-label">AI {{ getActionLabel(aiStreamingAction) }}...</span>
           </div>
           <div class="streaming-content" v-html="streamPreviewHtml"></div>
         </div>
@@ -132,20 +139,21 @@
         <!-- AI 완료 후 액션 바 -->
         <Transition name="action-bar-slide">
           <div v-if="showAIActionBar" class="ai-action-bar">
-            <span class="action-bar-label">✨ AI {{ getActionLabel(aiStreamingAction) }} 완료</span>
+            <div class="action-bar-indicator"></div>
+            <span class="action-bar-label">AI {{ getActionLabel(aiStreamingAction) }} {{ t('ai.completed') }}</span>
             <div class="action-bar-buttons">
               <button class="action-btn reject" @click="handleAIReject">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                   <path d="M3 3v5h5"/>
                 </svg>
-                되돌리기
+                {{ t('ai.revert') }}
               </button>
               <button class="action-btn accept" @click="handleAIAccept">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
-                유지하기
+                {{ t('ai.keep') }}
               </button>
             </div>
           </div>
@@ -219,13 +227,15 @@ import EditorToolbar from './EditorToolbar.vue';
 import AIContextMenu from './AIContextMenu.vue';
 import AIInlineDiff from './AIInlineDiff.vue';
 import AIProofreadPanel from './AIProofreadPanel.vue';
-import { useSettings } from '../composables';
+import { useSettings, useI18n, useShortcuts } from '../composables';
 
 const lowlight = createLowlight(common);
 const CORE_BASE = 'http://127.0.0.1:8787';
 
 // LLM 설정 가져오기
 const { settings: llmSettings } = useSettings();
+const { t } = useI18n();
+const { isAIMenuShortcut } = useShortcuts();
 
 const props = defineProps<{
   activeFile: string | null;
@@ -253,6 +263,7 @@ function emitDirtyFiles() {
 
 const editorError = ref('');
 const saving = ref(false);
+const saved = ref(false);
 const summarizing = ref(false);
 const isDirty = ref(false);
 
@@ -276,6 +287,7 @@ const originalText = ref('');  // 취소용 원본 텍스트 저장
 const streamInsertPos = ref(0);  // 스트리밍 삽입 시작 위치
 const showAIActionBar = ref(false);  // AI 완료 후 액션 바 표시
 const streamedContent = ref('');  // 스트리밍 중 누적된 텍스트
+const hasSelectionForAI = ref(true);  // AI 요청 시 선택이 있었는지
 
 // 스트리밍 프리뷰 HTML (실시간 미리보기)
 const streamPreviewHtml = computed(() => {
@@ -316,8 +328,12 @@ const proofreadCorrectedText = ref('');
 const proofreadItems = ref<ProofreadItem[]>([]);
 const proofreadLanguage = ref('');
 
-// 에디터에서 텍스트의 모든 위치 찾기
-function findTextPositions(searchText: string): Array<{ from: number; to: number }> {
+// 에디터에서 텍스트의 모든 위치 찾기 (범위 지정 가능)
+function findTextPositions(
+  searchText: string, 
+  rangeStart?: number, 
+  rangeEnd?: number
+): Array<{ from: number; to: number }> {
   if (!editor.value) return [];
   
   const positions: Array<{ from: number; to: number }> = [];
@@ -330,10 +346,17 @@ function findTextPositions(searchText: string): Array<{ from: number; to: number
         const foundIndex = node.text.indexOf(searchText, index);
         if (foundIndex === -1) break;
         
-        positions.push({
-          from: pos + foundIndex,
-          to: pos + foundIndex + searchText.length
-        });
+        const from = pos + foundIndex;
+        const to = pos + foundIndex + searchText.length;
+        
+        // 범위가 지정되었으면 범위 내 위치만 추가
+        if (rangeStart !== undefined && rangeEnd !== undefined) {
+          if (from >= rangeStart && to <= rangeEnd) {
+            positions.push({ from, to });
+          }
+        } else {
+          positions.push({ from, to });
+        }
         index = foundIndex + 1;
       }
     }
@@ -343,23 +366,74 @@ function findTextPositions(searchText: string): Array<{ from: number; to: number
   return positions;
 }
 
-// 맞춤법 오류 하이라이트 적용
+// 맞춤법 오류 하이라이트 적용 (각 오류당 하나의 위치만)
 function applyProofreadHighlights() {
   if (!editor.value) return;
   
-  // 각 오류 항목에 대해 위치를 찾고 하이라이트 적용
+  // 선택 범위 가져오기
+  const rangeStart = savedSelection.value?.from;
+  const rangeEnd = savedSelection.value?.to;
+  
+  // 이미 매칭된 위치를 추적 (같은 단어의 다른 오류 구분)
+  const usedPositions: Set<string> = new Set();
+  
+  // 원본 텍스트에서 각 오류의 순서대로 위치를 찾음
+  const originalText = proofreadOriginalText.value;
+  
   proofreadItems.value.forEach((item, index) => {
     if (!item.applied && !item.skipped) {
-      const positions = findTextPositions(item.original);
-      proofreadItems.value[index].positions = positions;
+      // 선택 범위 내에서 위치 찾기
+      const positions = findTextPositions(item.original, rangeStart, rangeEnd);
       
-      // 각 위치에 하이라이트 적용
-      positions.forEach(({ from, to }) => {
+      // 아직 사용되지 않은 첫 번째 위치 찾기
+      let selectedPosition: { from: number; to: number } | null = null;
+      
+      for (const pos of positions) {
+        const posKey = `${pos.from}-${pos.to}`;
+        if (!usedPositions.has(posKey)) {
+          selectedPosition = pos;
+          usedPositions.add(posKey);
+          break;
+        }
+      }
+      
+      // 범위 내에서 못 찾았으면 원본 텍스트에서 오프셋으로 계산
+      if (!selectedPosition && rangeStart !== undefined) {
+        let searchStart = 0;
+        // 원본 텍스트에서 이 오류의 발생 횟수만큼 건너뛰기
+        const sameItems = proofreadItems.value.slice(0, index).filter(
+          i => i.original === item.original
+        );
+        
+        for (let i = 0; i <= sameItems.length; i++) {
+          const offset = originalText.indexOf(item.original, searchStart);
+          if (offset === -1) break;
+          
+          if (i === sameItems.length) {
+            const from = rangeStart + offset;
+            const to = from + item.original.length;
+            const posKey = `${from}-${to}`;
+            if (!usedPositions.has(posKey)) {
+              selectedPosition = { from, to };
+              usedPositions.add(posKey);
+            }
+            break;
+          }
+          searchStart = offset + item.original.length;
+        }
+      }
+      
+      // 위치를 찾았으면 하이라이트 적용
+      if (selectedPosition) {
+        proofreadItems.value[index].positions = [selectedPosition];
+        
         editor.value?.chain()
-          .setTextSelection({ from, to })
-          .setHighlight({ color: '#ef444480' }) // 빨간색 반투명 하이라이트
+          .setTextSelection({ from: selectedPosition.from, to: selectedPosition.to })
+          .setHighlight({ color: '#ef444480' })
           .run();
-      });
+      } else {
+        proofreadItems.value[index].positions = [];
+      }
     }
   });
   
@@ -753,6 +827,12 @@ async function handleSave() {
     // 저장 후 캐시에서 해당 파일 제거 (더 이상 저장되지 않은 변경사항 아님)
     fileContentCache.delete(props.activeFile);
     emitDirtyFiles();
+    
+    // 저장 완료 표시 (2초간)
+    saved.value = true;
+    setTimeout(() => {
+      saved.value = false;
+    }, 2000);
   } catch (error) {
     editorError.value = '저장 실패.';
     console.error('Save file failed', error);
@@ -877,10 +957,71 @@ function formatSummaryAsHtml(): string {
 
 // Keyboard shortcut for save
 function handleKeydown(e: KeyboardEvent) {
+  // 저장: Ctrl/Cmd + S
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
     handleSave();
+    return;
   }
+  
+  // AI 메뉴 단축키 확인
+  if (isAIMenuShortcut(e)) {
+    // 에디터에 포커스가 있을 때만 동작
+    if (!editor.value?.isFocused) return;
+    
+    // / 키는 빈 줄에서만 동작 (텍스트 입력 중에는 / 입력 허용)
+    if (e.key === '/') {
+      const { state } = editor.value;
+      const { from } = state.selection;
+      const $pos = state.doc.resolve(from);
+      const lineStart = $pos.start();
+      const lineText = state.doc.textBetween(lineStart, from, '', '');
+      
+      // 현재 줄에 내용이 있으면 / 입력 허용
+      if (lineText.trim()) return;
+    }
+    
+    e.preventDefault();
+    openAIMenuAtCursor();
+  }
+}
+
+// 커서 위치에서 AI 메뉴 열기
+function openAIMenuAtCursor() {
+  if (!editor.value) return;
+  
+  const { state } = editor.value;
+  const { from, to } = state.selection;
+  
+  // 선택된 텍스트가 있으면 저장
+  if (from !== to) {
+    const markdown = getSelectedMarkdown();
+    selectedText.value = markdown;
+  } else {
+    selectedText.value = '';
+  }
+  
+  // 커서 위치 가져오기
+  const coords = editor.value.view.coordsAtPos(from);
+  
+  // 메뉴 위치 설정
+  const menuWidth = 260;
+  const menuHeight = 500;
+  let x = coords.left;
+  let y = coords.bottom + 8;  // 커서 아래에 약간 여백
+  
+  if (x + menuWidth > window.innerWidth) {
+    x = window.innerWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    y = coords.top - menuHeight - 8;  // 위에 표시
+  }
+  if (y < 10) {
+    y = 10;
+  }
+  
+  aiMenuPosition.value = { x, y };
+  showAIMenu.value = true;
 }
 
 // 문서 추출 결과 처리
@@ -943,33 +1084,35 @@ function getSelectedMarkdown(): string {
 function handleContextMenu(e: MouseEvent) {
   if (!editor.value) return;
   
+  e.preventDefault();
+  
   const { state } = editor.value;
   const { from, to } = state.selection;
   
-  // 텍스트가 선택되어 있는 경우에만 AI 메뉴 표시
+  // 텍스트가 선택되어 있으면 선택된 텍스트 저장
   if (from !== to) {
-    e.preventDefault();
-    
-    // 선택된 텍스트를 마크다운으로 가져오기
     const markdown = getSelectedMarkdown();
     selectedText.value = markdown;
-    
-    // 메뉴 위치 설정 (화면 경계 고려)
-    const menuWidth = 260;
-    const menuHeight = 400;
-    let x = e.clientX;
-    let y = e.clientY;
-    
-    if (x + menuWidth > window.innerWidth) {
-      x = window.innerWidth - menuWidth - 10;
-    }
-    if (y + menuHeight > window.innerHeight) {
-      y = window.innerHeight - menuHeight - 10;
-    }
-    
-    aiMenuPosition.value = { x, y };
-    showAIMenu.value = true;
+  } else {
+    // 선택된 텍스트 없음
+    selectedText.value = '';
   }
+  
+  // 메뉴 위치 설정 (화면 경계 고려)
+  const menuWidth = 260;
+  const menuHeight = 500;
+  let x = e.clientX;
+  let y = e.clientY;
+  
+  if (x + menuWidth > window.innerWidth) {
+    x = window.innerWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    y = window.innerHeight - menuHeight - 10;
+  }
+  
+  aiMenuPosition.value = { x, y };
+  showAIMenu.value = true;
 }
 
 // AI 메뉴 닫기
@@ -1027,20 +1170,30 @@ function handleAIResult(data: AIResult) {
 const originalHtml = ref('');
 
 // 스트리밍 시작 처리 - 원본 유지, 프리뷰만 표시
-function handleStreamStart(data: { action: string; original: string }) {
-  if (!editor.value) return;
+function handleStreamStart(data: { action: string; original: string; hasSelection?: boolean }) {
+  if (!editor.value) {
+    console.warn('Editor not available for AI streaming');
+    return;
+  }
   
   // 전체 문서의 현재 HTML 저장 (되돌리기용)
   originalHtml.value = editor.value.getHTML();
   
-  // 현재 선택 영역 저장
-  const { from, to } = editor.value.state.selection;
-  savedSelection.value = { from, to };
+  // 현재 선택 영역 저장 (에디터 상태가 있을 때만)
+  try {
+    const { from, to } = editor.value.state.selection;
+    savedSelection.value = { from, to };
+  } catch (e) {
+    // 에디터 상태를 가져올 수 없으면 문서 끝에 삽입
+    const docEnd = editor.value.state.doc.content.size;
+    savedSelection.value = { from: docEnd, to: docEnd };
+  }
   
-  // 원본 텍스트 저장
-  originalText.value = data.original;
+  // 원본 텍스트 저장 (선택 없으면 빈 문자열)
+  originalText.value = data.original || '';
   aiStreamingAction.value = data.action;
   streamedContent.value = '';
+  hasSelectionForAI.value = data.hasSelection !== false && !!data.original;
   
   // 원본은 삭제하지 않음 - 스트리밍 완료 후 교체
   isAIStreaming.value = true;
@@ -1153,22 +1306,50 @@ function cleanupAIOutput(text: string): string {
 
 // 스트리밍 종료 처리 - 선택 영역을 AI 결과로 교체
 function handleStreamEnd() {
-  if (!editor.value || !savedSelection.value) return;
-  
   isAIStreaming.value = false;
   
-  // 스트리밍된 텍스트를 마크다운 HTML로 변환하여 선택 영역 교체
+  if (!editor.value) {
+    console.warn('Editor not available for AI result');
+    return;
+  }
+  
+  // 스트리밍된 텍스트를 마크다운 HTML로 변환
   if (streamedContent.value.trim()) {
     const html = markdownToHtml(streamedContent.value);
-    const { from, to } = savedSelection.value;
     
-    // 선택 영역을 AI 결과로 교체
-    editor.value.chain()
-      .focus()
-      .setTextSelection({ from, to })
-      .deleteSelection()
-      .insertContent(html)
-      .run();
+    try {
+      if (savedSelection.value && hasSelectionForAI.value) {
+        // 선택 영역이 있었으면 교체
+        const { from, to } = savedSelection.value;
+        editor.value.chain()
+          .focus()
+          .setTextSelection({ from, to })
+          .deleteSelection()
+          .insertContent(html)
+          .run();
+      } else if (savedSelection.value) {
+        // 선택 영역이 없었으면 저장된 커서 위치에 삽입
+        const { from } = savedSelection.value;
+        editor.value.chain()
+          .focus()
+          .setTextSelection(from)
+          .insertContent(html)
+          .run();
+      } else {
+        // savedSelection이 없으면 문서 끝에 삽입
+        editor.value.chain()
+          .focus()
+          .insertContent(html)
+          .run();
+      }
+    } catch (e) {
+      console.error('Failed to insert AI content:', e);
+      // 에러 발생 시 문서 끝에 삽입 시도
+      editor.value.chain()
+        .focus()
+        .insertContent(html)
+        .run();
+    }
   }
   
   showAIActionBar.value = true;
@@ -1304,10 +1485,31 @@ function handleProofreadApplyItem(data: { index: number; original: string; corre
   }
   
   // 저장된 위치가 없거나 변경되었으면 텍스트로 직접 검색
+  // 이미 적용된 항목들의 위치를 제외한 위치를 찾음
+  const appliedPositions = new Set<string>();
+  proofreadItems.value.forEach((i, idx) => {
+    if (idx !== index && i.applied && i.positions && i.positions.length > 0) {
+      // 이미 적용된 위치 추적
+    }
+    if (idx !== index && !i.applied && !i.skipped && i.positions && i.positions.length > 0) {
+      appliedPositions.add(`${i.positions[0].from}-${i.positions[0].to}`);
+    }
+  });
+  
   const positions = findTextPositions(original);
   
-  if (positions.length > 0) {
-    const { from, to } = positions[0];
+  // 다른 항목에 할당되지 않은 첫 번째 위치 찾기
+  let targetPos: { from: number; to: number } | null = null;
+  for (const pos of positions) {
+    const posKey = `${pos.from}-${pos.to}`;
+    if (!appliedPositions.has(posKey)) {
+      targetPos = pos;
+      break;
+    }
+  }
+  
+  if (targetPos) {
+    const { from, to } = targetPos;
     
     editor.value.chain()
       .setTextSelection({ from, to })
@@ -1830,6 +2032,27 @@ defineExpose({
 .save-btn.saving {
   background: rgba(232, 213, 183, 0.1);
   color: #e8d5b7;
+}
+
+.save-btn.saved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.save-btn.saved .check-icon {
+  color: #4ade80;
+  animation: check-pop 0.3s ease;
+}
+
+@keyframes check-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.save-btn.saved kbd {
+  display: none;
 }
 
 .save-btn:disabled {
@@ -2465,6 +2688,7 @@ defineExpose({
 }
 
 /* AI 스트리밍 프리뷰 - 우아한 글래스모피즘 디자인 */
+/* AI 스트리밍 프리뷰 - 테마 적용 */
 .ai-streaming-preview {
   position: fixed;
   bottom: 100px;
@@ -2474,46 +2698,44 @@ defineExpose({
   max-width: 680px;
   max-height: 400px;
   overflow-y: auto;
-  background: linear-gradient(
-    135deg,
-    rgba(30, 30, 35, 0.95) 0%,
-    rgba(25, 25, 30, 0.98) 100%
-  );
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: var(--bg-secondary, #16161a);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 16px;
   backdrop-filter: blur(20px);
   z-index: 100;
   box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 60px -20px rgba(139, 92, 246, 0.3);
+    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 80px -30px rgba(139, 92, 246, 0.25);
 }
 
 .ai-streaming-preview .streaming-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 20px;
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%);
-  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-  font-size: 13px;
-  font-weight: 600;
-  color: #c4b5fd;
-  letter-spacing: 0.3px;
+  gap: 14px;
+  padding: 14px 20px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.12) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
 }
 
-.ai-streaming-preview .streaming-header svg {
-  width: 16px;
-  height: 16px;
+.ai-streaming-preview .streaming-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-streaming-preview .streaming-label {
+  font-size: 13px;
+  font-weight: 600;
   color: #a78bfa;
+  letter-spacing: 0.3px;
 }
 
 .ai-streaming-preview .streaming-content {
   padding: 20px 24px;
   font-size: 15px;
   line-height: 1.8;
-  color: #e8e8ec;
+  color: var(--text-primary, #e8e8ec);
   font-family: var(--font-sans);
 }
 
@@ -2525,26 +2747,16 @@ defineExpose({
   margin-bottom: 0;
 }
 
-.ai-streaming-preview .streaming-content h1 {
-  font-size: 1.5em;
-  margin: 0 0 12px 0;
-  color: #fff;
-  font-weight: 600;
-}
-
-.ai-streaming-preview .streaming-content h2 {
-  font-size: 1.3em;
-  margin: 0 0 10px 0;
-  color: #f0f0f5;
-  font-weight: 600;
-}
-
+.ai-streaming-preview .streaming-content h1,
+.ai-streaming-preview .streaming-content h2,
 .ai-streaming-preview .streaming-content h3 {
-  font-size: 1.1em;
-  margin: 0 0 8px 0;
-  color: #e0e0e8;
+  color: var(--text-primary, #fff);
   font-weight: 600;
 }
+
+.ai-streaming-preview .streaming-content h1 { font-size: 1.5em; margin: 0 0 12px 0; }
+.ai-streaming-preview .streaming-content h2 { font-size: 1.3em; margin: 0 0 10px 0; }
+.ai-streaming-preview .streaming-content h3 { font-size: 1.1em; margin: 0 0 8px 0; }
 
 .ai-streaming-preview .streaming-content ul,
 .ai-streaming-preview .streaming-content ol {
@@ -2557,7 +2769,7 @@ defineExpose({
 }
 
 .ai-streaming-preview .streaming-content code {
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.15);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
@@ -2569,42 +2781,35 @@ defineExpose({
   border-left: 3px solid #a78bfa;
   padding-left: 16px;
   margin: 12px 0;
-  color: #b0b0b8;
+  color: var(--text-muted, #b0b0b8);
   font-style: italic;
 }
 
-/* 애니메이션 점 - 부드러운 펄스 효과 */
+/* 애니메이션 점 */
 .ai-streaming-preview .streaming-dot {
-  width: 8px;
-  height: 8px;
-  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  width: 6px;
+  height: 6px;
+  background: #a78bfa;
   border-radius: 50%;
-  animation: ai-pulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+  animation: ai-dot-bounce 1.4s ease-in-out infinite;
 }
 
-.ai-streaming-preview .streaming-dot:nth-child(2) {
-  animation-delay: 0.3s;
-}
+.ai-streaming-preview .streaming-dot:nth-child(1) { animation-delay: 0s; }
+.ai-streaming-preview .streaming-dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-streaming-preview .streaming-dot:nth-child(3) { animation-delay: 0.4s; }
 
-.ai-streaming-preview .streaming-dot:nth-child(3) {
-  animation-delay: 0.6s;
-}
-
-@keyframes ai-pulse {
-  0%, 100% { 
-    transform: scale(1); 
-    opacity: 0.6;
-    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+@keyframes ai-dot-bounce {
+  0%, 80%, 100% { 
+    transform: scale(0.8);
+    opacity: 0.5;
   }
-  50% { 
-    transform: scale(1.2); 
+  40% { 
+    transform: scale(1.2);
     opacity: 1;
-    box-shadow: 0 0 16px rgba(139, 92, 246, 0.6);
   }
 }
 
-/* 스크롤바 스타일링 */
+/* 스크롤바 */
 .ai-streaming-preview::-webkit-scrollbar {
   width: 6px;
 }
@@ -2622,7 +2827,7 @@ defineExpose({
   background: rgba(139, 92, 246, 0.5);
 }
 
-/* AI 액션 바 - 미니멀 플로팅 디자인 */
+/* AI 액션 바 - 테마 적용 */
 .ai-action-bar {
   position: fixed;
   bottom: 28px;
@@ -2630,75 +2835,75 @@ defineExpose({
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 24px;
-  background: linear-gradient(
-    135deg,
-    rgba(30, 30, 35, 0.98) 0%,
-    rgba(25, 25, 30, 0.99) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--bg-secondary, #16161a);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
   box-shadow: 
-    0 20px 40px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 20px 40px -12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
   z-index: 100;
+}
+
+.action-bar-indicator {
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  border-radius: 50%;
+  animation: indicator-pulse 2s ease-in-out infinite;
+}
+
+@keyframes indicator-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
 
 .action-bar-label {
   font-size: 13px;
   font-weight: 500;
-  color: #a0a0a8;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: var(--text-secondary, #a0a0a8);
 }
 
 .action-bar-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ai-action-bar .action-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: 0.2px;
+  transition: all 0.15s ease;
 }
 
 .ai-action-bar .action-btn.reject {
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(239, 68, 68, 0.1);
   color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 .ai-action-bar .action-btn.reject:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.4);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .ai-action-bar .action-btn.accept {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%);
+  background: rgba(34, 197, 94, 0.12);
   color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .ai-action-bar .action-btn.accept:hover {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(16, 185, 129, 0.25) 100%);
-  border-color: rgba(34, 197, 94, 0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.35);
 }
 
 /* 액션 바 트랜지션 */

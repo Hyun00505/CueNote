@@ -13,6 +13,8 @@ type TranslationKeys = {
   'common.add': string;
   'common.done': string;
   'common.reset': string;
+  'common.resetAll': string;
+  'common.resetAppearance': string;
   'common.search': string;
   'common.loading': string;
   'common.error': string;
@@ -108,6 +110,102 @@ type TranslationKeys = {
   'theme.dim': string;
   'theme.github': string;
   'theme.sepia': string;
+
+  // AI Context Menu
+  'ai.assistant': string;
+  'ai.proofread': string;
+  'ai.proofreading': string;
+  'ai.transform': string;
+  'ai.improve': string;
+  'ai.expand': string;
+  'ai.shorten': string;
+  'ai.summarize': string;
+  'ai.translate': string;
+  'ai.toKorean': string;
+  'ai.toEnglish': string;
+  'ai.toJapanese': string;
+  'ai.toChinese': string;
+  'ai.style': string;
+  'ai.professional': string;
+  'ai.casual': string;
+  'ai.academic': string;
+  'ai.processing': string;
+  'ai.noTextSelected': string;
+  'ai.completed': string;
+  'ai.revert': string;
+  'ai.keep': string;
+  'ai.customRequest': string;
+  'ai.customPlaceholder': string;
+  'ai.customHint': string;
+  'ai.submitCustom': string;
+  'ai.selectedText': string;
+  'ai.noSelectionHint': string;
+  'ai.enterPrompt': string;
+
+  // Proofread Panel
+  'proofread.title': string;
+  'proofread.checking': string;
+  'proofread.noErrors': string;
+  'proofread.noErrorsDesc': string;
+  'proofread.modified': string;
+  'proofread.applied': string;
+  'proofread.skipped': string;
+  'proofread.ignoreAll': string;
+  'proofread.applyAll': string;
+  'proofread.spelling': string;
+  'proofread.grammar': string;
+  'proofread.punctuation': string;
+  'proofread.spacing': string;
+  'proofread.korean': string;
+  'proofread.english': string;
+  'proofread.mixed': string;
+
+  // Environment
+  'env.addNew': string;
+  'env.name': string;
+  'env.namePlaceholder': string;
+  'env.folderPath': string;
+  'env.folderPlaceholder': string;
+  'env.browse': string;
+  'env.remove': string;
+  'env.removeBtn': string;
+  'env.removeQuestion': string;
+  'env.removeNote': string;
+
+  // Fonts
+  'fonts.title': string;
+  'fonts.desc': string;
+  'fonts.uiFont': string;
+  'fonts.uiFontDesc': string;
+  'fonts.editorFont': string;
+  'fonts.editorFontDesc': string;
+  'fonts.codeFont': string;
+  'fonts.codeFontDesc': string;
+  'fonts.customFonts': string;
+  'fonts.customFontsDesc': string;
+  'fonts.addFont': string;
+  'fonts.fontFile': string;
+  'fonts.fontFilePlaceholder': string;
+  'fonts.selectFile': string;
+  'fonts.fontName': string;
+  'fonts.fontNamePlaceholder': string;
+  'fonts.fontCategory': string;
+  'fonts.categoryOptions': string;
+  'fonts.noCustomFonts': string;
+  'fonts.preview': string;
+  'fonts.uiScale': string;
+  
+  // Shortcuts
+  'shortcuts.title': string;
+  'shortcuts.desc': string;
+  'shortcuts.aiMenu': string;
+  'shortcuts.aiMenuDesc': string;
+  'shortcuts.edit': string;
+  'shortcuts.pressKeys': string;
+  'shortcuts.waitingForInput': string;
+  'shortcuts.current': string;
+  'shortcuts.addShortcut': string;
+  'shortcuts.resetDefault': string;
 };
 
 // 한국어 번역
@@ -121,6 +219,8 @@ const ko: TranslationKeys = {
   'common.add': '추가',
   'common.done': '완료',
   'common.reset': '초기화',
+  'common.resetAll': '전체 초기화',
+  'common.resetAppearance': '외관 초기화',
   'common.search': '검색',
   'common.loading': '로딩 중...',
   'common.error': '오류',
@@ -216,6 +316,102 @@ const ko: TranslationKeys = {
   'theme.dim': '딤',
   'theme.github': 'GitHub',
   'theme.sepia': '세피아',
+
+  // AI Context Menu
+  'ai.assistant': 'AI 어시스턴트',
+  'ai.proofread': '교정',
+  'ai.proofreading': '맞춤법 수정',
+  'ai.transform': '변환',
+  'ai.improve': '글 다듬기',
+  'ai.expand': '더 길게',
+  'ai.shorten': '더 짧게',
+  'ai.summarize': '요약하기',
+  'ai.translate': '번역',
+  'ai.toKorean': '한국어로',
+  'ai.toEnglish': '영어로',
+  'ai.toJapanese': '일본어로',
+  'ai.toChinese': '중국어로',
+  'ai.style': '스타일',
+  'ai.professional': '전문적으로',
+  'ai.casual': '친근하게',
+  'ai.academic': '학술적으로',
+  'ai.processing': 'AI가 처리 중...',
+  'ai.noTextSelected': '선택된 텍스트가 없습니다.',
+  'ai.completed': '완료',
+  'ai.revert': '되돌리기',
+  'ai.keep': '유지하기',
+  'ai.customRequest': '직접 요청하기',
+  'ai.customPlaceholder': '글 편집 또는 새 글 작성을 요청하세요...',
+  'ai.customHint': 'Ctrl+Enter로 전송',
+  'ai.submitCustom': '요청 전송',
+  'ai.selectedText': '선택된 텍스트',
+  'ai.noSelectionHint': '텍스트를 선택하지 않으면 새 글을 생성합니다',
+  'ai.enterPrompt': '요청 내용을 입력해주세요',
+
+  // Proofread Panel
+  'proofread.title': '맞춤법 검사',
+  'proofread.checking': '맞춤법을 검사하고 있습니다...',
+  'proofread.noErrors': '맞춤법 오류가 없습니다!',
+  'proofread.noErrorsDesc': '텍스트가 올바르게 작성되었습니다.',
+  'proofread.modified': '수정됨',
+  'proofread.applied': '적용됨',
+  'proofread.skipped': '무시됨',
+  'proofread.ignoreAll': '모두 무시',
+  'proofread.applyAll': '모두 적용',
+  'proofread.spelling': '맞춤법',
+  'proofread.grammar': '문법',
+  'proofread.punctuation': '구두점',
+  'proofread.spacing': '띄어쓰기',
+  'proofread.korean': '한국어',
+  'proofread.english': '영어',
+  'proofread.mixed': '혼합',
+
+  // Environment
+  'env.addNew': '새 환경 추가',
+  'env.name': '환경 이름',
+  'env.namePlaceholder': '예: 개인 노트, 업무 프로젝트...',
+  'env.folderPath': '폴더 경로',
+  'env.folderPlaceholder': '폴더 경로를 입력하세요',
+  'env.browse': '찾아보기',
+  'env.remove': '환경 제거',
+  'env.removeBtn': '제거',
+  'env.removeQuestion': '이 환경을 목록에서 제거하시겠습니까?',
+  'env.removeNote': '실제 폴더와 파일은 삭제되지 않습니다.',
+
+  // Fonts
+  'fonts.title': '폰트',
+  'fonts.desc': '앱과 에디터에 사용할 폰트를 선택하세요',
+  'fonts.uiFont': 'UI 폰트',
+  'fonts.uiFontDesc': '메뉴, 버튼 등 인터페이스에 사용',
+  'fonts.editorFont': '에디터 폰트',
+  'fonts.editorFontDesc': '노트 본문 작성에 사용',
+  'fonts.codeFont': '코드 폰트',
+  'fonts.codeFontDesc': '코드 블록에 사용',
+  'fonts.customFonts': '커스텀 폰트',
+  'fonts.customFontsDesc': 'Google Fonts 또는 웹폰트 URL을 추가하세요',
+  'fonts.addFont': '폰트 추가',
+  'fonts.fontFile': '폰트 파일',
+  'fonts.fontFilePlaceholder': '폰트 파일을 선택하세요',
+  'fonts.selectFile': '파일 선택',
+  'fonts.fontName': '폰트 이름',
+  'fonts.fontNamePlaceholder': '표시될 폰트 이름',
+  'fonts.fontCategory': '폰트 종류',
+  'fonts.categoryOptions': '카테고리 선택',
+  'fonts.noCustomFonts': '추가된 커스텀 폰트가 없습니다',
+  'fonts.preview': '미리보기',
+  'fonts.uiScale': 'UI 크기',
+  
+  // Shortcuts
+  'shortcuts.title': '단축키',
+  'shortcuts.desc': 'AI 기능 및 자주 사용하는 작업의 단축키를 설정합니다',
+  'shortcuts.aiMenu': 'AI 메뉴 열기',
+  'shortcuts.aiMenuDesc': '에디터에서 AI 어시스턴트 메뉴를 엽니다',
+  'shortcuts.edit': '단축키 편집',
+  'shortcuts.pressKeys': '원하는 단축키를 누르세요',
+  'shortcuts.waitingForInput': '입력 대기 중...',
+  'shortcuts.current': '현재 단축키',
+  'shortcuts.addShortcut': '단축키 추가',
+  'shortcuts.resetDefault': '기본값으로 복원',
 };
 
 // 영어 번역
@@ -229,6 +425,8 @@ const en: TranslationKeys = {
   'common.add': 'Add',
   'common.done': 'Done',
   'common.reset': 'Reset',
+  'common.resetAll': 'Reset All',
+  'common.resetAppearance': 'Reset Appearance',
   'common.search': 'Search',
   'common.loading': 'Loading...',
   'common.error': 'Error',
@@ -324,6 +522,102 @@ const en: TranslationKeys = {
   'theme.dim': 'Dim',
   'theme.github': 'GitHub',
   'theme.sepia': 'Sepia',
+
+  // AI Context Menu
+  'ai.assistant': 'AI Assistant',
+  'ai.proofread': 'Proofread',
+  'ai.proofreading': 'Fix Spelling',
+  'ai.transform': 'Transform',
+  'ai.improve': 'Improve Writing',
+  'ai.expand': 'Make Longer',
+  'ai.shorten': 'Make Shorter',
+  'ai.summarize': 'Summarize',
+  'ai.translate': 'Translate',
+  'ai.toKorean': 'To Korean',
+  'ai.toEnglish': 'To English',
+  'ai.toJapanese': 'To Japanese',
+  'ai.toChinese': 'To Chinese',
+  'ai.style': 'Style',
+  'ai.professional': 'Professional',
+  'ai.casual': 'Casual',
+  'ai.academic': 'Academic',
+  'ai.processing': 'AI is processing...',
+  'ai.noTextSelected': 'No text selected.',
+  'ai.completed': 'Complete',
+  'ai.revert': 'Revert',
+  'ai.keep': 'Keep',
+  'ai.customRequest': 'Custom Request',
+  'ai.customPlaceholder': 'Edit text or ask AI to write something...',
+  'ai.customHint': 'Press Ctrl+Enter to send',
+  'ai.submitCustom': 'Send Request',
+  'ai.selectedText': 'Selected Text',
+  'ai.noSelectionHint': 'No selection - will generate new text',
+  'ai.enterPrompt': 'Please enter your request',
+
+  // Proofread Panel
+  'proofread.title': 'Spell Check',
+  'proofread.checking': 'Checking spelling...',
+  'proofread.noErrors': 'No spelling errors!',
+  'proofread.noErrorsDesc': 'Your text is correct.',
+  'proofread.modified': 'modified',
+  'proofread.applied': 'Applied',
+  'proofread.skipped': 'Skipped',
+  'proofread.ignoreAll': 'Ignore All',
+  'proofread.applyAll': 'Apply All',
+  'proofread.spelling': 'Spelling',
+  'proofread.grammar': 'Grammar',
+  'proofread.punctuation': 'Punctuation',
+  'proofread.spacing': 'Spacing',
+  'proofread.korean': 'Korean',
+  'proofread.english': 'English',
+  'proofread.mixed': 'Mixed',
+
+  // Environment
+  'env.addNew': 'Add New Environment',
+  'env.name': 'Environment Name',
+  'env.namePlaceholder': 'e.g., Personal Notes, Work Project...',
+  'env.folderPath': 'Folder Path',
+  'env.folderPlaceholder': 'Enter folder path',
+  'env.browse': 'Browse',
+  'env.remove': 'Remove Environment',
+  'env.removeBtn': 'Remove',
+  'env.removeQuestion': 'Remove this environment from the list?',
+  'env.removeNote': 'The actual folder and files will not be deleted.',
+
+  // Fonts
+  'fonts.title': 'Fonts',
+  'fonts.desc': 'Choose fonts for the app and editor',
+  'fonts.uiFont': 'UI Font',
+  'fonts.uiFontDesc': 'Used for menus, buttons, and interface',
+  'fonts.editorFont': 'Editor Font',
+  'fonts.editorFontDesc': 'Used for note content',
+  'fonts.codeFont': 'Code Font',
+  'fonts.codeFontDesc': 'Used for code blocks',
+  'fonts.customFonts': 'Custom Fonts',
+  'fonts.customFontsDesc': 'Add Google Fonts or web font URLs',
+  'fonts.addFont': 'Add Font',
+  'fonts.fontFile': 'Font File',
+  'fonts.fontFilePlaceholder': 'Select a font file',
+  'fonts.selectFile': 'Select File',
+  'fonts.fontName': 'Font Name',
+  'fonts.fontNamePlaceholder': 'Display name for the font',
+  'fonts.fontCategory': 'Font Type',
+  'fonts.categoryOptions': 'Select category',
+  'fonts.noCustomFonts': 'No custom fonts added',
+  'fonts.preview': 'Preview',
+  'fonts.uiScale': 'UI Scale',
+  
+  // Shortcuts
+  'shortcuts.title': 'Keyboard Shortcuts',
+  'shortcuts.desc': 'Customize shortcuts for AI features and common actions',
+  'shortcuts.aiMenu': 'Open AI Menu',
+  'shortcuts.aiMenuDesc': 'Opens the AI assistant menu in the editor',
+  'shortcuts.edit': 'Edit Shortcut',
+  'shortcuts.pressKeys': 'Press the keys you want to use',
+  'shortcuts.waitingForInput': 'Waiting for input...',
+  'shortcuts.current': 'Current shortcuts',
+  'shortcuts.addShortcut': 'Add Shortcut',
+  'shortcuts.resetDefault': 'Reset to Default',
 };
 
 const translations: Record<Language, TranslationKeys> = { ko, en };

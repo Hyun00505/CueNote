@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -28,6 +28,9 @@ if (isWSL) {
 let mainWindow;
 let viteServer;
 let coreProcess;
+
+// 다크 모드 강제 적용 (Windows 타이틀바 색상)
+nativeTheme.themeSource = 'dark';
 
 // Python 백엔드 경로 찾기
 function getCorePath() {
@@ -149,11 +152,18 @@ async function createViteServer() {
 
 async function createWindow() {
   try {
+    // 아이콘 경로 설정
+    const iconPath = isDev
+      ? path.join(__dirname, '..', '..', 'assets', 'icon.png')
+      : path.join(process.resourcesPath, 'icon.png');
+
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       backgroundColor: '#0f0f12',
       show: false,
+      autoHideMenuBar: true,
+      icon: iconPath,
       webPreferences: {
         preload: isDev 
           ? path.join(__dirname, 'renderer', 'preload.js')
@@ -204,6 +214,75 @@ app.whenReady().then(async () => {
       return null;
     }
     return result.filePaths[0] || null;
+  });
+
+  // 외부 링크 열기
+  ipcMain.handle('cuenote:open-external', async (_, url) => {
+    await shell.openExternal(url);
+  });
+
+  // 폰트 파일 선택
+  ipcMain.handle('cuenote:select-font', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Font Files', extensions: ['ttf', 'otf', 'woff', 'woff2'] }
+      ]
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0];
+  });
+
+  // 폰트 파일 저장 (앱 데이터 폴더로 복사)
+  ipcMain.handle('cuenote:save-font', async (_, { sourcePath, fontName }) => {
+    try {
+      const fontsDir = path.join(app.getPath('userData'), 'fonts');
+      
+      // fonts 폴더 생성
+      if (!fs.existsSync(fontsDir)) {
+        fs.mkdirSync(fontsDir, { recursive: true });
+      }
+      
+      // 파일 확장자 추출
+      const ext = path.extname(sourcePath).toLowerCase();
+      const safeFileName = fontName.replace(/[^a-zA-Z0-9가-힣\-_]/g, '_') + ext;
+      const destPath = path.join(fontsDir, safeFileName);
+      
+      // 파일 복사
+      fs.copyFileSync(sourcePath, destPath);
+      
+      return {
+        success: true,
+        path: destPath,
+        fileName: safeFileName
+      };
+    } catch (error) {
+      console.error('Failed to save font:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
+  // 폰트 파일 삭제
+  ipcMain.handle('cuenote:delete-font', async (_, fontPath) => {
+    try {
+      if (fs.existsSync(fontPath)) {
+        fs.unlinkSync(fontPath);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to delete font:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 폰트 폴더 경로 가져오기
+  ipcMain.handle('cuenote:get-fonts-path', async () => {
+    return path.join(app.getPath('userData'), 'fonts');
   });
 
   // 프로덕션 모드에서 Core 서버 시작

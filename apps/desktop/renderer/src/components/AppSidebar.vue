@@ -268,7 +268,7 @@
     <div v-if="showEnvModal" class="env-modal-overlay" @click.self="closeEnvModal">
       <div class="env-modal">
         <div class="env-modal-header">
-          <h3>새 환경 추가</h3>
+          <h3>{{ t('env.addNew') }}</h3>
           <button class="env-modal-close" @click="closeEnvModal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
@@ -277,32 +277,32 @@
         </div>
         <div class="env-modal-body">
           <div class="env-form-group">
-            <label>환경 이름</label>
+            <label>{{ t('env.name') }}</label>
             <input 
               v-model="newEnvName" 
               type="text" 
-              placeholder="예: 개인 노트, 업무 프로젝트..."
+              :placeholder="t('env.namePlaceholder')"
               @keydown.enter="handleAddEnvironment"
             />
           </div>
           <div class="env-form-group">
-            <label>폴더 경로</label>
+            <label>{{ t('env.folderPath') }}</label>
             <div class="env-path-input">
               <input 
                 v-model="newEnvPath" 
                 type="text" 
-                placeholder="폴더 경로를 입력하세요"
+                :placeholder="t('env.folderPlaceholder')"
                 readonly
               />
-              <button class="env-browse-btn" @click="browseFolder">찾아보기</button>
+              <button class="env-browse-btn" @click="browseFolder">{{ t('env.browse') }}</button>
             </div>
           </div>
           <p v-if="envError" class="env-error">{{ envError }}</p>
         </div>
         <div class="env-modal-footer">
-          <button class="env-modal-btn cancel" @click="closeEnvModal">취소</button>
+          <button class="env-modal-btn cancel" @click="closeEnvModal">{{ t('common.cancel') }}</button>
           <button class="env-modal-btn primary" @click="handleAddEnvironment" :disabled="!newEnvName || !newEnvPath">
-            추가
+            {{ t('common.add') }}
           </button>
         </div>
       </div>
@@ -320,20 +320,20 @@
           </svg>
         </div>
         <div class="delete-modal-content">
-          <h3>환경 제거</h3>
+          <h3>{{ t('env.remove') }}</h3>
           <p class="delete-env-name">{{ envToDelete?.name }}</p>
           <p class="delete-description">
-            이 환경을 목록에서 제거하시겠습니까?<br/>
-            <span class="delete-note">실제 폴더와 파일은 삭제되지 않습니다.</span>
+            {{ t('env.removeQuestion') }}<br/>
+            <span class="delete-note">{{ t('env.removeNote') }}</span>
           </p>
         </div>
         <div class="delete-modal-footer">
-          <button class="env-modal-btn cancel" @click="closeDeleteEnvModal">취소</button>
+          <button class="env-modal-btn cancel" @click="closeDeleteEnvModal">{{ t('common.cancel') }}</button>
           <button class="env-modal-btn danger" @click="confirmDeleteEnvironment">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
-            제거
+            {{ t('env.removeBtn') }}
           </button>
         </div>
       </div>
@@ -343,7 +343,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted, watch, computed } from 'vue';
-import { useVault, useHealth, useEnvironment } from '../composables';
+import { useVault, useHealth, useEnvironment, useI18n } from '../composables';
 
 const props = defineProps<{
   collapsed: boolean;
@@ -361,6 +361,9 @@ const emit = defineEmits<{
   'environment-changed': [];
   'sidebar-width-change': [width: number];
 }>();
+
+// i18n
+const { t } = useI18n();
 
 // 리사이즈 관련 상태
 const MIN_WIDTH = 180;

@@ -594,7 +594,7 @@ const selectedDateLabel = computed(() => {
   if (!selectedDate.value) return '';
   const [year, month, day] = selectedDate.value.split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  const dayOfWeek = weekdays[date.getDay()];
+  const dayOfWeek = weekdays.value[date.getDay()];
   return `${month}월 ${day}일 (${dayOfWeek})`;
 });
 
@@ -743,6 +743,11 @@ onMounted(() => {
   nextTick(() => {
     scrollToToday();
   });
+});
+
+// 부모 컴포넌트에서 호출할 수 있도록 노출
+defineExpose({
+  scrollToToday
 });
 </script>
 

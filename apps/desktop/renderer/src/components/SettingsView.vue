@@ -81,6 +81,224 @@
           </div>
         </section>
 
+        <!-- Shortcuts Section -->
+        <section class="settings-section">
+          <h3 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h8"/>
+            </svg>
+            {{ t('shortcuts.title') }}
+          </h3>
+          <p class="section-desc">{{ t('shortcuts.desc') }}</p>
+          
+          <div class="shortcut-list">
+            <div class="shortcut-item">
+              <div class="shortcut-info">
+                <span class="shortcut-name">{{ t('shortcuts.aiMenu') }}</span>
+                <span class="shortcut-desc">{{ t('shortcuts.aiMenuDesc') }}</span>
+              </div>
+              <div class="shortcut-keys">
+                <span 
+                  v-for="(shortcut, index) in shortcuts.aiMenu" 
+                  :key="index" 
+                  class="shortcut-key"
+                >
+                  {{ formatShortcut(shortcut) }}
+                </span>
+              </div>
+              <button class="shortcut-edit-btn" @click="openShortcutEditor('aiMenu')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Shortcut Editor Modal -->
+        <Teleport to="body">
+          <div v-if="showShortcutEditor" class="shortcut-modal-overlay" @click.self="closeShortcutEditor">
+            <div class="shortcut-modal">
+              <div class="shortcut-modal-header">
+                <h3>{{ t('shortcuts.edit') }}</h3>
+                <button class="shortcut-modal-close" @click="closeShortcutEditor">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="shortcut-modal-body">
+                <p class="shortcut-modal-hint">{{ t('shortcuts.pressKeys') }}</p>
+                
+                <div class="shortcut-capture-area" tabindex="0" @keydown="captureShortcut" ref="shortcutCaptureRef">
+                  <span v-if="capturedShortcut" class="captured-shortcut">
+                    {{ formatShortcut(capturedShortcut) }}
+                  </span>
+                  <span v-else class="capture-placeholder">{{ t('shortcuts.waitingForInput') }}</span>
+                </div>
+                
+                <div class="current-shortcuts">
+                  <span class="current-label">{{ t('shortcuts.current') }}:</span>
+                  <div class="current-keys">
+                    <span 
+                      v-for="(shortcut, index) in editingShortcuts" 
+                      :key="index" 
+                      class="shortcut-tag"
+                    >
+                      {{ formatShortcut(shortcut) }}
+                      <button class="remove-shortcut" @click="removeEditingShortcut(index)">×</button>
+                    </span>
+                  </div>
+                </div>
+                
+                <button class="add-shortcut-btn" @click="addCapturedShortcut" :disabled="!capturedShortcut">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  {{ t('shortcuts.addShortcut') }}
+                </button>
+              </div>
+              <div class="shortcut-modal-footer">
+                <button class="shortcut-modal-btn reset" @click="resetToDefault">
+                  {{ t('shortcuts.resetDefault') }}
+                </button>
+                <button class="shortcut-modal-btn cancel" @click="closeShortcutEditor">
+                  {{ t('common.cancel') }}
+                </button>
+                <button class="shortcut-modal-btn primary" @click="saveShortcuts" :disabled="editingShortcuts.length === 0">
+                  {{ t('common.save') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
+        <!-- Font Section -->
+        <section class="settings-section">
+          <h3 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 7 4 4 20 4 20 7"/>
+              <line x1="9" y1="20" x2="15" y2="20"/>
+              <line x1="12" y1="4" x2="12" y2="20"/>
+            </svg>
+            {{ t('fonts.title') }}
+          </h3>
+          <p class="section-desc">{{ t('fonts.desc') }}</p>
+          
+          <!-- 폰트 선택 그리드 -->
+          <div class="font-settings-grid">
+            <!-- UI 폰트 -->
+            <div class="font-setting-item">
+              <div class="font-setting-label">
+                <span class="font-label-text">{{ t('fonts.uiFont') }}</span>
+                <span class="font-label-desc">{{ t('fonts.uiFontDesc') }}</span>
+              </div>
+              <select 
+                class="font-select"
+                :value="fontSettings.sansFont"
+                @change="updateFontSettings({ sansFont: ($event.target as HTMLSelectElement).value })"
+              >
+                <option v-for="font in sansFonts" :key="font.id" :value="font.id">
+                  {{ font.name }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- 에디터 폰트 -->
+            <div class="font-setting-item">
+              <div class="font-setting-label">
+                <span class="font-label-text">{{ t('fonts.editorFont') }}</span>
+                <span class="font-label-desc">{{ t('fonts.editorFontDesc') }}</span>
+              </div>
+              <select 
+                class="font-select"
+                :value="fontSettings.serifFont"
+                @change="updateFontSettings({ serifFont: ($event.target as HTMLSelectElement).value })"
+              >
+                <option v-for="font in serifFonts" :key="font.id" :value="font.id">
+                  {{ font.name }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- 코드 폰트 -->
+            <div class="font-setting-item">
+              <div class="font-setting-label">
+                <span class="font-label-text">{{ t('fonts.codeFont') }}</span>
+                <span class="font-label-desc">{{ t('fonts.codeFontDesc') }}</span>
+              </div>
+              <select 
+                class="font-select"
+                :value="fontSettings.monoFont"
+                @change="updateFontSettings({ monoFont: ($event.target as HTMLSelectElement).value })"
+              >
+                <option v-for="font in monoFonts" :key="font.id" :value="font.id">
+                  {{ font.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- UI 크기 -->
+          <div class="ui-scale-settings">
+            <div class="ui-scale-header">
+              <label>{{ t('fonts.uiScale') }}</label>
+              <span class="ui-scale-current">{{ fontSettings.uiScale }}%</span>
+            </div>
+            <div class="ui-scale-buttons">
+              <button 
+                v-for="scale in uiScaleOptions" 
+                :key="scale"
+                class="ui-scale-btn"
+                :class="{ active: fontSettings.uiScale === scale }"
+                @click="updateFontSettings({ uiScale: scale })"
+              >
+                {{ scale }}%
+              </button>
+            </div>
+          </div>
+          
+          <!-- 커스텀 폰트 -->
+          <div class="custom-fonts-section">
+            <div class="custom-fonts-header">
+              <div>
+                <span class="custom-fonts-title">{{ t('fonts.customFonts') }}</span>
+                <span class="custom-fonts-desc">{{ t('fonts.customFontsDesc') }}</span>
+              </div>
+              <button class="add-font-btn" @click="openAddFontModal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                {{ t('fonts.addFont') }}
+              </button>
+            </div>
+            
+            <div v-if="customFonts.length === 0" class="no-custom-fonts">
+              {{ t('fonts.noCustomFonts') }}
+            </div>
+            <div v-else class="custom-fonts-list">
+              <div v-for="font in customFonts" :key="font.id" class="custom-font-item">
+                <div class="custom-font-info">
+                  <span class="custom-font-name">{{ font.name }}</span>
+                  <div class="custom-font-categories">
+                    <span v-for="cat in font.categories" :key="cat" class="custom-font-category">{{ cat }}</span>
+                  </div>
+                </div>
+                <button class="remove-font-btn" @click="handleRemoveFont(font.id)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- LLM Provider Section -->
         <section class="settings-section">
           <h3 class="section-title">
@@ -173,14 +391,14 @@
             </span>
           </div>
 
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-key-link">
+          <button type="button" class="api-key-link" @click="openApiKeyPage">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
               <polyline points="15 3 21 3 21 9"/>
               <line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
-            Google AI Studio에서 API 키 발급받기
-          </a>
+            {{ t('settings.getApiKey') }}
+          </button>
         </section>
 
         <!-- Model Selection Section -->
@@ -421,17 +639,99 @@
       </div>
     </div>
 
+    <!-- 커스텀 폰트 추가 모달 -->
+    <Teleport to="body">
+      <div v-if="showAddFontModal" class="font-modal-overlay" @click.self="closeAddFontModal">
+        <div class="font-modal">
+          <div class="font-modal-header">
+            <h3>{{ t('fonts.addFont') }}</h3>
+            <button class="font-modal-close" @click="closeAddFontModal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="font-modal-body">
+            <div class="font-form-group">
+              <label>{{ t('fonts.fontFile') }}</label>
+              <div class="font-file-input">
+                <input 
+                  type="text" 
+                  :value="newFontFileName"
+                  readonly
+                  :placeholder="t('fonts.fontFilePlaceholder')"
+                />
+                <button class="font-browse-btn" @click="selectFontFile">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  {{ t('fonts.selectFile') }}
+                </button>
+              </div>
+            </div>
+            <div class="font-form-group">
+              <label>{{ t('fonts.fontName') }}</label>
+              <input 
+                v-model="newFontName" 
+                type="text" 
+                :placeholder="t('fonts.fontNamePlaceholder')"
+              />
+            </div>
+            <div class="font-form-group">
+              <label>{{ t('fonts.fontCategory') }}</label>
+              <div class="font-category-checkboxes">
+                <label class="category-checkbox" :class="{ checked: newFontCategories.includes('sans') }">
+                  <input type="checkbox" :checked="newFontCategories.includes('sans')" @change="toggleCategory('sans')" />
+                  <span class="checkbox-label">Sans-serif (UI)</span>
+                </label>
+                <label class="category-checkbox" :class="{ checked: newFontCategories.includes('serif') }">
+                  <input type="checkbox" :checked="newFontCategories.includes('serif')" @change="toggleCategory('serif')" />
+                  <span class="checkbox-label">Serif (에디터)</span>
+                </label>
+                <label class="category-checkbox" :class="{ checked: newFontCategories.includes('mono') }">
+                  <input type="checkbox" :checked="newFontCategories.includes('mono')" @change="toggleCategory('mono')" />
+                  <span class="checkbox-label">Monospace (코드)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="font-modal-footer">
+            <button class="font-modal-btn cancel" @click="closeAddFontModal">{{ t('common.cancel') }}</button>
+            <button 
+              class="font-modal-btn primary" 
+              @click="handleAddFont" 
+              :disabled="!newFontName || !newFontFilePath || newFontCategories.length === 0 || isAddingFont"
+            >
+              <span v-if="isAddingFont" class="loading-spinner small"></span>
+              {{ isAddingFont ? t('common.loading') : t('common.add') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Footer -->
     <div class="settings-footer">
-      <button class="reset-btn" @click="handleReset">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-          <path d="M21 3v5h-5"/>
-          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-          <path d="M8 16H3v5"/>
-        </svg>
-        {{ t('common.reset') }}
-      </button>
+      <div class="reset-buttons">
+        <button class="reset-btn appearance" @click="handleResetAppearance" :title="t('common.resetAppearance')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          {{ t('common.resetAppearance') }}
+        </button>
+        <button class="reset-btn all" @click="handleResetAll" :title="t('common.resetAll')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
+          {{ t('common.resetAll') }}
+        </button>
+      </div>
       <button class="save-btn" @click="$emit('back')">
         {{ t('common.done') }}
       </button>
@@ -440,8 +740,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useSettings, useI18n } from '../composables';
+import { computed, onMounted, ref, nextTick } from 'vue';
+import { useSettings, useI18n, useFonts, useShortcuts, formatShortcut } from '../composables';
+import type { ShortcutConfig } from '../composables/useShortcuts';
 
 defineEmits<{
   back: [];
@@ -465,7 +766,193 @@ const {
 
 const { t, currentLanguage, setLanguage, languageNames } = useI18n();
 
+const {
+  fontSettings,
+  customFonts,
+  sansFonts,
+  serifFonts,
+  monoFonts,
+  initFonts,
+  updateFontSettings,
+  addCustomFont,
+  removeCustomFont,
+  resetFontSettings,
+  uiScaleOptions,
+} = useFonts();
+
+const {
+  shortcuts,
+  updateAIMenuShortcuts,
+  getDefaultShortcuts,
+  eventToShortcut,
+} = useShortcuts();
+
 const isRefreshing = ref(false);
+
+// 단축키 편집 관련 상태
+const showShortcutEditor = ref(false);
+const editingShortcutType = ref<'aiMenu' | null>(null);
+const editingShortcuts = ref<ShortcutConfig[]>([]);
+const capturedShortcut = ref<ShortcutConfig | null>(null);
+const shortcutCaptureRef = ref<HTMLElement | null>(null);
+
+function openShortcutEditor(type: 'aiMenu') {
+  editingShortcutType.value = type;
+  editingShortcuts.value = [...shortcuts.value[type]];
+  capturedShortcut.value = null;
+  showShortcutEditor.value = true;
+  
+  nextTick(() => {
+    shortcutCaptureRef.value?.focus();
+  });
+}
+
+function closeShortcutEditor() {
+  showShortcutEditor.value = false;
+  editingShortcutType.value = null;
+  editingShortcuts.value = [];
+  capturedShortcut.value = null;
+}
+
+function captureShortcut(e: KeyboardEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const shortcut = eventToShortcut(e);
+  if (shortcut) {
+    capturedShortcut.value = shortcut;
+  }
+}
+
+function addCapturedShortcut() {
+  if (!capturedShortcut.value) return;
+  
+  // 중복 체크
+  const isDuplicate = editingShortcuts.value.some(s => 
+    s.key === capturedShortcut.value!.key &&
+    s.modifiers.ctrl === capturedShortcut.value!.modifiers.ctrl &&
+    s.modifiers.alt === capturedShortcut.value!.modifiers.alt &&
+    s.modifiers.shift === capturedShortcut.value!.modifiers.shift &&
+    s.modifiers.meta === capturedShortcut.value!.modifiers.meta
+  );
+  
+  if (!isDuplicate) {
+    editingShortcuts.value.push(capturedShortcut.value);
+  }
+  
+  capturedShortcut.value = null;
+  shortcutCaptureRef.value?.focus();
+}
+
+function removeEditingShortcut(index: number) {
+  editingShortcuts.value.splice(index, 1);
+}
+
+function resetToDefault() {
+  if (editingShortcutType.value) {
+    const defaults = getDefaultShortcuts();
+    editingShortcuts.value = [...defaults[editingShortcutType.value]];
+  }
+}
+
+function saveShortcuts() {
+  if (editingShortcutType.value === 'aiMenu') {
+    updateAIMenuShortcuts(editingShortcuts.value);
+  }
+  closeShortcutEditor();
+}
+
+// 커스텀 폰트 추가 모달
+const showAddFontModal = ref(false);
+const newFontName = ref('');
+const newFontFilePath = ref('');
+const newFontFileName = ref('');
+const newFontCategories = ref<('sans' | 'serif' | 'mono')[]>(['sans']);
+const isAddingFont = ref(false);
+
+function openAddFontModal() {
+  newFontName.value = '';
+  newFontFilePath.value = '';
+  newFontFileName.value = '';
+  newFontCategories.value = ['sans'];
+  showAddFontModal.value = true;
+}
+
+function toggleCategory(cat: 'sans' | 'serif' | 'mono') {
+  const idx = newFontCategories.value.indexOf(cat);
+  if (idx === -1) {
+    newFontCategories.value.push(cat);
+  } else {
+    newFontCategories.value.splice(idx, 1);
+  }
+}
+
+function closeAddFontModal() {
+  showAddFontModal.value = false;
+}
+
+// 폰트 파일 선택
+async function selectFontFile() {
+  if (!window.cuenote?.selectFont) {
+    alert('Electron 환경에서만 사용 가능합니다.');
+    return;
+  }
+  
+  const filePath = await window.cuenote.selectFont();
+  if (filePath) {
+    newFontFilePath.value = filePath;
+    // 파일명에서 기본 폰트 이름 추출
+    const fileName = filePath.split(/[/\\]/).pop() || '';
+    newFontFileName.value = fileName;
+    if (!newFontName.value) {
+      // 확장자 제거한 이름을 기본값으로
+      newFontName.value = fileName.replace(/\.(ttf|otf|woff2?|eot)$/i, '');
+    }
+  }
+}
+
+// 폰트 추가
+async function handleAddFont() {
+  if (!newFontName.value || !newFontFilePath.value) return;
+  if (!window.cuenote?.saveFont) {
+    alert('Electron 환경에서만 사용 가능합니다.');
+    return;
+  }
+  
+  isAddingFont.value = true;
+  
+  try {
+    // 파일을 앱 데이터 폴더로 복사
+    const result = await window.cuenote.saveFont(newFontFilePath.value, newFontName.value);
+    
+    if (result.success) {
+      // 폰트 정보 저장
+      addCustomFont({
+        name: newFontName.value,
+        filePath: result.path,
+        fileName: result.fileName,
+        categories: newFontCategories.value,
+      });
+      closeAddFontModal();
+    } else {
+      alert(`폰트 저장 실패: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Failed to add font:', error);
+    alert('폰트 추가 중 오류가 발생했습니다.');
+  } finally {
+    isAddingFont.value = false;
+  }
+}
+
+// 폰트 제거
+async function handleRemoveFont(id: string) {
+  const removed = await removeCustomFont(id);
+  if (removed && window.cuenote?.deleteFont) {
+    // 파일도 삭제
+    await window.cuenote.deleteFont(removed.filePath);
+  }
+}
 
 // 테마 설정
 type ThemeId = 'dark' | 'light' | 'dim' | 'github-dark' | 'sepia';
@@ -597,6 +1084,7 @@ async function downloadHandwritingModel() {
 // 페이지 마운트 시 데이터 로드
 onMounted(async () => {
   initTheme();
+  initFonts();
   await initSettings();
   await checkOcrStatus();
   await checkHandwritingStatus();
@@ -619,8 +1107,26 @@ async function handleValidateKey() {
   await validateApiKey(settings.value.llm.apiKey);
 }
 
-function handleReset() {
+function handleResetAll() {
   resetSettings();
+  resetFontSettings();
+  setTheme('dark');
+}
+
+function handleResetAppearance() {
+  resetFontSettings();
+  setTheme('dark');
+}
+
+// 외부 브라우저로 API 키 페이지 열기
+function openApiKeyPage() {
+  const url = 'https://aistudio.google.com/app/apikey';
+  if (window.cuenote?.openExternal) {
+    window.cuenote.openExternal(url);
+  } else {
+    // 폴백: 일반 브라우저 환경
+    window.open(url, '_blank');
+  }
 }
 </script>
 
@@ -1137,6 +1643,11 @@ function handleReset() {
   border-top: 1px solid var(--border-subtle);
 }
 
+.reset-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .reset-btn {
   display: flex;
   align-items: center;
@@ -1156,6 +1667,26 @@ function handleReset() {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.1);
   color: var(--text-secondary);
+}
+
+.reset-btn.appearance {
+  color: var(--text-muted);
+}
+
+.reset-btn.appearance:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+}
+
+.reset-btn.all {
+  color: var(--text-muted);
+}
+
+.reset-btn.all:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
 }
 
 .save-btn {
@@ -1461,5 +1992,758 @@ function handleReset() {
   align-items: center;
   justify-content: center;
   color: var(--bg-primary);
+}
+
+/* Shortcuts Section */
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.shortcut-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcut-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.shortcut-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.shortcut-keys {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.shortcut-key {
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.shortcut-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shortcut-edit-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+/* Shortcut Editor Modal */
+.shortcut-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.shortcut-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: modalSlideUp 0.2s ease;
+}
+
+.shortcut-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.shortcut-modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shortcut-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.shortcut-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.shortcut-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shortcut-modal-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.shortcut-capture-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 2px dashed rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.shortcut-capture-area:focus {
+  border-color: rgba(139, 92, 246, 0.6);
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.captured-shortcut {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: #a78bfa;
+}
+
+.capture-placeholder {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.current-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.current-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.current-keys {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shortcut-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.remove-shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.remove-shortcut:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.add-shortcut-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+  color: #a78bfa;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-shortcut-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.add-shortcut-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shortcut-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.shortcut-modal-btn {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shortcut-modal-btn.reset {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  margin-right: auto;
+}
+
+.shortcut-modal-btn.reset:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.shortcut-modal-btn.cancel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.shortcut-modal-btn.cancel:hover {
+  background: var(--bg-hover);
+}
+
+.shortcut-modal-btn.primary {
+  background: var(--gradient-primary);
+  border: 1px solid transparent;
+  color: white;
+}
+
+.shortcut-modal-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.shortcut-modal-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Font Settings */
+/* UI Scale Settings */
+.ui-scale-settings {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.ui-scale-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ui-scale-header label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ui-scale-current {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.ui-scale-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ui-scale-btn {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ui-scale-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.ui-scale-btn.active {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: white;
+}
+
+.font-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.font-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.font-setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.font-label-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.font-label-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.font-select {
+  min-width: 180px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.font-select:hover {
+  border-color: var(--border-default);
+}
+
+.font-select:focus {
+  outline: none;
+  border-color: var(--text-secondary);
+}
+
+
+/* Custom Fonts Section */
+.custom-fonts-section {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.custom-fonts-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.custom-fonts-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.custom-fonts-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.add-font-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-font-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.no-custom-fonts {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.custom-fonts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-font-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.custom-font-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-font-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.custom-font-categories {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.custom-font-category {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+.remove-font-btn {
+  padding: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.remove-font-btn:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+/* Font Modal */
+.font-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.font-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: modalSlideUp 0.2s ease;
+}
+
+.font-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.font-modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.font-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.font-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.font-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.font-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.font-form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.font-form-group input,
+.font-category-select {
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.font-form-group input:focus,
+.font-category-select:focus {
+  outline: none;
+  border-color: var(--text-secondary);
+}
+
+.font-form-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.font-file-input {
+  display: flex;
+  gap: 8px;
+}
+
+.font-file-input input {
+  flex: 1;
+  cursor: default;
+}
+
+.font-browse-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.font-browse-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.font-modal-btn .loading-spinner.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  margin-right: 6px;
+}
+
+.font-category-select {
+  cursor: pointer;
+}
+
+.font-category-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.category-checkbox:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.category-checkbox.checked {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.category-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.font-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.font-modal-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.font-modal-btn.cancel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.font-modal-btn.cancel:hover {
+  background: var(--bg-hover);
+}
+
+.font-modal-btn.primary {
+  background: var(--gradient-primary);
+  border: 1px solid transparent;
+  color: white;
+}
+
+.font-modal-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.font-modal-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

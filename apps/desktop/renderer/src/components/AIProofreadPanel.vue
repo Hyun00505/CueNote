@@ -9,16 +9,16 @@
               <path d="M9 11l3 3L22 4"/>
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
             </svg>
-            <span>맞춤법 검사</span>
+            <span>{{ t('proofread.title') }}</span>
             <span class="lang-badge" v-if="languageDetected">
-              {{ languageDetected === 'ko' ? '한국어' : languageDetected === 'en' ? '영어' : '혼합' }}
+              {{ getLanguageLabel(languageDetected) }}
             </span>
           </div>
           <div class="header-actions">
             <span class="item-count" v-if="items.length > 0">
-              {{ appliedCount }}/{{ items.length }} 수정됨
+              {{ appliedCount }}/{{ items.length }} {{ t('proofread.modified') }}
             </span>
-            <button class="close-btn" @click="handleClose" title="닫기">
+            <button class="close-btn" @click="handleClose" :title="t('common.close')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>
@@ -30,7 +30,7 @@
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-state">
           <div class="loading-spinner"></div>
-          <span>맞춤법을 검사하고 있습니다...</span>
+          <span>{{ t('proofread.checking') }}</span>
         </div>
 
         <!-- 오류 없음 -->
@@ -39,8 +39,8 @@
             <path d="M9 12l2 2 4-4"/>
             <circle cx="12" cy="12" r="10"/>
           </svg>
-          <span>맞춤법 오류가 없습니다!</span>
-          <p>텍스트가 올바르게 작성되었습니다.</p>
+          <span>{{ t('proofread.noErrors') }}</span>
+          <p>{{ t('proofread.noErrorsDesc') }}</p>
         </div>
 
         <!-- 수정 항목 목록 -->
@@ -73,7 +73,7 @@
               <button 
                 class="action-btn skip" 
                 @click="skipItem(index)"
-                title="무시"
+                :title="t('proofread.ignoreAll').split(' ')[1]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"/>
@@ -83,7 +83,7 @@
               <button 
                 class="action-btn apply" 
                 @click="applyItem(index)"
-                title="적용"
+                :title="t('proofread.applyAll').split(' ')[1]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 6L9 17l-5-5"/>
@@ -92,8 +92,8 @@
             </div>
 
             <div class="item-status" v-else>
-              <span v-if="item.applied" class="status applied">✓ 적용됨</span>
-              <span v-else-if="item.skipped" class="status skipped">— 무시됨</span>
+              <span v-if="item.applied" class="status applied">✓ {{ t('proofread.applied') }}</span>
+              <span v-else-if="item.skipped" class="status skipped">— {{ t('proofread.skipped') }}</span>
             </div>
           </div>
         </div>
@@ -105,14 +105,14 @@
             @click="skipAll"
             :disabled="remainingCount === 0"
           >
-            모두 무시
+            {{ t('proofread.ignoreAll') }}
           </button>
           <button 
             class="footer-btn primary" 
             @click="applyAll"
             :disabled="remainingCount === 0"
           >
-            모두 적용 ({{ remainingCount }})
+            {{ t('proofread.applyAll') }} ({{ remainingCount }})
           </button>
         </div>
       </div>
@@ -121,7 +121,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed } from 'vue';
+import { useI18n } from '../composables';
 
 interface CorrectionItem {
   original: string;
@@ -150,17 +151,25 @@ const emit = defineEmits<{
   (e: 'focus-item', index: number): void;
 }>();
 
+const { t } = useI18n();
+
 const appliedCount = computed(() => props.items.filter(i => i.applied).length);
 const remainingCount = computed(() => props.items.filter(i => !i.applied && !i.skipped).length);
 
 function getTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    spelling: '맞춤법',
-    grammar: '문법',
-    punctuation: '구두점',
-    spacing: '띄어쓰기'
+    spelling: t('proofread.spelling'),
+    grammar: t('proofread.grammar'),
+    punctuation: t('proofread.punctuation'),
+    spacing: t('proofread.spacing')
   };
   return labels[type] || type;
+}
+
+function getLanguageLabel(lang: string): string {
+  if (lang === 'ko') return t('proofread.korean');
+  if (lang === 'en') return t('proofread.english');
+  return t('proofread.mixed');
 }
 
 function applyItem(index: number) {
@@ -200,13 +209,10 @@ function focusItem(index: number) {
   right: 20px;
   width: 380px;
   max-height: calc(100vh - 120px);
-  background: linear-gradient(135deg, #1a1a1f 0%, #16161a 100%);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 16px;
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 0 60px -20px rgba(34, 197, 94, 0.2);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -219,15 +225,15 @@ function focusItem(index: number) {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
-  border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .header-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #4ade80;
+  color: var(--success);
   font-size: 14px;
   font-weight: 600;
 }
@@ -238,10 +244,11 @@ function focusItem(index: number) {
 
 .lang-badge {
   padding: 3px 8px;
-  background: rgba(34, 197, 94, 0.2);
-  border-radius: 10px;
+  background: var(--success-glow);
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 500;
+  color: var(--success);
 }
 
 .header-actions {
@@ -263,14 +270,14 @@ function focusItem(index: number) {
   height: 28px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -289,8 +296,8 @@ function focusItem(index: number) {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(34, 197, 94, 0.2);
-  border-top-color: #4ade80;
+  border: 3px solid var(--success-glow);
+  border-top-color: var(--success);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -311,12 +318,12 @@ function focusItem(index: number) {
 }
 
 .empty-state svg {
-  color: #4ade80;
+  color: var(--success);
   opacity: 0.8;
 }
 
 .empty-state span {
-  color: #4ade80;
+  color: var(--success);
   font-size: 16px;
   font-weight: 600;
 }
@@ -343,8 +350,12 @@ function focusItem(index: number) {
 }
 
 .items-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-border);
   border-radius: 3px;
+}
+
+.items-container::-webkit-scrollbar-thumb:hover {
+  background: var(--glass-highlight);
 }
 
 /* 개별 수정 항목 */
@@ -353,11 +364,11 @@ function focusItem(index: number) {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   margin-bottom: 10px;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .correction-item:not(.applied):not(.skipped) {
@@ -365,18 +376,18 @@ function focusItem(index: number) {
 }
 
 .correction-item:not(.applied):not(.skipped):hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-active);
+  border-color: var(--border-default);
 }
 
 .correction-item.applied {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.2);
+  background: var(--success-glow);
+  border-color: var(--success);
   opacity: 0.7;
 }
 
 .correction-item.skipped {
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--bg-hover);
   opacity: 0.5;
 }
 
@@ -387,7 +398,7 @@ function focusItem(index: number) {
 
 .type-badge {
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -395,27 +406,27 @@ function focusItem(index: number) {
 }
 
 .type-badge.spelling {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--error-glow);
+  color: var(--error);
+  border: 1px solid var(--error);
 }
 
 .type-badge.grammar {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  background: var(--warning-glow);
+  color: var(--warning);
+  border: 1px solid var(--warning);
 }
 
 .type-badge.punctuation {
   background: rgba(139, 92, 246, 0.15);
   color: #a78bfa;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .type-badge.spacing {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: var(--info-glow);
+  color: var(--info);
+  border: 1px solid var(--info);
 }
 
 .item-content {
@@ -436,21 +447,21 @@ function focusItem(index: number) {
 
 .original {
   padding: 4px 10px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 6px;
-  color: #f87171;
+  background: var(--error-glow);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+  color: var(--error);
   font-size: 14px;
   text-decoration: line-through;
-  text-decoration-color: rgba(239, 68, 68, 0.5);
+  text-decoration-color: var(--error);
 }
 
 .corrected {
   padding: 4px 10px;
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  border-radius: 6px;
-  color: #4ade80;
+  background: var(--success-glow);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  color: var(--success);
   font-size: 14px;
   font-weight: 500;
 }
@@ -458,8 +469,8 @@ function focusItem(index: number) {
 .reason {
   margin: 8px 0 0 0;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.5;
@@ -479,29 +490,28 @@ function focusItem(index: number) {
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .action-btn.skip {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-hover);
   color: var(--text-muted);
 }
 
 .action-btn.skip:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+  background: var(--error-glow);
+  color: var(--error);
 }
 
 .action-btn.apply {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  background: var(--success-glow);
+  color: var(--success);
 }
 
 .action-btn.apply:hover {
-  background: rgba(34, 197, 94, 0.25);
-  color: #86efac;
+  background: rgba(34, 197, 94, 0.3);
 }
 
 .item-status {
@@ -514,7 +524,7 @@ function focusItem(index: number) {
 }
 
 .status.applied {
-  color: #4ade80;
+  color: var(--success);
 }
 
 .status.skipped {
@@ -526,19 +536,19 @@ function focusItem(index: number) {
   display: flex;
   gap: 10px;
   padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .footer-btn {
   flex: 1;
   padding: 10px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .footer-btn:disabled {
@@ -547,24 +557,23 @@ function focusItem(index: number) {
 }
 
 .footer-btn.secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-hover);
   color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
 }
 
 .footer-btn.secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-active);
 }
 
 .footer-btn.primary {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(16, 185, 129, 0.25) 100%);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: var(--success-glow);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .footer-btn.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.4) 0%, rgba(16, 185, 129, 0.35) 100%);
-  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.3);
 }
 
 /* 트랜지션 */
