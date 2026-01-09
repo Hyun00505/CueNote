@@ -105,6 +105,50 @@
             <span>{{ t('ai.academic') }}</span>
           </button>
         </div>
+
+        <!-- 직접 요청하기 섹션 -->
+        <div class="menu-section custom-section">
+          <div class="section-label">{{ t('ai.customRequest') }}</div>
+          
+          <!-- 선택된 텍스트 미리보기 -->
+          <div v-if="selectedText" class="selected-preview">
+            <div class="preview-label">{{ t('ai.selectedText') }}</div>
+            <div class="preview-text">{{ truncatedSelectedText }}</div>
+          </div>
+          <div v-else class="no-selection-hint">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+            {{ t('ai.noSelectionHint') }}
+          </div>
+          
+          <div class="custom-input-wrapper">
+            <textarea
+              ref="customInputRef"
+              v-model="customPrompt"
+              class="custom-input"
+              :placeholder="t('ai.customPlaceholder')"
+              rows="2"
+              @keydown.enter.ctrl="handleCustomRequest"
+              @keydown.enter.meta="handleCustomRequest"
+              :disabled="loading"
+            ></textarea>
+            <button 
+              class="custom-submit-btn" 
+              @click="handleCustomRequest"
+              :disabled="!customPrompt.trim() || loading"
+              :title="t('ai.submitCustom')"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+          <div class="custom-hint">{{ t('ai.customHint') }}</div>
+        </div>
         </div>
 
         <!-- 로딩 상태 -->
@@ -142,6 +186,10 @@ const emit = defineEmits<{
 const loading = ref(false);
 const { settings } = useSettings();
 const { t } = useI18n();
+
+// 직접 요청하기
+const customPrompt = ref('');
+const customInputRef = ref<HTMLTextAreaElement | null>(null);
 
 // 메뉴 엘리먼트 참조
 const menuRef = ref<HTMLElement | null>(null);
@@ -215,6 +263,15 @@ const menuStyle = computed(() => ({
   left: `${adjustedPosition.value.x}px`,
   '--menu-max-height': `${maxMenuHeight.value}px`
 }));
+
+// 선택된 텍스트 미리보기 (100자 제한)
+const truncatedSelectedText = computed(() => {
+  const text = props.selectedText;
+  if (text.length > 100) {
+    return text.slice(0, 100) + '...';
+  }
+  return text;
+});
 
 async function handleAction(action: string, option?: string) {
   if (!props.selectedText.trim()) {
@@ -307,6 +364,97 @@ async function handleAction(action: string, option?: string) {
 
   } catch (error) {
     console.error('AI streaming failed:', error);
+    const providerName = settings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
+    emit('error', `AI 처리에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`);
+    emit('stream-end');
+  } finally {
+    loading.value = false;
+  }
+}
+
+// 직접 요청하기 처리
+async function handleCustomRequest() {
+  const promptText = customPrompt.value.trim();
+  
+  if (!promptText) {
+    emit('error', t('ai.enterPrompt'));
+    return;
+  }
+
+  loading.value = true;
+
+  // 선택된 텍스트가 없으면 빈 문자열로 처리 (AI가 지시만 수행)
+  const content = props.selectedText.trim() || '';
+  
+  const body = {
+    content: content,
+    action: 'custom',
+    custom_prompt: promptText,
+    language: 'auto',
+    provider: settings.value.llm.provider,
+    api_key: settings.value.llm.apiKey,
+    model: settings.value.llm.model
+  };
+
+  try {
+    emit('stream-start', {
+      action: 'custom',
+      original: content,
+      hasSelection: !!content
+    });
+    emit('close');
+
+    const response = await fetch(`${CORE_BASE}/ai/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No reader available');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          let data = line.slice(5);
+          if (data.startsWith(' ')) {
+            data = data.slice(1);
+          }
+          data = data.replace(/\\n/g, '\n');
+          if (data !== '') {
+            emit('stream-chunk', data);
+          }
+        } else if (line.startsWith('event:')) {
+          const event = line.slice(6).trim();
+          if (event === 'done') {
+            emit('stream-end');
+          }
+        }
+      }
+    }
+
+    // 요청 완료 후 입력창 초기화
+    customPrompt.value = '';
+
+  } catch (error) {
+    console.error('Custom AI request failed:', error);
     const providerName = settings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
     emit('error', `AI 처리에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`);
     emit('stream-end');
@@ -459,6 +607,128 @@ onBeforeUnmount(() => {
 
 .lang-flag {
   font-size: 14px;
+}
+
+/* 직접 요청하기 섹션 */
+.custom-section {
+  padding-bottom: 12px !important;
+}
+
+.custom-input-wrapper {
+  display: flex;
+  gap: 8px;
+  padding: 0 8px;
+  align-items: flex-end;
+}
+
+.custom-input {
+  flex: 1;
+  padding: 10px 12px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.4;
+  resize: none;
+  transition: all 0.15s ease;
+}
+
+.custom-input:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.custom-input::placeholder {
+  color: var(--text-muted);
+}
+
+.custom-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.custom-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(99, 102, 241, 0.8));
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.custom-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 1), rgba(99, 102, 241, 1));
+  transform: scale(1.05);
+}
+
+.custom-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.custom-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.custom-hint {
+  padding: 6px 8px 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* 선택된 텍스트 미리보기 */
+.selected-preview {
+  margin: 0 8px 10px;
+  padding: 8px 10px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+}
+
+.preview-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+.no-selection-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.no-selection-hint svg {
+  opacity: 0.6;
 }
 
 .badge {

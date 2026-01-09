@@ -221,6 +221,70 @@ app.whenReady().then(async () => {
     await shell.openExternal(url);
   });
 
+  // 폰트 파일 선택
+  ipcMain.handle('cuenote:select-font', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Font Files', extensions: ['ttf', 'otf', 'woff', 'woff2'] }
+      ]
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0];
+  });
+
+  // 폰트 파일 저장 (앱 데이터 폴더로 복사)
+  ipcMain.handle('cuenote:save-font', async (_, { sourcePath, fontName }) => {
+    try {
+      const fontsDir = path.join(app.getPath('userData'), 'fonts');
+      
+      // fonts 폴더 생성
+      if (!fs.existsSync(fontsDir)) {
+        fs.mkdirSync(fontsDir, { recursive: true });
+      }
+      
+      // 파일 확장자 추출
+      const ext = path.extname(sourcePath).toLowerCase();
+      const safeFileName = fontName.replace(/[^a-zA-Z0-9가-힣\-_]/g, '_') + ext;
+      const destPath = path.join(fontsDir, safeFileName);
+      
+      // 파일 복사
+      fs.copyFileSync(sourcePath, destPath);
+      
+      return {
+        success: true,
+        path: destPath,
+        fileName: safeFileName
+      };
+    } catch (error) {
+      console.error('Failed to save font:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+
+  // 폰트 파일 삭제
+  ipcMain.handle('cuenote:delete-font', async (_, fontPath) => {
+    try {
+      if (fs.existsSync(fontPath)) {
+        fs.unlinkSync(fontPath);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to delete font:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 폰트 폴더 경로 가져오기
+  ipcMain.handle('cuenote:get-fonts-path', async () => {
+    return path.join(app.getPath('userData'), 'fonts');
+  });
+
   // 프로덕션 모드에서 Core 서버 시작
   if (!isDev) {
     const coreStarted = await startCoreServer();

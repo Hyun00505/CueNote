@@ -6,3 +6,5 @@ export { useSettings } from './useSettings';
 export { useEnvironment } from './useEnvironment';
 export { useSchedule } from './useSchedule';
 export { useI18n } from './useI18n';
+export { useFonts } from './useFonts';
+export { useShortcuts, formatShortcut } from './useShortcuts';

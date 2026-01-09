@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView } from './components';
-import { useVault, useHealth } from './composables';
+import { useVault, useHealth, useFonts } from './composables';
 import type { ViewType } from './types';
 
 const sidebarCollapsed = ref(false);
@@ -135,6 +135,7 @@ function handleSidebarWidthChange(width: number) {
 
 const { vaultPath, initVault } = useVault();
 const { checkHealth } = useHealth();
+const { initFonts } = useFonts();
 
 const vaultName = computed(() => {
   return vaultPath.value?.split(/[/\\]/).pop() ?? null;
@@ -211,6 +212,7 @@ watch(currentView, (newView, oldView) => {
 
 onMounted(async () => {
   checkHealth();
+  initFonts();
   // 앱 시작 시 기본 vault(data 폴더) 자동 로드
   await initVault();
 });

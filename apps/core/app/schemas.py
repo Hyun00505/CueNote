@@ -161,10 +161,11 @@ class ProofreadResponse(BaseModel):
 
 class StreamPayload(BaseModel):
     content: str = Field(..., description="처리할 텍스트")
-    action: str = Field(..., description="작업 종류 (translate, improve, expand, shorten, summarize, proofread)")
+    action: str = Field(..., description="작업 종류 (translate, improve, expand, shorten, summarize, proofread, custom)")
     target_language: str = Field(default="en", description="번역 대상 언어")
     style: str = Field(default="professional", description="개선 스타일")
     language: str = Field(default="ko", description="응답 언어")
+    custom_prompt: str = Field(default="", description="사용자 정의 프롬프트 (custom action 시 사용)")
     # LLM 제공자 설정
     provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
     api_key: str = Field(default="", description="Gemini API 키 (gemini 선택 시)")

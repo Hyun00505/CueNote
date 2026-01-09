@@ -227,7 +227,7 @@ import EditorToolbar from './EditorToolbar.vue';
 import AIContextMenu from './AIContextMenu.vue';
 import AIInlineDiff from './AIInlineDiff.vue';
 import AIProofreadPanel from './AIProofreadPanel.vue';
-import { useSettings, useI18n } from '../composables';
+import { useSettings, useI18n, useShortcuts } from '../composables';
 
 const lowlight = createLowlight(common);
 const CORE_BASE = 'http://127.0.0.1:8787';
@@ -235,6 +235,7 @@ const CORE_BASE = 'http://127.0.0.1:8787';
 // LLM 설정 가져오기
 const { settings: llmSettings } = useSettings();
 const { t } = useI18n();
+const { isAIMenuShortcut } = useShortcuts();
 
 const props = defineProps<{
   activeFile: string | null;
@@ -286,6 +287,7 @@ const originalText = ref('');  // 취소용 원본 텍스트 저장
 const streamInsertPos = ref(0);  // 스트리밍 삽입 시작 위치
 const showAIActionBar = ref(false);  // AI 완료 후 액션 바 표시
 const streamedContent = ref('');  // 스트리밍 중 누적된 텍스트
+const hasSelectionForAI = ref(true);  // AI 요청 시 선택이 있었는지
 
 // 스트리밍 프리뷰 HTML (실시간 미리보기)
 const streamPreviewHtml = computed(() => {
@@ -955,10 +957,71 @@ function formatSummaryAsHtml(): string {
 
 // Keyboard shortcut for save
 function handleKeydown(e: KeyboardEvent) {
+  // 저장: Ctrl/Cmd + S
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
     handleSave();
+    return;
   }
+  
+  // AI 메뉴 단축키 확인
+  if (isAIMenuShortcut(e)) {
+    // 에디터에 포커스가 있을 때만 동작
+    if (!editor.value?.isFocused) return;
+    
+    // / 키는 빈 줄에서만 동작 (텍스트 입력 중에는 / 입력 허용)
+    if (e.key === '/') {
+      const { state } = editor.value;
+      const { from } = state.selection;
+      const $pos = state.doc.resolve(from);
+      const lineStart = $pos.start();
+      const lineText = state.doc.textBetween(lineStart, from, '', '');
+      
+      // 현재 줄에 내용이 있으면 / 입력 허용
+      if (lineText.trim()) return;
+    }
+    
+    e.preventDefault();
+    openAIMenuAtCursor();
+  }
+}
+
+// 커서 위치에서 AI 메뉴 열기
+function openAIMenuAtCursor() {
+  if (!editor.value) return;
+  
+  const { state } = editor.value;
+  const { from, to } = state.selection;
+  
+  // 선택된 텍스트가 있으면 저장
+  if (from !== to) {
+    const markdown = getSelectedMarkdown();
+    selectedText.value = markdown;
+  } else {
+    selectedText.value = '';
+  }
+  
+  // 커서 위치 가져오기
+  const coords = editor.value.view.coordsAtPos(from);
+  
+  // 메뉴 위치 설정
+  const menuWidth = 260;
+  const menuHeight = 500;
+  let x = coords.left;
+  let y = coords.bottom + 8;  // 커서 아래에 약간 여백
+  
+  if (x + menuWidth > window.innerWidth) {
+    x = window.innerWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    y = coords.top - menuHeight - 8;  // 위에 표시
+  }
+  if (y < 10) {
+    y = 10;
+  }
+  
+  aiMenuPosition.value = { x, y };
+  showAIMenu.value = true;
 }
 
 // 문서 추출 결과 처리
@@ -1021,33 +1084,35 @@ function getSelectedMarkdown(): string {
 function handleContextMenu(e: MouseEvent) {
   if (!editor.value) return;
   
+  e.preventDefault();
+  
   const { state } = editor.value;
   const { from, to } = state.selection;
   
-  // 텍스트가 선택되어 있는 경우에만 AI 메뉴 표시
+  // 텍스트가 선택되어 있으면 선택된 텍스트 저장
   if (from !== to) {
-    e.preventDefault();
-    
-    // 선택된 텍스트를 마크다운으로 가져오기
     const markdown = getSelectedMarkdown();
     selectedText.value = markdown;
-    
-    // 메뉴 위치 설정 (화면 경계 고려)
-    const menuWidth = 260;
-    const menuHeight = 400;
-    let x = e.clientX;
-    let y = e.clientY;
-    
-    if (x + menuWidth > window.innerWidth) {
-      x = window.innerWidth - menuWidth - 10;
-    }
-    if (y + menuHeight > window.innerHeight) {
-      y = window.innerHeight - menuHeight - 10;
-    }
-    
-    aiMenuPosition.value = { x, y };
-    showAIMenu.value = true;
+  } else {
+    // 선택된 텍스트 없음
+    selectedText.value = '';
   }
+  
+  // 메뉴 위치 설정 (화면 경계 고려)
+  const menuWidth = 260;
+  const menuHeight = 500;
+  let x = e.clientX;
+  let y = e.clientY;
+  
+  if (x + menuWidth > window.innerWidth) {
+    x = window.innerWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    y = window.innerHeight - menuHeight - 10;
+  }
+  
+  aiMenuPosition.value = { x, y };
+  showAIMenu.value = true;
 }
 
 // AI 메뉴 닫기
@@ -1105,20 +1170,30 @@ function handleAIResult(data: AIResult) {
 const originalHtml = ref('');
 
 // 스트리밍 시작 처리 - 원본 유지, 프리뷰만 표시
-function handleStreamStart(data: { action: string; original: string }) {
-  if (!editor.value) return;
+function handleStreamStart(data: { action: string; original: string; hasSelection?: boolean }) {
+  if (!editor.value) {
+    console.warn('Editor not available for AI streaming');
+    return;
+  }
   
   // 전체 문서의 현재 HTML 저장 (되돌리기용)
   originalHtml.value = editor.value.getHTML();
   
-  // 현재 선택 영역 저장
-  const { from, to } = editor.value.state.selection;
-  savedSelection.value = { from, to };
+  // 현재 선택 영역 저장 (에디터 상태가 있을 때만)
+  try {
+    const { from, to } = editor.value.state.selection;
+    savedSelection.value = { from, to };
+  } catch (e) {
+    // 에디터 상태를 가져올 수 없으면 문서 끝에 삽입
+    const docEnd = editor.value.state.doc.content.size;
+    savedSelection.value = { from: docEnd, to: docEnd };
+  }
   
-  // 원본 텍스트 저장
-  originalText.value = data.original;
+  // 원본 텍스트 저장 (선택 없으면 빈 문자열)
+  originalText.value = data.original || '';
   aiStreamingAction.value = data.action;
   streamedContent.value = '';
+  hasSelectionForAI.value = data.hasSelection !== false && !!data.original;
   
   // 원본은 삭제하지 않음 - 스트리밍 완료 후 교체
   isAIStreaming.value = true;
@@ -1231,22 +1306,50 @@ function cleanupAIOutput(text: string): string {
 
 // 스트리밍 종료 처리 - 선택 영역을 AI 결과로 교체
 function handleStreamEnd() {
-  if (!editor.value || !savedSelection.value) return;
-  
   isAIStreaming.value = false;
   
-  // 스트리밍된 텍스트를 마크다운 HTML로 변환하여 선택 영역 교체
+  if (!editor.value) {
+    console.warn('Editor not available for AI result');
+    return;
+  }
+  
+  // 스트리밍된 텍스트를 마크다운 HTML로 변환
   if (streamedContent.value.trim()) {
     const html = markdownToHtml(streamedContent.value);
-    const { from, to } = savedSelection.value;
     
-    // 선택 영역을 AI 결과로 교체
-    editor.value.chain()
-      .focus()
-      .setTextSelection({ from, to })
-      .deleteSelection()
-      .insertContent(html)
-      .run();
+    try {
+      if (savedSelection.value && hasSelectionForAI.value) {
+        // 선택 영역이 있었으면 교체
+        const { from, to } = savedSelection.value;
+        editor.value.chain()
+          .focus()
+          .setTextSelection({ from, to })
+          .deleteSelection()
+          .insertContent(html)
+          .run();
+      } else if (savedSelection.value) {
+        // 선택 영역이 없었으면 저장된 커서 위치에 삽입
+        const { from } = savedSelection.value;
+        editor.value.chain()
+          .focus()
+          .setTextSelection(from)
+          .insertContent(html)
+          .run();
+      } else {
+        // savedSelection이 없으면 문서 끝에 삽입
+        editor.value.chain()
+          .focus()
+          .insertContent(html)
+          .run();
+      }
+    } catch (e) {
+      console.error('Failed to insert AI content:', e);
+      // 에러 발생 시 문서 끝에 삽입 시도
+      editor.value.chain()
+        .focus()
+        .insertContent(html)
+        .run();
+    }
   }
   
   showAIActionBar.value = true;
