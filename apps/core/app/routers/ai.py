@@ -896,6 +896,132 @@ async def download_ocr_model():
         _ocr_downloading = False
 
 
+@router.get("/ocr/download/stream")
+async def download_ocr_model_stream():
+    """
+    OCR 모델 다운로드 (SSE 스트리밍)
+    진행 상황을 실시간으로 클라이언트에 전송
+    """
+    from sse_starlette.sse import EventSourceResponse
+    from .. import ocr_client
+    import asyncio
+    import json
+    
+    global _ocr_downloading
+    
+    async def generate_progress():
+        global _ocr_downloading
+        
+        # 초기 상태 확인
+        if _ocr_downloading:
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": "이미 다운로드가 진행 중입니다."})
+            }
+            return
+        
+        if ocr_client.is_model_downloaded():
+            yield {
+                "event": "complete",
+                "data": json.dumps({"message": "모델이 이미 다운로드되어 있습니다.", "progress": 100})
+            }
+            return
+        
+        if not ocr_client.is_ocr_available():
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": "EasyOCR이 설치되어 있지 않습니다."})
+            }
+            return
+        
+        try:
+            _ocr_downloading = True
+            
+            # 진행 단계 메시지
+            stages = [
+                (0, "OCR 모델 다운로드 시작..."),
+                (10, "Detection 모델 확인 중..."),
+                (20, "Detection 모델 다운로드 중... (CRAFT)"),
+                (50, "Recognition 모델 확인 중..."),
+                (60, "한국어 모델 다운로드 중..."),
+                (80, "영어 모델 다운로드 중..."),
+            ]
+            
+            # 초기 진행 알림
+            yield {
+                "event": "progress",
+                "data": json.dumps({"message": "OCR 모델 다운로드 시작...", "progress": 0})
+            }
+            
+            # 모델 다운로드 시작 (백그라운드에서 실행)
+            import threading
+            download_result = {"success": False, "error": None}
+            download_done = threading.Event()
+            
+            def do_download():
+                try:
+                    download_result["success"] = ocr_client.download_model()
+                except Exception as e:
+                    download_result["error"] = str(e)
+                finally:
+                    download_done.set()
+            
+            download_thread = threading.Thread(target=do_download)
+            download_thread.start()
+            
+            # 다운로드 진행 중 모니터링
+            current_stage = 0
+            while not download_done.is_set():
+                await asyncio.sleep(1)
+                
+                # 진행 상황 업데이트 (단계별로)
+                if current_stage < len(stages):
+                    progress, message = stages[current_stage]
+                    yield {
+                        "event": "progress",
+                        "data": json.dumps({"message": message, "progress": progress})
+                    }
+                    current_stage += 1
+                else:
+                    # 마지막 단계 이후에는 진행률만 증가
+                    progress = min(95, 80 + (current_stage - len(stages)) * 2)
+                    yield {
+                        "event": "progress",
+                        "data": json.dumps({"message": "모델 로딩 중...", "progress": progress})
+                    }
+                    current_stage += 1
+            
+            # 다운로드 완료 대기
+            download_thread.join()
+            
+            if download_result["error"]:
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"message": f"다운로드 오류: {download_result['error']}"})
+                }
+            elif download_result["success"]:
+                yield {
+                    "event": "complete",
+                    "data": json.dumps({"message": "OCR 모델 다운로드 완료!", "progress": 100})
+                }
+            else:
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"message": "모델 다운로드에 실패했습니다."})
+                }
+                
+        except Exception as e:
+            logger.error(f"OCR model download stream failed: {e}")
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": f"다운로드 오류: {str(e)}"})
+            }
+        finally:
+            _ocr_downloading = False
+    
+    return EventSourceResponse(generate_progress())
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 손글씨 OCR 모델 관리
 # ─────────────────────────────────────────────────────────────────────────────
@@ -977,3 +1103,131 @@ async def download_handwriting_model():
     
     finally:
         _handwriting_downloading = False
+
+
+@router.get("/ocr/handwriting/download/stream")
+async def download_handwriting_model_stream():
+    """
+    손글씨 OCR 모델 다운로드 (SSE 스트리밍)
+    진행 상황을 실시간으로 클라이언트에 전송
+    """
+    from sse_starlette.sse import EventSourceResponse
+    from .. import ocr_client
+    import asyncio
+    import json
+    
+    global _handwriting_downloading
+    
+    async def generate_progress():
+        global _handwriting_downloading
+        
+        # 초기 상태 확인
+        if _handwriting_downloading:
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": "이미 다운로드가 진행 중입니다."})
+            }
+            return
+        
+        if ocr_client.is_handwriting_model_downloaded():
+            yield {
+                "event": "complete",
+                "data": json.dumps({"message": "모델이 이미 다운로드되어 있습니다.", "progress": 100})
+            }
+            return
+        
+        if not ocr_client.is_handwriting_ocr_available():
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": "transformers 라이브러리가 필요합니다."})
+            }
+            return
+        
+        try:
+            _handwriting_downloading = True
+            
+            # 진행 단계 메시지
+            stages = [
+                (0, "손글씨 OCR 모델 다운로드 시작..."),
+                (5, "TrOCR Processor 다운로드 중..."),
+                (15, "토크나이저 파일 다운로드 중..."),
+                (25, "모델 설정 다운로드 중..."),
+                (35, "모델 가중치 다운로드 중... (약 1GB)"),
+                (50, "Encoder 모델 다운로드 중..."),
+                (70, "Decoder 모델 다운로드 중..."),
+                (85, "모델 검증 중..."),
+            ]
+            
+            # 초기 진행 알림
+            yield {
+                "event": "progress",
+                "data": json.dumps({"message": "손글씨 OCR 모델 다운로드 시작...", "progress": 0})
+            }
+            
+            # 모델 다운로드 시작 (백그라운드에서 실행)
+            import threading
+            download_result = {"success": False, "error": None}
+            download_done = threading.Event()
+            
+            def do_download():
+                try:
+                    download_result["success"] = ocr_client.download_handwriting_model()
+                except Exception as e:
+                    download_result["error"] = str(e)
+                finally:
+                    download_done.set()
+            
+            download_thread = threading.Thread(target=do_download)
+            download_thread.start()
+            
+            # 다운로드 진행 중 모니터링
+            current_stage = 0
+            while not download_done.is_set():
+                await asyncio.sleep(2)  # 손글씨 모델은 더 큼, 더 긴 간격
+                
+                # 진행 상황 업데이트 (단계별로)
+                if current_stage < len(stages):
+                    progress, message = stages[current_stage]
+                    yield {
+                        "event": "progress",
+                        "data": json.dumps({"message": message, "progress": progress})
+                    }
+                    current_stage += 1
+                else:
+                    # 마지막 단계 이후에는 진행률만 증가
+                    progress = min(95, 85 + (current_stage - len(stages)))
+                    yield {
+                        "event": "progress",
+                        "data": json.dumps({"message": "모델 로딩 중...", "progress": progress})
+                    }
+                    current_stage += 1
+            
+            # 다운로드 완료 대기
+            download_thread.join()
+            
+            if download_result["error"]:
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"message": f"다운로드 오류: {download_result['error']}"})
+                }
+            elif download_result["success"]:
+                yield {
+                    "event": "complete",
+                    "data": json.dumps({"message": "손글씨 OCR 모델 다운로드 완료!", "progress": 100})
+                }
+            else:
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"message": "모델 다운로드에 실패했습니다."})
+                }
+                
+        except Exception as e:
+            logger.error(f"Handwriting OCR model download stream failed: {e}")
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": f"다운로드 오류: {str(e)}"})
+            }
+        finally:
+            _handwriting_downloading = False
+    
+    return EventSourceResponse(generate_progress())

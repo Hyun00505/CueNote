@@ -526,20 +526,32 @@
               <span class="lang-tag">영어</span>
             </div>
 
-            <button 
-              v-if="!ocrStatus?.model_downloaded"
-              class="btn-download-ocr"
-              :disabled="ocrDownloading"
-              @click="downloadOcrModel"
-            >
-              <span v-if="ocrDownloading" class="loading-spinner"></span>
-              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {{ ocrDownloading ? '다운로드 중... (잠시 기다려주세요)' : '모델 다운로드' }}
-            </button>
+            <div v-if="!ocrStatus?.model_downloaded" class="download-section">
+              <button 
+                class="btn-download-ocr"
+                :disabled="ocrDownloading"
+                @click="downloadOcrModel"
+              >
+                <span v-if="ocrDownloading" class="loading-spinner"></span>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {{ ocrDownloading ? '다운로드 중...' : '모델 다운로드' }}
+              </button>
+              
+              <!-- 진행률 바 -->
+              <div v-if="ocrDownloading" class="download-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: ocrDownloadProgress + '%' }"></div>
+                </div>
+                <div class="progress-info">
+                  <span class="progress-message">{{ ocrDownloadMessage }}</span>
+                  <span class="progress-percent">{{ ocrDownloadProgress }}%</span>
+                </div>
+              </div>
+            </div>
 
             <div v-if="ocrStatus?.model_downloaded" class="ocr-ready-badge">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -600,20 +612,32 @@
               <span class="lang-tag">영어 최적화</span>
             </div>
 
-            <button 
-              v-if="!handwritingStatus?.model_downloaded"
-              class="btn-download-ocr btn-download-handwriting"
-              :disabled="handwritingDownloading"
-              @click="downloadHandwritingModel"
-            >
-              <span v-if="handwritingDownloading" class="loading-spinner"></span>
-              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {{ handwritingDownloading ? '다운로드 중... (약 1GB, 시간이 걸립니다)' : '모델 다운로드' }}
-            </button>
+            <div v-if="!handwritingStatus?.model_downloaded" class="download-section">
+              <button 
+                class="btn-download-ocr btn-download-handwriting"
+                :disabled="handwritingDownloading"
+                @click="downloadHandwritingModel"
+              >
+                <span v-if="handwritingDownloading" class="loading-spinner"></span>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {{ handwritingDownloading ? '다운로드 중...' : '모델 다운로드' }}
+              </button>
+              
+              <!-- 진행률 바 -->
+              <div v-if="handwritingDownloading" class="download-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill handwriting" :style="{ width: handwritingDownloadProgress + '%' }"></div>
+                </div>
+                <div class="progress-info">
+                  <span class="progress-message">{{ handwritingDownloadMessage }}</span>
+                  <span class="progress-percent">{{ handwritingDownloadProgress }}%</span>
+                </div>
+              </div>
+            </div>
 
             <div v-if="handwritingStatus?.model_downloaded" class="ocr-ready-badge">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -992,6 +1016,8 @@ interface OCRStatus {
 const ocrStatus = ref<OCRStatus | null>(null);
 const ocrDownloading = ref(false);
 const ocrDownloadError = ref('');
+const ocrDownloadProgress = ref(0);
+const ocrDownloadMessage = ref('');
 
 // 손글씨 OCR 상태
 interface HandwritingStatus {
@@ -1004,6 +1030,8 @@ interface HandwritingStatus {
 const handwritingStatus = ref<HandwritingStatus | null>(null);
 const handwritingDownloading = ref(false);
 const handwritingDownloadError = ref('');
+const handwritingDownloadProgress = ref(0);
+const handwritingDownloadMessage = ref('');
 
 const CORE_BASE = 'http://127.0.0.1:8787';
 
@@ -1019,27 +1047,54 @@ async function checkOcrStatus() {
   }
 }
 
-// OCR 모델 다운로드
+// OCR 모델 다운로드 (SSE 스트리밍)
 async function downloadOcrModel() {
   ocrDownloading.value = true;
   ocrDownloadError.value = '';
+  ocrDownloadProgress.value = 0;
+  ocrDownloadMessage.value = '다운로드 준비 중...';
   
   try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/download`, {
-      method: 'POST'
+    const eventSource = new EventSource(`${CORE_BASE}/ai/ocr/download/stream`);
+    
+    eventSource.addEventListener('progress', (event) => {
+      const data = JSON.parse(event.data);
+      ocrDownloadProgress.value = data.progress || 0;
+      ocrDownloadMessage.value = data.message || '다운로드 중...';
     });
     
-    const data = await res.json();
-    
-    if (data.success) {
+    eventSource.addEventListener('complete', async (event) => {
+      const data = JSON.parse(event.data);
+      ocrDownloadProgress.value = 100;
+      ocrDownloadMessage.value = data.message || '완료!';
+      eventSource.close();
       await checkOcrStatus();
-    } else {
-      ocrDownloadError.value = data.message || '모델 다운로드에 실패했습니다.';
-    }
+      ocrDownloading.value = false;
+    });
+    
+    eventSource.addEventListener('error', (event) => {
+      // SSE 에러 이벤트 처리
+      if (event instanceof MessageEvent) {
+        const data = JSON.parse(event.data);
+        ocrDownloadError.value = data.message || '다운로드에 실패했습니다.';
+      } else {
+        ocrDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+      }
+      eventSource.close();
+      ocrDownloading.value = false;
+    });
+    
+    eventSource.onerror = () => {
+      // 연결 에러 처리
+      if (ocrDownloading.value) {
+        ocrDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+        eventSource.close();
+        ocrDownloading.value = false;
+      }
+    };
   } catch (error) {
     console.error('OCR model download failed:', error);
     ocrDownloadError.value = '모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
-  } finally {
     ocrDownloading.value = false;
   }
 }
@@ -1056,27 +1111,54 @@ async function checkHandwritingStatus() {
   }
 }
 
-// 손글씨 OCR 모델 다운로드
+// 손글씨 OCR 모델 다운로드 (SSE 스트리밍)
 async function downloadHandwritingModel() {
   handwritingDownloading.value = true;
   handwritingDownloadError.value = '';
+  handwritingDownloadProgress.value = 0;
+  handwritingDownloadMessage.value = '다운로드 준비 중...';
   
   try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/download`, {
-      method: 'POST'
+    const eventSource = new EventSource(`${CORE_BASE}/ai/ocr/handwriting/download/stream`);
+    
+    eventSource.addEventListener('progress', (event) => {
+      const data = JSON.parse(event.data);
+      handwritingDownloadProgress.value = data.progress || 0;
+      handwritingDownloadMessage.value = data.message || '다운로드 중...';
     });
     
-    const data = await res.json();
-    
-    if (data.success) {
+    eventSource.addEventListener('complete', async (event) => {
+      const data = JSON.parse(event.data);
+      handwritingDownloadProgress.value = 100;
+      handwritingDownloadMessage.value = data.message || '완료!';
+      eventSource.close();
       await checkHandwritingStatus();
-    } else {
-      handwritingDownloadError.value = data.message || '손글씨 모델 다운로드에 실패했습니다.';
-    }
+      handwritingDownloading.value = false;
+    });
+    
+    eventSource.addEventListener('error', (event) => {
+      // SSE 에러 이벤트 처리
+      if (event instanceof MessageEvent) {
+        const data = JSON.parse(event.data);
+        handwritingDownloadError.value = data.message || '다운로드에 실패했습니다.';
+      } else {
+        handwritingDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+      }
+      eventSource.close();
+      handwritingDownloading.value = false;
+    });
+    
+    eventSource.onerror = () => {
+      // 연결 에러 처리
+      if (handwritingDownloading.value) {
+        handwritingDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+        eventSource.close();
+        handwritingDownloading.value = false;
+      }
+    };
   } catch (error) {
     console.error('Handwriting model download failed:', error);
     handwritingDownloadError.value = '손글씨 모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
-  } finally {
     handwritingDownloading.value = false;
   }
 }
@@ -1800,6 +1882,60 @@ function openApiKeyPage() {
 .btn-download-ocr:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+/* Download Section */
+.download-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Download Progress */
+.download-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.handwriting {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-message {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: 12px;
 }
 
 .ocr-ready-badge {
