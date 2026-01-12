@@ -7,6 +7,7 @@ import uuid
 import base64
 import json
 import re
+from typing import Optional
 from pathlib import Path
 from datetime import datetime
 
@@ -84,7 +85,7 @@ def parse_todos(note_path: str, content: str) -> list[TodoItem]:
 
 
 @router.post("/open")
-async def open_vault(payload: VaultOpenPayload = None):
+async def open_vault(payload: Optional[VaultOpenPayload] = None):
     """Vault를 열고 초기화합니다."""
     vault_dir = get_current_vault_path()
     if payload and payload.path:

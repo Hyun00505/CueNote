@@ -7,7 +7,10 @@ CueNote Core - OCR 클라이언트
 import base64
 import io
 import logging
-from typing import Optional, Tuple, Literal
+from typing import Optional, Tuple, Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import fitz
 
 logger = logging.getLogger("cuenote.core")
 
@@ -119,7 +122,7 @@ def is_ocr_available(engine: OCREngine = "rapidocr") -> bool:
 # RapidOCR 구현
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _extract_with_rapidocr(image_bytes: bytes, languages: list[str] = None) -> str:
+def _extract_with_rapidocr(image_bytes: bytes, languages: Optional[list[str]] = None) -> str:
     """RapidOCR로 텍스트 추출"""
     from PIL import Image
     import numpy as np
@@ -157,7 +160,7 @@ def _extract_with_rapidocr(image_bytes: bytes, languages: list[str] = None) -> s
 def _extract_with_gemini(
     image_data: str,
     api_key: str,
-    model: str = None,
+    model: Optional[str] = None,
     language: str = "ko"
 ) -> str:
     """Gemini Vision API로 텍스트 추출"""
@@ -175,10 +178,10 @@ def _extract_with_gemini(
 
 def extract_text_from_image_bytes(
     image_bytes: bytes,
-    languages: list[str] = None,
+    languages: Optional[list[str]] = None,
     engine: OCREngine = "rapidocr",
-    api_key: str = None,
-    gemini_model: str = None,
+    api_key: Optional[str] = None,
+    gemini_model: Optional[str] = None,
 ) -> str:
     """
     이미지 바이트에서 텍스트 추출
@@ -213,10 +216,10 @@ def extract_text_from_image_bytes(
 
 def extract_text_from_base64_image(
     image_data: str,
-    languages: list[str] = None,
+    languages: Optional[list[str]] = None,
     engine: OCREngine = "rapidocr",
-    api_key: str = None,
-    gemini_model: str = None,
+    api_key: Optional[str] = None,
+    gemini_model: Optional[str] = None,
 ) -> str:
     """
     Base64 인코딩된 이미지에서 텍스트 추출
@@ -254,11 +257,11 @@ def extract_text_from_base64_image(
 
 def extract_text_from_pdf_images(
     pdf_data: str,
-    languages: list[str] = None,
+    languages: Optional[list[str]] = None,
     dpi: int = 200,
     engine: OCREngine = "rapidocr",
-    api_key: str = None,
-    gemini_model: str = None,
+    api_key: Optional[str] = None,
+    gemini_model: Optional[str] = None,
 ) -> Tuple[str, int]:
     """
     PDF의 각 페이지를 이미지로 변환 후 OCR 수행
@@ -293,7 +296,7 @@ def extract_text_from_pdf_images(
     
     text_parts = []
     
-    for page_num, page in enumerate(doc, 1):
+    for page_num, page in enumerate(doc, 1):  # type: ignore[arg-type]
         # 페이지를 이미지로 변환
         mat = fitz.Matrix(dpi / 72, dpi / 72)
         pix = page.get_pixmap(matrix=mat)
@@ -316,10 +319,10 @@ def extract_text_from_pdf_images(
 
 def extract_text_with_layout(
     image_data: str,
-    languages: list[str] = None,
+    languages: Optional[list[str]] = None,
     engine: OCREngine = "rapidocr",
-    api_key: str = None,
-    gemini_model: str = None,
+    api_key: Optional[str] = None,
+    gemini_model: Optional[str] = None,
 ) -> dict:
     """
     이미지에서 텍스트와 레이아웃 정보 추출
@@ -382,7 +385,7 @@ def extract_text_with_layout(
 # 호환성을 위한 함수들
 # ─────────────────────────────────────────────────────────────────────────────
 
-def is_model_downloaded(languages: list[str] = None, use_cache: bool = True) -> bool:
+def is_model_downloaded(languages: Optional[list[str]] = None, use_cache: bool = True) -> bool:
     """OCR 모델이 준비되었는지 확인 (RapidOCR 기준)"""
     try:
         from rapidocr_onnxruntime import RapidOCR
@@ -391,7 +394,7 @@ def is_model_downloaded(languages: list[str] = None, use_cache: bool = True) -> 
         return False
 
 
-def download_model(languages: list[str] = None, progress_callback=None) -> bool:
+def download_model(languages: Optional[list[str]] = None, progress_callback=None) -> bool:
     """OCR 모델 다운로드 (RapidOCR은 자동 다운로드)"""
     if progress_callback:
         progress_callback("RapidOCR이 이미 사용 가능합니다.")

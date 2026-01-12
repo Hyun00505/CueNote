@@ -5,7 +5,7 @@ Google Gemini API를 통한 텍스트 생성
 import asyncio
 import json
 import logging
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Optional
 from urllib import request
 
 try:
@@ -103,7 +103,7 @@ def get_available_models() -> list[dict]:
 def generate(
     prompt: str,
     api_key: str,
-    model: str = None,
+    model: Optional[str] = None,
     temperature: float = 0.0,
 ) -> str:
     """Gemini API를 통해 텍스트 생성"""
@@ -152,7 +152,7 @@ def call_json(
     prompt: str,
     schema_hint: str,
     api_key: str,
-    model: str = None
+    model: Optional[str] = None
 ) -> Any:
     """JSON 응답을 생성하고 파싱"""
     text = generate(prompt, api_key, model)
@@ -179,7 +179,7 @@ def call_json(
 async def stream_generate(
     prompt: str,
     api_key: str,
-    model: str = None,
+    model: Optional[str] = None,
     chunk_delay: float = 0.01,  # 청크 간 딜레이 (초)
 ) -> AsyncIterator[str]:
     """
@@ -247,7 +247,7 @@ async def stream_generate(
 async def stream_generate_json(
     prompt: str,
     api_key: str,
-    model: str = None
+    model: Optional[str] = None
 ) -> AsyncIterator[str]:
     """
     JSON 응답을 스트리밍으로 생성
@@ -290,7 +290,7 @@ def generate_with_image(
     prompt: str,
     image_data: str,
     api_key: str,
-    model: str = None,
+    model: Optional[str] = None,
     temperature: float = 0.0,
 ) -> str:
     """
@@ -368,7 +368,7 @@ def extract_text_from_image(
     image_data: str,
     api_key: str,
     language: str = "ko",
-    model: str = None,
+    model: Optional[str] = None,
 ) -> str:
     """
     이미지에서 텍스트를 추출하고 마크다운으로 변환 (OCR)
@@ -408,7 +408,7 @@ def analyze_document_image(
     image_data: str,
     api_key: str,
     language: str = "ko",
-    model: str = None,
+    model: Optional[str] = None,
 ) -> dict:
     """
     문서 이미지를 분석하여 구조화된 마크다운과 메타데이터 반환
@@ -447,6 +447,7 @@ def analyze_document_image(
 
 JSON 응답:"""
     
+    result_text = ""
     try:
         result_text = generate_with_image(prompt, image_data, api_key, model)
         
@@ -464,7 +465,7 @@ JSON 응답:"""
         logger.warning(f"JSON parsing failed, using raw text: {e}")
         # JSON 파싱 실패 시 텍스트만 반환
         return {
-            "markdown": result_text if 'result_text' in locals() else "",
+            "markdown": result_text,
             "has_images": False,
             "summary": ""
         }

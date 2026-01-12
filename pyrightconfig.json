@@ -1,0 +1,30 @@
+{
+  "include": ["apps/core"],
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "**/release",
+    "**/win-unpacked",
+    "apps/core-dist",
+    "apps/desktop/release",
+    "**/__pycache__",
+    "**/venv",
+    "**/.venv"
+  ],
+  "ignore": [
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "**/release",
+    "**/win-unpacked",
+    "apps/core-dist"
+  ],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.11",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportOptionalMemberAccess": false,
+  "reportGeneralTypeIssues": true,
+  "reportArgumentType": true
+}
