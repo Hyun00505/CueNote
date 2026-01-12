@@ -8,7 +8,7 @@ import sys
 # PyInstaller 환경에서 경로 설정
 if getattr(sys, 'frozen', False):
     # PyInstaller로 패키징된 경우
-    BASE_DIR = sys._MEIPASS
+    BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     os.chdir(os.path.dirname(sys.executable))
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, Optional, AsyncIterator
 from urllib import request
 
 try:
@@ -102,8 +102,8 @@ def get_installed_models() -> list[dict]:
 def generate(
     prompt: str, 
     temperature: float = 0.0, 
-    num_ctx: int = None,
-    model: str = None
+    num_ctx: Optional[int] = None,
+    model: Optional[str] = None
 ) -> str:
     """Ollama API를 통해 텍스트 생성"""
     if model is None:
@@ -130,7 +130,7 @@ def generate(
     return data.get("response", "")
 
 
-def call_json(prompt: str, schema_hint: str, model: str = None) -> Any:
+def call_json(prompt: str, schema_hint: str, model: Optional[str] = None) -> Any:
     """JSON 응답을 생성하고 파싱"""
     text = generate(prompt, model=model)
     try:
@@ -166,14 +166,13 @@ def process_long_text(text: str, max_chars: int = MAX_INPUT_CHARS) -> tuple[str,
 # LangChain 스트리밍 지원
 # ─────────────────────────────────────────────────────────────────────────────
 
-from typing import AsyncIterator
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 
 # LangChain Ollama 모델 (스트리밍용)
 _streaming_llm = None
 
-def get_streaming_llm(model: str = None) -> ChatOllama:
+def get_streaming_llm(model: Optional[str] = None) -> ChatOllama:
     """스트리밍 지원 LLM 인스턴스 반환"""
     global _streaming_llm
     if model is None:
@@ -190,7 +189,7 @@ def get_streaming_llm(model: str = None) -> ChatOllama:
     return _streaming_llm
 
 
-async def stream_generate(prompt: str, model: str = None) -> AsyncIterator[str]:
+async def stream_generate(prompt: str, model: Optional[str] = None) -> AsyncIterator[str]:
     """
     스트리밍 방식으로 텍스트 생성
     실시간으로 토큰을 하나씩 yield합니다.
@@ -200,7 +199,12 @@ async def stream_generate(prompt: str, model: str = None) -> AsyncIterator[str]:
     try:
         async for chunk in llm.astream([HumanMessage(content=prompt)]):
             if chunk.content:
-                yield chunk.content
+                # LangChain chunk.content는 str 또는 list일 수 있음
+                content = chunk.content
+                if isinstance(content, str):
+                    yield content
+                elif isinstance(content, list):
+                    yield "".join(str(c) for c in content)
     except Exception as e:
         logger.error(f"Streaming generation failed: {e}")
         raise
@@ -208,7 +212,7 @@ async def stream_generate(prompt: str, model: str = None) -> AsyncIterator[str]:
 
 async def stream_generate_json(
     prompt: str, 
-    model: str = None
+    model: Optional[str] = None
 ) -> AsyncIterator[str]:
     """
     JSON 응답을 스트리밍으로 생성

@@ -3,6 +3,7 @@ CueNote Core - AI 라우터
 요약, 번역, 다듬기, 스트리밍 등 AI 기능
 Ollama 및 Gemini API 지원
 """
+from typing import Optional, cast, Literal
 from fastapi import APIRouter, HTTPException
 from sse_starlette.sse import EventSourceResponse
 
@@ -30,7 +31,7 @@ def call_json_with_provider(
     schema_hint: str,
     provider: str = "ollama",
     api_key: str = "",
-    model: str = None
+    model: Optional[str] = None
 ):
     """LLM 제공자에 따라 적절한 클라이언트로 JSON 호출"""
     if provider == "gemini" and api_key:
@@ -620,7 +621,7 @@ def extract_text_from_pdf(pdf_data: str) -> tuple[str, int]:
     page_count = len(doc)
     
     text_parts = []
-    for page_num, page in enumerate(doc, 1):
+    for page_num, page in enumerate(doc, 1):  # type: ignore[arg-type]
         text = page.get_text("text")
         if text.strip():
             text_parts.append(f"<!-- 페이지 {page_num} -->\n{text}")
@@ -635,7 +636,7 @@ def format_text_as_markdown(
     provider: str,
     api_key: str,
     language: str,
-    model: str = None
+    model: Optional[str] = None
 ) -> str:
     """
     추출된 텍스트를 마크다운 형식으로 정리
@@ -700,7 +701,7 @@ async def extract_document(payload: DocumentExtractPayload):
                     ocr_engine = payload.ocr_engine or "rapidocr"
                     raw_text, page_count = ocr_client.extract_text_from_pdf_images(
                         file_data,
-                        engine=ocr_engine,
+                        engine=cast(Literal["gemini", "rapidocr"], ocr_engine),
                         api_key=payload.api_key if ocr_engine == "gemini" else None,
                         gemini_model=payload.model if ocr_engine == "gemini" else None,
                     )
@@ -757,7 +758,7 @@ async def extract_document(payload: DocumentExtractPayload):
                 ocr_engine = payload.ocr_engine or "rapidocr"
                 raw_text = ocr_client.extract_text_from_base64_image(
                     file_data,
-                    engine=ocr_engine,
+                    engine=cast(Literal["gemini", "rapidocr"], ocr_engine),
                     api_key=payload.api_key if ocr_engine == "gemini" else None,
                     gemini_model=payload.model if ocr_engine == "gemini" else None,
                 )
@@ -846,7 +847,7 @@ async def get_ocr_status(engine: str = "rapidocr"):
     """OCR 엔진 상태 확인"""
     from .. import ocr_client
     
-    info = ocr_client.get_model_info(engine)
+    info = ocr_client.get_model_info(cast(Literal["gemini", "rapidocr"], engine))
     
     return {
         "installed": info["installed"],

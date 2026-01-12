@@ -278,13 +278,13 @@ class ScheduleCreatePayload(BaseModel):
 
 class ScheduleUpdatePayload(BaseModel):
     """일정 수정 요청"""
-    title: str = Field(default=None, description="일정 제목")
-    description: str = Field(default=None, description="일정 설명")
-    date: str = Field(default=None, description="일정 날짜 (YYYY-MM-DD)")
-    startTime: str = Field(default=None, description="시작 시간 (HH:MM)")
-    endTime: str = Field(default=None, description="종료 시간 (HH:MM)")
-    color: str = Field(default=None, description="일정 색상")
-    completed: bool = Field(default=None, description="완료 여부")
+    title: Optional[str] = Field(default=None, description="일정 제목")
+    description: Optional[str] = Field(default=None, description="일정 설명")
+    date: Optional[str] = Field(default=None, description="일정 날짜 (YYYY-MM-DD)")
+    startTime: Optional[str] = Field(default=None, description="시작 시간 (HH:MM)")
+    endTime: Optional[str] = Field(default=None, description="종료 시간 (HH:MM)")
+    color: Optional[str] = Field(default=None, description="일정 색상")
+    completed: Optional[bool] = Field(default=None, description="완료 여부")
 
 
 class ScheduleCountByDate(BaseModel):

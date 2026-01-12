@@ -337,3 +337,10 @@ pnpm dev
 ```
 
 버전 형식: `MAJOR.MINOR.PATCH` (예: `0.1.0`, `1.0.0`)
+
+# 일반적인 재빌드 (캐시 정리 없이)
+pnpm build:all
+
+# 문제 발생 시에만 캐시 정리
+Remove-Item -Recurse -Force apps\desktop\dist, apps\desktop\release
+pnpm build:all
