@@ -12,6 +12,25 @@ interface DeleteFontResult {
   error?: string;
 }
 
+interface PrintToPdfOptions {
+  filename?: string;
+  title?: string;
+  htmlContent?: string;
+  pdfOptions?: {
+    pageSize?: string;
+    printBackground?: boolean;
+    marginsType?: number;
+    landscape?: boolean;
+  };
+}
+
+interface PrintToPdfResult {
+  success: boolean;
+  canceled?: boolean;
+  filePath?: string;
+  error?: string;
+}
+
 interface CueNoteApi {
   selectVault: () => Promise<string | null>;
   openExternal: (url: string) => Promise<void>;
@@ -21,6 +40,7 @@ interface CueNoteApi {
   getFontsPath: () => Promise<string>;
   setZoomFactor: (factor: number) => void;
   getZoomFactor: () => number;
+  printToPDF: (options?: PrintToPdfOptions) => Promise<PrintToPdfResult>;
 }
 
 interface Window {

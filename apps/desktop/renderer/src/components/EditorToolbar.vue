@@ -450,6 +450,22 @@
         <span v-else class="spinner"></span>
         <span class="ai-label">문서 변환</span>
       </button>
+      <button
+        class="toolbar-btn ai-btn pdf-btn"
+        :class="{ loading: exportingPdf }"
+        :disabled="exportingPdf"
+        @click="exportToPdf"
+        title="PDF로 저장"
+      >
+        <svg v-if="!exportingPdf" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M12 12v6"/>
+          <path d="m15 15-3 3-3-3"/>
+        </svg>
+        <span v-else class="spinner"></span>
+        <span class="ai-label">PDF 저장</span>
+      </button>
     </div>
 
     <!-- 문서 추출 모달 -->
@@ -524,41 +540,30 @@
                 </div>
               </div>
 
-              <!-- OCR 모델 상태 -->
+              <!-- OCR 엔진 상태 (사용 불가) -->
               <div v-if="ocrStatus && !ocrStatus.model_downloaded" class="ocr-model-status">
                 <div class="model-status-header">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v4"/>
+                    <path d="M12 16h.01"/>
                   </svg>
                   <div class="model-status-text">
-                    <span class="model-title">OCR 모델 다운로드 필요</span>
-                    <span class="model-desc">텍스트 인식을 위해 EasyOCR 모델을 다운로드해야 합니다 (~100MB)</span>
+                    <span class="model-title">{{ ocrStatus?.engine_name || 'OCR' }} 사용 불가</span>
+                    <span class="model-desc">
+                      {{ ocrStatus?.engine === 'gemini' ? 'Gemini API 키를 설정해주세요' : '설정에서 OCR 엔진을 확인해주세요' }}
+                    </span>
                   </div>
                 </div>
-                <button 
-                  class="btn-download-model" 
-                  :disabled="ocrDownloading"
-                  @click="downloadOcrModel"
-                >
-                  <span v-if="ocrDownloading" class="spinner"></span>
-                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  {{ ocrDownloading ? '다운로드 중...' : '모델 다운로드' }}
-                </button>
               </div>
 
               <!-- OCR 안내 (모델 준비됨) -->
-              <div v-else-if="extractFile && ocrStatus?.model_downloaded" class="ocr-info ocr-ready">
+              <div v-else-if="extractFile" class="ocr-info ocr-ready">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                   <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
-                <span>OCR 모델 준비됨 - EasyOCR로 텍스트를 추출합니다.</span>
+                <span>OCR 준비됨 - {{ selectedOcrEngineName }}로 텍스트를 추출합니다.</span>
               </div>
 
               <!-- 텍스트만 가져오기 옵션 -->
@@ -582,49 +587,6 @@
                     <path d="M12 8h.01"/>
                   </svg>
                   <span>AI를 거치지 않고 OCR 결과를 그대로 가져옵니다. 마크다운 형식화가 필요하면 체크를 해제하세요.</span>
-                </div>
-              </div>
-
-              <!-- 손글씨 모드 옵션 -->
-              <div v-if="extractFile && extractFileType === 'image'" class="handwriting-option">
-                <label class="checkbox-wrapper">
-                  <input 
-                    type="checkbox" 
-                    v-model="handwritingMode"
-                    :disabled="!handwritingStatus?.model_downloaded"
-                  />
-                  <span class="checkbox-custom"></span>
-                  <span class="checkbox-label">
-                    ✍️ 손글씨 인식 모드
-                    <span v-if="!handwritingStatus?.model_downloaded" class="need-download">(모델 다운로드 필요)</span>
-                  </span>
-                </label>
-                
-                <!-- 손글씨 모드 선택 시 경고 -->
-                <div v-if="handwritingMode" class="handwriting-warning">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                    <line x1="12" y1="9" x2="12" y2="13"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                  </svg>
-                  <span>손글씨는 인식이 어려울 수 있습니다. 깔끔한 필체일수록 인식률이 높아집니다.</span>
-                </div>
-
-                <!-- 손글씨 모델 다운로드 필요 -->
-                <div v-if="!handwritingStatus?.model_downloaded" class="handwriting-download">
-                  <button 
-                    class="btn-download-handwriting"
-                    :disabled="handwritingDownloading"
-                    @click="downloadHandwritingModel"
-                  >
-                    <span v-if="handwritingDownloading" class="spinner"></span>
-                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    {{ handwritingDownloading ? '다운로드 중... (~1GB)' : '손글씨 모델 다운로드 (~1GB)' }}
-                  </button>
                 </div>
               </div>
 
@@ -682,12 +644,14 @@
 import { ref, computed, watch } from 'vue';
 import type { Editor } from '@tiptap/vue-3';
 import { useSettings } from '../composables';
+import { GEMINI_VISION_MODELS } from '../composables/useSettings';
 
 const CORE_BASE = 'http://127.0.0.1:8787';
 
 const props = defineProps<{
   editor: Editor | null;
   summarizing?: boolean;
+  noteName?: string;  // 현재 노트 파일명
   llmSettings?: {
     provider: string;
     apiKey: string;
@@ -718,22 +682,29 @@ interface OCRStatus {
   model_path: string;
   languages: string[];
   downloading: boolean;
+  engine: string;
+  engine_name: string;
+  engine_description: string;
 }
 const ocrStatus = ref<OCRStatus | null>(null);
 const ocrDownloading = ref(false);
-
-// 손글씨 OCR 상태
-interface HandwritingStatus {
-  installed: boolean;
-  model_downloaded: boolean;
-  model_name: string;
-  model_path: string;
-  downloading: boolean;
-}
-const handwritingStatus = ref<HandwritingStatus | null>(null);
-const handwritingDownloading = ref(false);
-const handwritingMode = ref(false);
 const rawTextOnly = ref(false);
+
+// 선택된 OCR 엔진 이름 (설정 기반)
+const selectedOcrEngineName = computed(() => {
+  const engine = llmSettingsStore.value.ocr?.engine || 'rapidocr';
+  
+  if (engine === 'gemini') {
+    const modelId = llmSettingsStore.value.ocr?.geminiModel || 'gemini-2.0-flash';
+    const model = GEMINI_VISION_MODELS.find(m => m.id === modelId);
+    return model ? model.name : 'Gemini Vision';
+  }
+  
+  return 'RapidOCR';
+});
+
+// PDF 내보내기 상태
+const exportingPdf = ref(false);
 
 
 // 이미지 모달 상태
@@ -764,6 +735,47 @@ const tableBtnRef = ref<HTMLElement | null>(null);
 
 function handleSummarize() {
   emit('summarize');
+}
+
+// PDF로 내보내기
+async function exportToPdf() {
+  if (!window.cuenote?.printToPDF) {
+    alert('PDF 내보내기 기능을 사용할 수 없습니다.');
+    return;
+  }
+  
+  if (!props.editor) {
+    alert('에디터가 준비되지 않았습니다.');
+    return;
+  }
+  
+  exportingPdf.value = true;
+  
+  try {
+    // 파일명 생성 (노트 이름 기반, 확장자를 .pdf로 변경)
+    const noteName = props.noteName || 'document';
+    const pdfFilename = noteName.replace(/\.md$/i, '') + '.pdf';
+    
+    // 에디터에서 HTML 콘텐츠 가져오기
+    const htmlContent = props.editor.getHTML();
+    
+    const result = await window.cuenote.printToPDF({
+      filename: pdfFilename,
+      title: noteName.replace(/\.md$/i, ''),
+      htmlContent: htmlContent
+    });
+    
+    if (result.success) {
+      console.log('PDF saved to:', result.filePath);
+    } else if (!result.canceled) {
+      alert('PDF 저장에 실패했습니다: ' + (result.error || '알 수 없는 오류'));
+    }
+  } catch (error) {
+    console.error('PDF export error:', error);
+    alert('PDF 저장 중 오류가 발생했습니다.');
+  } finally {
+    exportingPdf.value = false;
+  }
 }
 
 function setLink() {
@@ -992,6 +1004,11 @@ async function handleExtract() {
   extractResult.value = null;
   
   try {
+    const ocrEngine = llmSettingsStore.value.ocr?.engine || 'rapidocr';
+    const ocrModel = ocrEngine === 'gemini' 
+      ? (llmSettingsStore.value.ocr?.geminiModel || 'gemini-2.0-flash')
+      : undefined;
+    
     const res = await fetch(`${CORE_BASE}/ai/extract`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -999,11 +1016,11 @@ async function handleExtract() {
         file_data: extractFileData.value,
         file_type: extractFileType.value,
         language: 'auto',  // 원문 언어 자동 감지
-        handwriting_mode: handwritingMode.value,
         raw_text_only: rawTextOnly.value,
         provider: llmSettingsStore.value.llm.provider,
         api_key: llmSettingsStore.value.llm.apiKey,
-        model: llmSettingsStore.value.llm.model
+        model: ocrEngine === 'gemini' ? ocrModel : llmSettingsStore.value.llm.model,
+        ocr_engine: ocrEngine
       })
     });
     
@@ -1037,7 +1054,8 @@ function insertExtractResult() {
 // OCR 모델 상태 확인
 async function checkOcrStatus() {
   try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/status`);
+    const engine = llmSettingsStore.value.ocr?.engine || 'rapidocr';
+    const res = await fetch(`${CORE_BASE}/ai/ocr/status?engine=${engine}`);
     if (res.ok) {
       ocrStatus.value = await res.json();
     }
@@ -1072,49 +1090,10 @@ async function downloadOcrModel() {
   }
 }
 
-// 손글씨 모델 상태 확인
-async function checkHandwritingStatus() {
-  try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/status`);
-    if (res.ok) {
-      handwritingStatus.value = await res.json();
-    }
-  } catch (error) {
-    console.error('Failed to check handwriting status:', error);
-  }
-}
-
-// 손글씨 모델 다운로드
-async function downloadHandwritingModel() {
-  handwritingDownloading.value = true;
-  extractError.value = '';
-  
-  try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/download`, {
-      method: 'POST'
-    });
-    
-    const data = await res.json();
-    
-    if (data.success) {
-      await checkHandwritingStatus();
-    } else {
-      extractError.value = data.message || '손글씨 모델 다운로드에 실패했습니다.';
-    }
-  } catch (error) {
-    console.error('Handwriting model download failed:', error);
-    extractError.value = '손글씨 모델 다운로드에 실패했습니다.';
-  } finally {
-    handwritingDownloading.value = false;
-  }
-}
-
 // 모달 열 때 OCR 상태 확인
 watch(showExtractModal, (isOpen) => {
   if (isOpen) {
     checkOcrStatus();
-    checkHandwritingStatus();
-    handwritingMode.value = false; // 모달 열 때 초기화
     rawTextOnly.value = false; // 모달 열 때 초기화
   }
 });

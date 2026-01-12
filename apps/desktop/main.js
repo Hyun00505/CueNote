@@ -285,6 +285,210 @@ app.whenReady().then(async () => {
     return path.join(app.getPath('userData'), 'fonts');
   });
 
+  // PDF로 저장 (마크다운 콘텐츠만)
+  ipcMain.handle('cuenote:print-to-pdf', async (_, options = {}) => {
+    let pdfWindow = null;
+    
+    try {
+      // 저장 경로 선택
+      const result = await dialog.showSaveDialog(mainWindow, {
+        title: 'PDF로 저장',
+        defaultPath: options.filename || 'document.pdf',
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] }
+        ]
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+      }
+
+      // 숨겨진 창에서 마크다운만 렌더링
+      pdfWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        show: false,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true
+        }
+      });
+
+      // 마크다운 스타일 + 콘텐츠 HTML 생성
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${options.title || 'CueNote'}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11pt;
+      line-height: 1.7;
+      color: #1a1a1a;
+      padding: 40px 50px;
+      background: white;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    
+    h1 { font-size: 24pt; border-bottom: 2px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 18pt; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    h3 { font-size: 14pt; }
+    h4 { font-size: 12pt; }
+    
+    p {
+      margin: 0.8em 0;
+    }
+    
+    ul, ol {
+      margin: 0.8em 0;
+      padding-left: 2em;
+    }
+    
+    li {
+      margin: 0.3em 0;
+    }
+    
+    code {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    
+    pre {
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+    
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid #c9a76c;
+      margin: 1em 0;
+      padding: 0.5em 1em;
+      background: #faf8f5;
+      color: #555;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 2em 0;
+    }
+    
+    a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+    
+    strong {
+      font-weight: 600;
+    }
+    
+    em {
+      font-style: italic;
+    }
+    
+    /* 체크박스 스타일 */
+    ul[data-type="taskList"] {
+      list-style: none;
+      padding-left: 0;
+    }
+    
+    ul[data-type="taskList"] li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    input[type="checkbox"] {
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  ${options.htmlContent || ''}
+</body>
+</html>`;
+
+      await pdfWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+      
+      // 렌더링 완료 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // PDF 생성
+      const pdfData = await pdfWindow.webContents.printToPDF({
+        marginsType: 0,
+        pageSize: 'A4',
+        printBackground: true,
+        printSelectionOnly: false,
+        landscape: false
+      });
+      
+      // 파일로 저장
+      fs.writeFileSync(result.filePath, pdfData);
+      
+      return { 
+        success: true, 
+        filePath: result.filePath 
+      };
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      return { 
+        success: false, 
+        error: error.message 
+      };
+    } finally {
+      if (pdfWindow) {
+        pdfWindow.destroy();
+      }
+    }
+  });
+
   // 프로덕션 모드에서 Core 서버 시작
   if (!isDev) {
     const coreStarted = await startCoreServer();

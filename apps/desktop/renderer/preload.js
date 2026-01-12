@@ -12,5 +12,8 @@ contextBridge.exposeInMainWorld('cuenote', {
   
   // UI 스케일 API (Electron 네이티브 zoom)
   setZoomFactor: (factor) => webFrame.setZoomFactor(factor),
-  getZoomFactor: () => webFrame.getZoomFactor()
+  getZoomFactor: () => webFrame.getZoomFactor(),
+  
+  // PDF 내보내기 API
+  printToPDF: (options) => ipcRenderer.invoke('cuenote:print-to-pdf', options)
 });

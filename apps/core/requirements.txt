@@ -5,10 +5,10 @@ langchain>=0.3.0
 langchain-ollama>=0.2.0
 httpx>=0.27.0
 PyMuPDF>=1.24.0
-easyocr>=1.7.0
-transformers>=4.35.0
-torch>=2.0.0
 pillow>=10.0.0
+
+# OCR - RapidOCR (경량 고성능, 모든 플랫폼 지원)
+rapidocr-onnxruntime>=1.4.0
 
 # Build tools (for packaging)
 pyinstaller>=6.0.0

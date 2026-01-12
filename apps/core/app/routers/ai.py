@@ -19,7 +19,6 @@ from ..schemas import (
     StreamPayload,
     DocumentExtractPayload, DocumentExtractResponse,
     OCRModelStatus, OCRDownloadResponse,
-    HandwritingModelStatus
 )
 
 # 기존 호환성을 위한 import
@@ -697,11 +696,23 @@ async def extract_document(payload: DocumentExtractPayload):
             if not raw_text.strip():
                 logger.info("PDF text extraction failed, falling back to OCR...")
                 try:
-                    raw_text, page_count = ocr_client.extract_text_from_pdf_images(file_data)
+                    # OCR 엔진 선택에 따라 처리
+                    ocr_engine = payload.ocr_engine or "rapidocr"
+                    raw_text, page_count = ocr_client.extract_text_from_pdf_images(
+                        file_data,
+                        engine=ocr_engine,
+                        api_key=payload.api_key if ocr_engine == "gemini" else None,
+                        gemini_model=payload.model if ocr_engine == "gemini" else None,
+                    )
                 except ImportError as e:
                     raise HTTPException(
                         status_code=500,
                         detail=f"OCR 라이브러리가 필요합니다: {str(e)}"
+                    )
+                except ValueError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=str(e)
                     )
                 
                 if not raw_text.strip():
@@ -741,19 +752,24 @@ async def extract_document(payload: DocumentExtractPayload):
             )
         
         elif payload.file_type == "image":
-            # 이미지 처리
+            # 이미지 처리 (선택된 OCR 엔진 사용)
             try:
-                if payload.handwriting_mode:
-                    # 손글씨 모드: TrOCR 사용
-                    logger.info("Using handwriting OCR (TrOCR)")
-                    raw_text = ocr_client.extract_handwriting_from_image(file_data)
-                else:
-                    # 일반 모드: EasyOCR 사용
-                    raw_text = ocr_client.extract_text_from_base64_image(file_data)
+                ocr_engine = payload.ocr_engine or "rapidocr"
+                raw_text = ocr_client.extract_text_from_base64_image(
+                    file_data,
+                    engine=ocr_engine,
+                    api_key=payload.api_key if ocr_engine == "gemini" else None,
+                    gemini_model=payload.model if ocr_engine == "gemini" else None,
+                )
             except ImportError as e:
                 raise HTTPException(
                     status_code=500,
                     detail=f"OCR 라이브러리가 필요합니다: {str(e)}"
+                )
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=str(e)
                 )
             
             if not raw_text.strip():
@@ -814,166 +830,33 @@ async def extract_document(payload: DocumentExtractPayload):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# OCR 모델 관리
+# OCR 엔진 관리
 # ─────────────────────────────────────────────────────────────────────────────
 
-# 다운로드 상태 추적
-_ocr_downloading = False
-
-
-@router.get("/ocr/status", response_model=OCRModelStatus)
-async def get_ocr_status():
-    """OCR 모델 상태 확인"""
+@router.get("/ocr/engines")
+async def get_ocr_engines():
+    """사용 가능한 OCR 엔진 목록 반환"""
     from .. import ocr_client
     
-    info = ocr_client.get_model_info()
-    
-    return OCRModelStatus(
-        installed=info["installed"],
-        model_downloaded=info["model_downloaded"],
-        model_path=info["model_path"],
-        languages=info["languages"],
-        downloading=_ocr_downloading
-    )
+    return ocr_client.get_available_engines()
 
 
-@router.post("/ocr/download", response_model=OCRDownloadResponse)
-async def download_ocr_model():
-    """
-    OCR 모델 다운로드
-    모델이 이미 다운로드되어 있으면 스킵
-    """
-    global _ocr_downloading
+@router.get("/ocr/status")
+async def get_ocr_status(engine: str = "rapidocr"):
+    """OCR 엔진 상태 확인"""
     from .. import ocr_client
     
-    # 이미 다운로드 중인지 확인
-    if _ocr_downloading:
-        return OCRDownloadResponse(
-            success=False,
-            message="이미 다운로드가 진행 중입니다."
-        )
+    info = ocr_client.get_model_info(engine)
     
-    # 이미 다운로드되어 있는지 확인
-    if ocr_client.is_model_downloaded():
-        return OCRDownloadResponse(
-            success=True,
-            message="모델이 이미 다운로드되어 있습니다."
-        )
-    
-    # EasyOCR 설치 확인
-    if not ocr_client.is_ocr_available():
-        return OCRDownloadResponse(
-            success=False,
-            message="EasyOCR이 설치되어 있지 않습니다. pip install easyocr를 실행해주세요."
-        )
-    
-    try:
-        _ocr_downloading = True
-        logger.info("Starting OCR model download...")
-        
-        # 모델 다운로드 (시간이 걸림)
-        success = ocr_client.download_model()
-        
-        if success:
-            return OCRDownloadResponse(
-                success=True,
-                message="OCR 모델 다운로드가 완료되었습니다."
-            )
-        else:
-            return OCRDownloadResponse(
-                success=False,
-                message="모델 다운로드에 실패했습니다."
-            )
-    
-    except Exception as e:
-        logger.error(f"OCR model download failed: {e}")
-        return OCRDownloadResponse(
-            success=False,
-            message=f"다운로드 오류: {str(e)}"
-        )
-    
-    finally:
-        _ocr_downloading = False
+    return {
+        "installed": info["installed"],
+        "model_downloaded": info["model_downloaded"],
+        "model_path": info["model_path"],
+        "languages": info["languages"],
+        "engine": info["engine"],
+        "engine_name": info["engine_name"],
+        "engine_description": info["engine_description"],
+        "requires_api_key": info.get("requires_api_key", False),
+    }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 손글씨 OCR 모델 관리
-# ─────────────────────────────────────────────────────────────────────────────
-
-# 손글씨 모델 다운로드 상태 추적
-_handwriting_downloading = False
-
-
-@router.get("/ocr/handwriting/status", response_model=HandwritingModelStatus)
-async def get_handwriting_status():
-    """손글씨 OCR 모델 상태 확인"""
-    from .. import ocr_client
-    
-    info = ocr_client.get_handwriting_model_info()
-    
-    return HandwritingModelStatus(
-        installed=info["installed"],
-        model_downloaded=info["model_downloaded"],
-        model_name=info["model_name"],
-        model_path=info["model_path"],
-        downloading=_handwriting_downloading
-    )
-
-
-@router.post("/ocr/handwriting/download", response_model=OCRDownloadResponse)
-async def download_handwriting_model():
-    """
-    손글씨 OCR 모델 다운로드 (TrOCR)
-    모델이 이미 다운로드되어 있으면 스킵
-    """
-    global _handwriting_downloading
-    from .. import ocr_client
-    
-    # 이미 다운로드 중인지 확인
-    if _handwriting_downloading:
-        return OCRDownloadResponse(
-            success=False,
-            message="이미 다운로드가 진행 중입니다."
-        )
-    
-    # 이미 다운로드되어 있는지 확인
-    if ocr_client.is_handwriting_model_downloaded():
-        return OCRDownloadResponse(
-            success=True,
-            message="손글씨 모델이 이미 다운로드되어 있습니다."
-        )
-    
-    # transformers 설치 확인
-    if not ocr_client.is_handwriting_ocr_available():
-        return OCRDownloadResponse(
-            success=False,
-            message="transformers 라이브러리가 필요합니다. pip install transformers torch를 실행해주세요."
-        )
-    
-    try:
-        _handwriting_downloading = True
-        logger.info("Starting handwriting OCR model download...")
-        
-        # 모델 다운로드 (시간이 걸림 - 약 1GB)
-        success = ocr_client.download_handwriting_model()
-        
-        if success:
-            return OCRDownloadResponse(
-                success=True,
-                message="손글씨 OCR 모델 다운로드가 완료되었습니다."
-            )
-        else:
-            return OCRDownloadResponse(
-                success=False,
-                message="손글씨 모델 다운로드에 실패했습니다."
-            )
-    
-    except Exception as e:
-        logger.error(f"Handwriting OCR model download failed: {e}")
-        return OCRDownloadResponse(
-            success=False,
-            message=f"다운로드 오류: {str(e)}"
-        )
-    
-    finally:
-        _handwriting_downloading = False

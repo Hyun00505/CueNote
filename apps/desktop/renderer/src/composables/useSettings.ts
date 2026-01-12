@@ -27,7 +27,58 @@ export interface AppSettings {
     apiKey: string;
     model: string;
   };
+  ocr?: {
+    engine: string;  // 'gemini' | 'rapidocr'
+    geminiModel?: string;  // Gemini Vision 모델
+  };
 }
+
+// Gemini Vision 모델 목록
+export const GEMINI_VISION_MODELS = [
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    description: '차세대 고속 모델, Vision 지원 (15 RPM)',
+    free: true,
+    recommended: true,
+  },
+  {
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash Lite',
+    description: '초경량 모델, 빠른 처리 (30 RPM)',
+    free: true,
+  },
+  {
+    id: 'gemini-1.5-flash',
+    name: 'Gemini 1.5 Flash',
+    description: '안정적인 고속 모델, Vision 지원 (15 RPM)',
+    free: true,
+  },
+  {
+    id: 'gemini-1.5-flash-8b',
+    name: 'Gemini 1.5 Flash 8B',
+    description: '경량 모델, 가장 빠른 처리 (15 RPM)',
+    free: true,
+  },
+  {
+    id: 'gemini-1.5-pro',
+    name: 'Gemini 1.5 Pro',
+    description: '고성능 모델, 복잡한 이미지 분석 (2 RPM)',
+    free: true,  // 무료 제한 있음
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    description: '최신 고속 모델, 균형 잡힌 성능 (15 RPM)',
+    free: true,
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    description: '최고 성능 모델, 복잡한 작업에 적합',
+    free: false,
+  },
+];
 
 // 기본 설정 (모델은 동적으로 설정)
 const defaultSettings: AppSettings = {
@@ -35,6 +86,10 @@ const defaultSettings: AppSettings = {
     provider: 'ollama',
     apiKey: '',
     model: ''  // 첫 번째 사용 가능한 모델로 자동 설정
+  },
+  ocr: {
+    engine: 'rapidocr',  // 기본값: 로컬 OCR
+    geminiModel: 'gemini-2.0-flash'  // Gemini 사용 시 기본 모델
   }
 };
 
