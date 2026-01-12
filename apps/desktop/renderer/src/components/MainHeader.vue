@@ -37,6 +37,24 @@
           </svg>
           <span>{{ t('header.calendar') }}</span>
         </button>
+        <button
+          class="tab-btn"
+          :class="{ active: currentView === 'graph' }"
+          @click="$emit('change-view', 'graph')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <circle cx="4" cy="8" r="2"/>
+            <circle cx="20" cy="8" r="2"/>
+            <circle cx="4" cy="16" r="2"/>
+            <circle cx="20" cy="16" r="2"/>
+            <line x1="6" y1="8" x2="9" y2="10"/>
+            <line x1="18" y1="8" x2="15" y2="10"/>
+            <line x1="6" y1="16" x2="9" y2="14"/>
+            <line x1="18" y1="16" x2="15" y2="14"/>
+          </svg>
+          <span>{{ t('header.graph') }}</span>
+        </button>
       </div>
 
       <button class="settings-btn" @click="$emit('open-settings')" title="설정">

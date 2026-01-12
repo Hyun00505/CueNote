@@ -5,12 +5,22 @@
       :collapsed="sidebarCollapsed"
       :active-file="activeFile"
       :dirty-files="dirtyFiles"
+      :current-view="currentView"
+      :clusters="graphClusters"
+      :selected-cluster-id="selectedClusterId"
+      :graph-stats="graphStats"
+      :is-graph-loading="isGraphLoading"
       @toggle-collapse="handleToggleCollapse"
       @select-file="handleSelectFile"
       @file-deleted="handleFileDeleted"
       @file-created="handleFileCreated"
       @file-restored="handleFileRestored"
       @sidebar-width-change="handleSidebarWidthChange"
+      @filter-cluster="handleFilterCluster"
+      @refresh-graph="handleRefreshGraph"
+      @similarity-change="handleSimilarityChange"
+      @update-cluster="handleUpdateCluster"
+      @reset-cluster="handleResetCluster"
     />
 
     <!-- 저장 확인 모달 -->
@@ -73,6 +83,15 @@
           :has-vault="!!vaultPath"
         />
 
+        <GraphView
+          ref="graphViewRef"
+          v-show="currentView === 'graph'"
+          :filter-cluster-id="selectedClusterId"
+          :min-similarity-prop="graphMinSimilarity"
+          @select-file="handleSelectFile"
+          @graph-loaded="handleGraphLoaded"
+        />
+
         <SettingsView
           v-if="currentView === 'settings'"
           @back="handleBackFromSettings"
@@ -84,9 +103,9 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
-import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView } from './components';
-import { useVault, useHealth, useFonts } from './composables';
-import type { ViewType } from './types';
+import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView, GraphView } from './components';
+import { useVault, useHealth, useFonts, useGraph } from './composables';
+import type { ViewType, ClusterInfo } from './types';
 
 const sidebarCollapsed = ref(false);
 const currentView = ref<ViewType>('editor');
@@ -101,6 +120,14 @@ const showUnsavedModal = ref(false);
 const pendingFile = ref<string | null>(null);
 const editorViewRef = ref<InstanceType<typeof EditorView> | null>(null);
 const dashboardViewRef = ref<InstanceType<typeof DashboardView> | null>(null);
+const graphViewRef = ref<InstanceType<typeof GraphView> | null>(null);
+
+// 그래프 뷰 관련 상태
+const graphClusters = ref<ClusterInfo[]>([]);
+const graphStats = ref({ totalNotes: 0, totalClusters: 0, totalEdges: 0 });
+const selectedClusterId = ref<number | null>(null);
+const isGraphLoading = ref(false);
+const graphMinSimilarity = ref(0.3);
 
 // dirty 파일 목록 업데이트
 function handleDirtyFilesChange(files: string[]) {
@@ -200,6 +227,48 @@ function handleFileRestored(file: string) {
 function handleBackFromSettings() {
   // 설정에서 돌아올 때 이전 뷰로 복원
   currentView.value = previousView.value;
+}
+
+// 그래프 뷰 관련 핸들러
+function handleGraphLoaded(data: { clusters: ClusterInfo[]; stats: any }) {
+  graphClusters.value = data.clusters;
+  graphStats.value = data.stats;
+  isGraphLoading.value = false;
+}
+
+function handleFilterCluster(clusterId: number | null) {
+  selectedClusterId.value = clusterId;
+}
+
+async function handleRefreshGraph() {
+  isGraphLoading.value = true;
+  if (graphViewRef.value?.refresh) {
+    await graphViewRef.value.refresh();
+  }
+}
+
+function handleSimilarityChange(value: number) {
+  graphMinSimilarity.value = value;
+}
+
+// 클러스터 설정 업데이트
+const { updateCluster, resetClusterSettings } = useGraph();
+
+async function handleUpdateCluster(data: { id: number; label: string; color: string; keywords: string[] }) {
+  await updateCluster(data.id, {
+    label: data.label,
+    color: data.color,
+    keywords: data.keywords
+  });
+  
+  // 그래프 새로고침
+  await handleRefreshGraph();
+}
+
+async function handleResetCluster(_clusterId: number) {
+  // 전체 클러스터 설정 초기화 (개별 클러스터 초기화는 추후 구현)
+  await resetClusterSettings();
+  await handleRefreshGraph();
 }
 
 // 설정 페이지로 이동 시 이전 뷰 저장

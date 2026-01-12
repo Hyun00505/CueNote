@@ -6,5 +6,6 @@ export { default as AIContextMenu } from './AIContextMenu.vue';
 export { default as AIInlineDiff } from './AIInlineDiff.vue';
 export { default as AIProofreadPanel } from './AIProofreadPanel.vue';
 export { default as SettingsView } from './SettingsView.vue';
+export { default as GraphView } from './GraphView.vue';
 
 

@@ -21,6 +21,9 @@
     "@cuenote/contracts": "workspace:*",
     "@cuenote/shared": "workspace:*",
     "@lezer/highlight": "^1.2.3",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
     "@tiptap/extension-code-block-lowlight": "^3.15.3",
     "@tiptap/extension-highlight": "^3.15.3",
     "@tiptap/extension-image": "^3.15.3",
@@ -44,6 +47,9 @@
     "vue": "^3.4.21"
   },
   "devDependencies": {
+    "@types/d3-force": "^3.0.10",
+    "@types/d3-selection": "^3.0.10",
+    "@types/d3-zoom": "^3.0.8",
     "@types/node": "^22.0.2",
     "electron": "^28.2.0",
     "electron-builder": "^24.13.3",

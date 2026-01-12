@@ -307,3 +307,120 @@ class AIExtractScheduleResponse(BaseModel):
     """AI 일정 추출 응답"""
     schedules: list[ScheduleItem] = Field(default_factory=list, description="추출된 일정 목록")
     confidence: float = Field(default=0.0, description="신뢰도")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 그래프 뷰 & AI 클러스터링 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class NoteInfo(BaseModel):
+    """노트 기본 정보"""
+    path: str = Field(..., description="노트 파일 경로")
+    title: str = Field(..., description="노트 제목")
+    content: str = Field(default="", description="노트 내용 (요약용)")
+    wordCount: int = Field(default=0, description="단어 수")
+
+
+class GraphNode(BaseModel):
+    """그래프 노드 (노트)"""
+    id: str = Field(..., description="노드 ID (파일 경로)")
+    label: str = Field(..., description="노드 라벨 (파일명)")
+    cluster: int = Field(default=-1, description="클러스터 ID (-1: 미분류)")
+    clusterLabel: str = Field(default="", description="클러스터 라벨/태그")
+    size: int = Field(default=1, description="노드 크기 (단어 수 기반)")
+    color: str = Field(default="#888888", description="노드 색상 (클러스터 기반)")
+    x: Optional[float] = Field(default=None, description="X 좌표")
+    y: Optional[float] = Field(default=None, description="Y 좌표")
+
+
+class GraphEdge(BaseModel):
+    """그래프 엣지 (노트 간 연결)"""
+    source: str = Field(..., description="소스 노드 ID")
+    target: str = Field(..., description="타겟 노드 ID")
+    weight: float = Field(default=1.0, description="연결 강도 (유사도)")
+    type: str = Field(default="similarity", description="연결 유형 (similarity, link)")
+
+
+class ClusterInfo(BaseModel):
+    """클러스터 정보"""
+    id: int = Field(..., description="클러스터 ID")
+    label: str = Field(..., description="클러스터 라벨 (AI 생성)")
+    color: str = Field(..., description="클러스터 색상")
+    noteCount: int = Field(..., description="노트 개수")
+    keywords: list[str] = Field(default_factory=list, description="주요 키워드")
+
+
+class GraphDataPayload(BaseModel):
+    """그래프 데이터 요청"""
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="Gemini API 키")
+    model: str = Field(default="", description="사용할 모델명")
+    minSimilarity: float = Field(default=0.3, description="최소 유사도 (0-1)")
+    maxClusters: int = Field(default=8, description="최대 클러스터 수")
+
+
+class GraphDataResponse(BaseModel):
+    """그래프 데이터 응답"""
+    nodes: list[GraphNode] = Field(default_factory=list, description="노드 목록")
+    edges: list[GraphEdge] = Field(default_factory=list, description="엣지 목록")
+    clusters: list[ClusterInfo] = Field(default_factory=list, description="클러스터 정보")
+    totalNotes: int = Field(default=0, description="전체 노트 수")
+
+
+class ClusterNotesPayload(BaseModel):
+    """노트 클러스터링 요청"""
+    notePaths: list[str] = Field(default_factory=list, description="클러스터링할 노트 경로 (빈 배열: 전체)")
+    provider: str = Field(default="ollama", description="LLM 제공자")
+    api_key: str = Field(default="", description="Gemini API 키")
+    model: str = Field(default="", description="사용할 모델명")
+    numClusters: int = Field(default=5, description="클러스터 수")
+
+
+class ClusterNotesResponse(BaseModel):
+    """노트 클러스터링 응답"""
+    clusters: list[ClusterInfo] = Field(default_factory=list, description="클러스터 정보")
+    noteAssignments: dict[str, int] = Field(default_factory=dict, description="노트별 클러스터 할당")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 클러스터 커스텀 설정 스키마
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ClusterCustomization(BaseModel):
+    """개별 클러스터 커스텀 설정"""
+    id: int = Field(..., description="클러스터 ID")
+    label: Optional[str] = Field(None, description="사용자 지정 라벨 (None이면 AI 라벨 사용)")
+    color: Optional[str] = Field(None, description="사용자 지정 색상 (None이면 기본 색상 사용)")
+    keywords: Optional[list[str]] = Field(None, description="사용자 지정 키워드")
+
+
+class NoteClusterOverride(BaseModel):
+    """노트의 클러스터 수동 지정"""
+    notePath: str = Field(..., description="노트 파일 경로")
+    clusterId: int = Field(..., description="할당할 클러스터 ID")
+
+
+class SaveClusterSettingsPayload(BaseModel):
+    """클러스터 설정 저장 요청"""
+    customizations: list[ClusterCustomization] = Field(default_factory=list, description="클러스터별 커스텀 설정")
+    noteOverrides: list[NoteClusterOverride] = Field(default_factory=list, description="노트 클러스터 수동 지정")
+
+
+class ClusterSettingsResponse(BaseModel):
+    """클러스터 설정 응답"""
+    customizations: list[ClusterCustomization] = Field(default_factory=list, description="클러스터별 커스텀 설정")
+    noteOverrides: list[NoteClusterOverride] = Field(default_factory=list, description="노트 클러스터 수동 지정")
+
+
+class UpdateClusterPayload(BaseModel):
+    """단일 클러스터 업데이트"""
+    id: int = Field(..., description="클러스터 ID")
+    label: Optional[str] = Field(None, description="새 라벨")
+    color: Optional[str] = Field(None, description="새 색상")
+    keywords: Optional[list[str]] = Field(None, description="새 키워드")
+
+
+class MoveNoteToClusterPayload(BaseModel):
+    """노트를 다른 클러스터로 이동"""
+    notePath: str = Field(..., description="노트 파일 경로")
+    targetClusterId: int = Field(..., description="대상 클러스터 ID")

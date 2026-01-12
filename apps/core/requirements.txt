@@ -10,5 +10,9 @@ pillow>=10.0.0
 # OCR - RapidOCR (경량 고성능, 모든 플랫폼 지원)
 rapidocr-onnxruntime>=1.4.0
 
+# Graph & Clustering (AI 노트 클러스터링)
+scikit-learn>=1.4.0
+numpy>=1.26.0
+
 # Build tools (for packaging)
 pyinstaller>=6.0.0
