@@ -59,6 +59,7 @@
         :editor="editor as Editor" 
         :summarizing="summarizing"
         :note-name="getFileName(activeFile)"
+        :active-file="activeFile"
         @summarize="handleSummarize"
         @extract-result="handleExtractResult"
       />

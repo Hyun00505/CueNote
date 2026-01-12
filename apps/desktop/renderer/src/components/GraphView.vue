@@ -88,7 +88,8 @@
               class="node"
               :class="{ 
                 selected: selectedNode?.id === node.id,
-                dimmed: hoveredNode && hoveredNode.id !== node.id && !isConnected(hoveredNode.id, node.id)
+                dimmed: hoveredNode && hoveredNode.id !== node.id && !isConnected(hoveredNode.id, node.id),
+                locked: isNoteLocked(node.id)
               }"
               :transform="`translate(${node.x}, ${node.y})`"
               @mouseenter="handleNodeHover(node)"
@@ -102,6 +103,17 @@
                 :fill="node.color"
                 :filter="selectedNode?.id === node.id ? 'url(#glow)' : undefined"
               />
+              <!-- 잠금 아이콘 -->
+              <g v-if="isNoteLocked(node.id)" class="lock-icon" :transform="`translate(${getNodeRadius(node) - 4}, ${-getNodeRadius(node) + 4})`">
+                <circle r="8" fill="var(--bg-primary)" stroke="var(--accent-primary, #8b5cf6)" stroke-width="1.5" />
+                <path 
+                  d="M-3 1h6v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4z M-2 1v-2a2 2 0 0 1 4 0v2" 
+                  fill="none" 
+                  stroke="var(--accent-primary, #8b5cf6)" 
+                  stroke-width="1.2"
+                  stroke-linecap="round"
+                />
+              </g>
               <text
                 class="node-label"
                 :y="getNodeRadius(node) + 14"
@@ -122,7 +134,19 @@
         @click.stop
       >
         <div class="context-menu-header">
-          <span class="context-note-name">{{ contextMenuNode?.label }}</span>
+          <div class="context-header-row">
+            <span class="context-note-name">{{ contextMenuNode?.label }}</span>
+            <span 
+              v-if="contextMenuNode && isNoteLocked(contextMenuNode.id)" 
+              class="lock-badge"
+              title="클러스터 잠금됨"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </span>
+          </div>
           <span class="context-hint">클러스터 이동</span>
         </div>
         <div class="context-menu-items">
@@ -144,7 +168,31 @@
           </button>
         </div>
         <div class="context-menu-footer">
-          <button class="reset-btn" @click="handleResetNoteCluster">
+          <!-- 잠금/해제 버튼 -->
+          <button 
+            class="lock-btn"
+            :class="{ locked: contextMenuNode && isNoteLocked(contextMenuNode.id) }"
+            @click="handleToggleLock"
+          >
+            <!-- 잠금된 상태: 닫힌 자물쇠 -->
+            <svg v-if="contextMenuNode && isNoteLocked(contextMenuNode.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <!-- 잠금 안 된 상태: 열린 자물쇠 -->
+            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+            </svg>
+            {{ contextMenuNode && isNoteLocked(contextMenuNode.id) ? '잠금 해제' : 'AI 분류 잠금' }}
+          </button>
+          <!-- AI 복원 버튼 -->
+          <button 
+            class="reset-btn" 
+            @click="handleResetNoteCluster"
+            :disabled="contextMenuNode && isNoteLocked(contextMenuNode.id)"
+            :title="contextMenuNode && isNoteLocked(contextMenuNode.id) ? '잠금 해제 후 사용 가능' : ''"
+          >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
@@ -156,6 +204,25 @@
 
       <!-- 줌 컨트롤 -->
       <div class="zoom-controls">
+        <!-- 전체 잠금 버튼 (클러스터 필터 시에만 표시) -->
+        <button 
+          v-if="showOnlyCluster !== null"
+          class="lock-all-btn"
+          :class="{ locked: areAllFilteredNodesLocked }"
+          @click="handleLockAllFiltered"
+          :title="areAllFilteredNodesLocked ? '전체 잠금 해제' : '전체 잠금'"
+        >
+          <!-- 잠금된 상태: 닫힌 자물쇠 -->
+          <svg v-if="areAllFilteredNodesLocked" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <!-- 잠금 안 된 상태: 열린 자물쇠 -->
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+          </svg>
+        </button>
         <button @click="zoomIn" title="확대">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8" />
@@ -302,7 +369,13 @@ const {
   refresh,
   getConnectedNodes,
   moveNoteToCluster,
-  resetNoteCluster
+  resetNoteCluster,
+  lockedNotes,
+  loadLockedNotes,
+  toggleNoteLock,
+  isNoteLocked,
+  lockNotesBatch,
+  areAllFilteredNodesLocked
 } = useGraph();
 
 // Refs
@@ -373,6 +446,7 @@ const handleMoveToCluster = async (clusterId: number) => {
  */
 const handleResetNoteCluster = async () => {
   if (!contextMenuNode.value) return;
+  if (isNoteLocked(contextMenuNode.value.id)) return; // 잠금된 노트는 복원 불가
   
   await resetNoteCluster(contextMenuNode.value.id);
   showContextMenu.value = false;
@@ -381,6 +455,29 @@ const handleResetNoteCluster = async () => {
   // 시뮬레이션 재시작
   await nextTick();
   initSimulation();
+};
+
+/**
+ * 노트 클러스터 잠금/해제 토글
+ */
+const handleToggleLock = async () => {
+  if (!contextMenuNode.value) return;
+  
+  const isLocked = isNoteLocked(contextMenuNode.value.id);
+  await toggleNoteLock(contextMenuNode.value.id, !isLocked);
+};
+
+/**
+ * 현재 필터된 모든 노트 잠금/해제
+ */
+const handleLockAllFiltered = async () => {
+  const nodes = filteredNodes.value;
+  if (nodes.length === 0) return;
+  
+  const allLocked = areAllFilteredNodesLocked.value;
+  const notePaths = nodes.map(n => n.id);
+  
+  await lockNotesBatch(notePaths, !allLocked);
 };
 
 /**
@@ -583,6 +680,9 @@ watch([filteredNodes, filteredEdges], () => {
 
 // 마운트
 onMounted(async () => {
+  // 잠금된 노트 목록 먼저 로드
+  await loadLockedNotes();
+  
   await loadGraphData();
   await nextTick();
   initSimulation();
@@ -703,6 +803,28 @@ onUnmounted(() => {
   color: var(--accent-primary, #8b5cf6);
 }
 
+.zoom-controls .lock-all-btn {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--accent-primary, #8b5cf6);
+  margin-bottom: 8px;
+}
+
+.zoom-controls .lock-all-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.zoom-controls .lock-all-btn.locked {
+  background: var(--accent-primary, #8b5cf6);
+  color: #fff;
+}
+
+.zoom-controls .lock-all-btn.locked:hover {
+  background: rgba(239, 68, 68, 0.8);
+  border-color: rgba(239, 68, 68, 0.8);
+}
+
 /* 컨텍스트 메뉴 */
 .context-menu {
   position: fixed;
@@ -804,6 +926,30 @@ onUnmounted(() => {
   background: var(--bg-secondary);
 }
 
+.context-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lock-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 4px;
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.context-menu-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lock-btn,
 .reset-btn {
   display: flex;
   align-items: center;
@@ -820,10 +966,39 @@ onUnmounted(() => {
   transition: all 0.15s ease;
 }
 
-.reset-btn:hover {
+.lock-btn:hover,
+.reset-btn:hover:not(:disabled) {
   background: var(--bg-hover);
   border-color: var(--accent-primary, #8b5cf6);
   color: var(--accent-primary, #8b5cf6);
+}
+
+.lock-btn.locked {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.lock-btn.locked:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.reset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 잠금된 노드 스타일 */
+.node.locked .node-circle {
+  stroke: var(--accent-primary, #8b5cf6);
+  stroke-width: 2px;
+  stroke-dasharray: 4 2;
+}
+
+.lock-icon {
+  pointer-events: none;
 }
 
 /* 로딩/에러/빈 상태 */

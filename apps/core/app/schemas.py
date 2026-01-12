@@ -424,3 +424,9 @@ class MoveNoteToClusterPayload(BaseModel):
     """노트를 다른 클러스터로 이동"""
     notePath: str = Field(..., description="노트 파일 경로")
     targetClusterId: int = Field(..., description="대상 클러스터 ID")
+
+
+class LockNoteClusterPayload(BaseModel):
+    """노트 클러스터 잠금/해제"""
+    notePath: str = Field(..., description="노트 파일 경로")
+    locked: bool = Field(..., description="잠금 여부")

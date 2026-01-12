@@ -257,6 +257,110 @@ export function useGraph() {
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 노트 클러스터 잠금 API
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 잠금된 노트 목록
+   */
+  const lockedNotes = ref<Set<string>>(new Set());
+
+  /**
+   * 잠금된 노트 목록 로드
+   */
+  const loadLockedNotes = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/locked-notes`);
+      if (response.ok) {
+        const data = await response.json();
+        lockedNotes.value = new Set(data.lockedNotes || []);
+      }
+    } catch (err) {
+      console.error('Failed to load locked notes:', err);
+    }
+  };
+
+  /**
+   * 노트 클러스터 잠금/해제
+   */
+  const toggleNoteLock = async (notePath: string, lock: boolean) => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/lock-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notePath, locked: lock })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // 로컬 상태 업데이트 (새 Set 생성으로 reactivity 보장)
+      const newSet = new Set(lockedNotes.value);
+      if (lock) {
+        newSet.add(notePath);
+      } else {
+        newSet.delete(notePath);
+      }
+      lockedNotes.value = newSet;
+
+      return true;
+    } catch (err) {
+      console.error('Failed to toggle note lock:', err);
+      return false;
+    }
+  };
+
+  /**
+   * 노트가 잠금되어 있는지 확인
+   */
+  const isNoteLocked = (notePath: string) => {
+    return lockedNotes.value.has(notePath);
+  };
+
+  /**
+   * 여러 노트 일괄 잠금/해제
+   */
+  const lockNotesBatch = async (notePaths: string[], lock: boolean) => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/lock-notes-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notePaths, locked: lock })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // 로컬 상태 업데이트 (새 Set 생성으로 reactivity 보장)
+      const newSet = new Set(lockedNotes.value);
+      notePaths.forEach(path => {
+        if (lock) {
+          newSet.add(path);
+        } else {
+          newSet.delete(path);
+        }
+      });
+      lockedNotes.value = newSet;
+
+      return true;
+    } catch (err) {
+      console.error('Failed to batch lock notes:', err);
+      return false;
+    }
+  };
+
+  /**
+   * 현재 필터된 노트들의 잠금 상태 확인
+   */
+  const areAllFilteredNodesLocked = computed(() => {
+    const nodes = filteredNodes.value;
+    if (nodes.length === 0) return false;
+    return nodes.every(n => lockedNotes.value.has(n.id));
+  });
+
   return {
     // 상태
     graphData,
@@ -287,6 +391,14 @@ export function useGraph() {
     updateCluster,
     moveNoteToCluster,
     resetNoteCluster,
-    resetClusterSettings
+    resetClusterSettings,
+
+    // 노트 클러스터 잠금
+    lockedNotes,
+    loadLockedNotes,
+    toggleNoteLock,
+    isNoteLocked,
+    lockNotesBatch,
+    areAllFilteredNodesLocked
   };
 }
