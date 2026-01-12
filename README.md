@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="CueNote Logo" width="300" />
+  <img src="assets/logo.png" alt="CueNote Logo" width="300" />
 </p>
 <p align="center">
   <strong>AI-Powered Local-First Markdown Note-Taking App</strong>
