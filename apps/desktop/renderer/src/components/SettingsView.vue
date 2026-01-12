@@ -487,7 +487,7 @@
           </div>
         </section>
 
-        <!-- OCR Model Section -->
+        <!-- OCR Engine Section -->
         <section class="settings-section">
           <h3 class="section-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -496,144 +496,87 @@
               <path d="M12 18v-6"/>
               <path d="m9 15 3-3 3 3"/>
             </svg>
-            OCR 모델 (문서 변환)
+            OCR 엔진 (문서 변환)
           </h3>
 
-          <div class="ocr-status-card">
-            <div class="ocr-status-header">
-              <div class="ocr-status-icon" :class="{ ready: ocrStatus?.model_downloaded }">
-                <svg v-if="ocrStatus?.model_downloaded" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 16v-4"/>
-                  <path d="M12 8h.01"/>
-                </svg>
-              </div>
-              <div class="ocr-status-info">
-                <span class="ocr-status-title">EasyOCR 모델</span>
-                <span class="ocr-status-desc">
-                  {{ ocrStatus?.model_downloaded ? '다운로드 완료 - 사용 가능' : '다운로드 필요 (~100MB)' }}
-                </span>
-              </div>
+          <!-- OCR 엔진 선택 -->
+          <div class="ocr-engine-selector">
+            <label class="setting-label">OCR 엔진 선택</label>
+            <div class="ocr-engine-options">
+              <label 
+                v-for="engine in ocrEngines" 
+                :key="engine.id"
+                class="ocr-engine-option"
+                :class="{ 
+                  selected: settings.ocr?.engine === engine.id,
+                  disabled: !engine.available && engine.id !== 'gemini'
+                }"
+              >
+                <input 
+                  type="radio" 
+                  name="ocr-engine" 
+                  :value="engine.id"
+                  :checked="settings.ocr?.engine === engine.id"
+                  :disabled="!engine.available && engine.id !== 'gemini'"
+                  @change="selectOcrEngine(engine.id)"
+                />
+                <div class="engine-info">
+                  <div class="engine-header">
+                    <span class="engine-name">{{ engine.name }}</span>
+                    <span v-if="engine.accuracy" class="engine-accuracy">정확도: {{ engine.accuracy }}</span>
+                  </div>
+                  <span class="engine-desc">{{ engine.description }}</span>
+                  <div class="engine-tags">
+                    <span v-if="engine.requires_api_key" class="tag api-key">API 키 필요</span>
+                    <span v-else class="tag free">무료</span>
+                    <span v-for="lang in engine.languages?.slice(0, 3)" :key="lang" class="tag lang">{{ lang }}</span>
+                  </div>
+                </div>
+              </label>
             </div>
+          </div>
 
-            <div class="ocr-languages">
-              <span class="lang-label">지원 언어:</span>
-              <span class="lang-tag">한국어</span>
-              <span class="lang-tag">영어</span>
+          <!-- Gemini Vision 모델 선택 (Gemini 선택 시) -->
+          <div v-if="settings.ocr?.engine === 'gemini'" class="gemini-vision-settings">
+            <label class="setting-label">Vision 모델 선택</label>
+            <div class="vision-model-list">
+              <label 
+                v-for="model in geminiVisionModels" 
+                :key="model.id"
+                class="vision-model-option"
+                :class="{ selected: settings.ocr?.geminiModel === model.id }"
+              >
+                <input 
+                  type="radio" 
+                  name="gemini-vision-model" 
+                  :value="model.id"
+                  :checked="settings.ocr?.geminiModel === model.id"
+                  @change="selectGeminiVisionModel(model.id)"
+                />
+                <div class="vision-model-info">
+                  <div class="vision-model-header">
+                    <span class="vision-model-name">{{ model.name }}</span>
+                    <span v-if="model.recommended" class="badge recommended">추천</span>
+                    <span v-if="model.free" class="badge free">무료</span>
+                    <span v-else class="badge paid">유료</span>
+                  </div>
+                  <span class="vision-model-desc">{{ model.description }}</span>
+                </div>
+              </label>
             </div>
-
-            <button 
-              v-if="!ocrStatus?.model_downloaded"
-              class="btn-download-ocr"
-              :disabled="ocrDownloading"
-              @click="downloadOcrModel"
-            >
-              <span v-if="ocrDownloading" class="loading-spinner"></span>
-              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {{ ocrDownloading ? '다운로드 중... (잠시 기다려주세요)' : '모델 다운로드' }}
-            </button>
-
-            <div v-if="ocrStatus?.model_downloaded" class="ocr-ready-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              PDF/이미지 문서 변환 기능 사용 가능
-            </div>
-
-            <div v-if="ocrDownloadError" class="ocr-error">
+            
+            <div class="gemini-ocr-notice">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <path d="M12 16v-4"/>
+                <path d="M12 8h.01"/>
               </svg>
-              {{ ocrDownloadError }}
+              <span>Gemini Vision OCR은 위에서 설정한 Gemini API 키를 사용합니다. 무료 모델은 분당/일당 요청 제한이 있습니다.</span>
             </div>
           </div>
 
           <p class="ocr-hint">
-            PDF나 이미지에서 텍스트를 추출하는 OCR 모델입니다. 에디터 툴바의 "문서 변환" 버튼으로 사용할 수 있습니다.
-          </p>
-        </section>
-
-        <!-- Handwriting OCR Section -->
-        <section class="settings-section">
-          <h3 class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-              <path d="m15 5 4 4"/>
-            </svg>
-            손글씨 OCR 모델
-          </h3>
-
-          <div class="ocr-status-card handwriting-card">
-            <div class="ocr-status-header">
-              <div class="ocr-status-icon" :class="{ ready: handwritingStatus?.model_downloaded }">
-                <svg v-if="handwritingStatus?.model_downloaded" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 16v-4"/>
-                  <path d="M12 8h.01"/>
-                </svg>
-              </div>
-              <div class="ocr-status-info">
-                <span class="ocr-status-title">TrOCR (Microsoft)</span>
-                <span class="ocr-status-desc">
-                  {{ handwritingStatus?.model_downloaded ? '다운로드 완료 - 사용 가능' : '다운로드 필요 (~1GB)' }}
-                </span>
-              </div>
-            </div>
-
-            <div class="ocr-languages">
-              <span class="lang-label">특징:</span>
-              <span class="lang-tag handwriting-tag">손글씨 인식</span>
-              <span class="lang-tag">영어 최적화</span>
-            </div>
-
-            <button 
-              v-if="!handwritingStatus?.model_downloaded"
-              class="btn-download-ocr btn-download-handwriting"
-              :disabled="handwritingDownloading"
-              @click="downloadHandwritingModel"
-            >
-              <span v-if="handwritingDownloading" class="loading-spinner"></span>
-              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {{ handwritingDownloading ? '다운로드 중... (약 1GB, 시간이 걸립니다)' : '모델 다운로드' }}
-            </button>
-
-            <div v-if="handwritingStatus?.model_downloaded" class="ocr-ready-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              손글씨 인식 기능 사용 가능
-            </div>
-
-            <div v-if="handwritingDownloadError" class="ocr-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              {{ handwritingDownloadError }}
-            </div>
-          </div>
-
-          <p class="ocr-hint">
-            손글씨 텍스트를 인식하는 AI 모델입니다. 문서 변환 시 "손글씨 인식 모드"를 선택하면 사용됩니다. 깔끔한 필체일수록 인식률이 높습니다.
+            에디터 툴바의 "문서 변환" 버튼으로 PDF나 이미지에서 텍스트를 추출할 수 있습니다.
           </p>
         </section>
       </div>
@@ -742,6 +685,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, nextTick } from 'vue';
 import { useSettings, useI18n, useFonts, useShortcuts, formatShortcut } from '../composables';
+import { GEMINI_VISION_MODELS } from '../composables/useSettings';
 import type { ShortcutConfig } from '../composables/useShortcuts';
 
 defineEmits<{
@@ -982,35 +926,80 @@ function initTheme() {
 }
 
 // OCR 상태
+interface OCREngine {
+  id: string;
+  name: string;
+  description: string;
+  available: boolean;
+  requires_api_key: boolean;
+  accuracy: string;
+  speed: string;
+  languages: string[];
+}
+
 interface OCRStatus {
   installed: boolean;
   model_downloaded: boolean;
   model_path: string;
   languages: string[];
-  downloading: boolean;
+  engine: string;
+  engine_name: string;
+  engine_description: string;
+  requires_api_key: boolean;
 }
+
+// 기본 OCR 엔진 목록 (API 실패 시 fallback)
+const DEFAULT_OCR_ENGINES: OCREngine[] = [
+  {
+    id: 'rapidocr',
+    name: 'RapidOCR',
+    description: '로컬 OCR, 무료, 인터넷 불필요',
+    available: true,
+    requires_api_key: false,
+    accuracy: '보통',
+    speed: '빠름',
+    languages: ['한국어', '영어', '일본어', '중국어'],
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini Vision',
+    description: 'Google AI 기반, 최고 정확도 (API 키 필요)',
+    available: true,
+    requires_api_key: true,
+    accuracy: '최상',
+    speed: '보통',
+    languages: ['한국어', '영어', '일본어', '중국어', '다국어'],
+  },
+];
+
+const ocrEngines = ref<OCREngine[]>(DEFAULT_OCR_ENGINES);
 const ocrStatus = ref<OCRStatus | null>(null);
 const ocrDownloading = ref(false);
 const ocrDownloadError = ref('');
 
-// 손글씨 OCR 상태
-interface HandwritingStatus {
-  installed: boolean;
-  model_downloaded: boolean;
-  model_name: string;
-  model_path: string;
-  downloading: boolean;
-}
-const handwritingStatus = ref<HandwritingStatus | null>(null);
-const handwritingDownloading = ref(false);
-const handwritingDownloadError = ref('');
-
 const CORE_BASE = 'http://127.0.0.1:8787';
+
+// OCR 엔진 목록 가져오기
+async function fetchOcrEngines() {
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/engines`);
+    if (res.ok) {
+      const engines = await res.json();
+      if (engines && engines.length > 0) {
+        ocrEngines.value = engines;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch OCR engines, using defaults:', error);
+    // 기본값 유지
+  }
+}
 
 // OCR 상태 확인
 async function checkOcrStatus() {
   try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/status`);
+    const engine = settings.value.ocr?.engine || 'rapidocr';
+    const res = await fetch(`${CORE_BASE}/ai/ocr/status?engine=${engine}`);
     if (res.ok) {
       ocrStatus.value = await res.json();
     }
@@ -1019,66 +1008,27 @@ async function checkOcrStatus() {
   }
 }
 
-// OCR 모델 다운로드
-async function downloadOcrModel() {
-  ocrDownloading.value = true;
-  ocrDownloadError.value = '';
-  
-  try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/download`, {
-      method: 'POST'
-    });
-    
-    const data = await res.json();
-    
-    if (data.success) {
-      await checkOcrStatus();
-    } else {
-      ocrDownloadError.value = data.message || '모델 다운로드에 실패했습니다.';
-    }
-  } catch (error) {
-    console.error('OCR model download failed:', error);
-    ocrDownloadError.value = '모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
-  } finally {
-    ocrDownloading.value = false;
+// OCR 엔진 선택
+function selectOcrEngine(engineId: string) {
+  if (!settings.value.ocr) {
+    settings.value.ocr = { engine: 'rapidocr', geminiModel: 'gemini-2.0-flash' };
   }
+  settings.value.ocr.engine = engineId;
+  saveSettings();
+  checkOcrStatus();
 }
 
-// 손글씨 OCR 상태 확인
-async function checkHandwritingStatus() {
-  try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/status`);
-    if (res.ok) {
-      handwritingStatus.value = await res.json();
-    }
-  } catch (error) {
-    console.error('Failed to check handwriting status:', error);
-  }
-}
+// Gemini Vision 모델 목록
+const geminiVisionModels = GEMINI_VISION_MODELS;
 
-// 손글씨 OCR 모델 다운로드
-async function downloadHandwritingModel() {
-  handwritingDownloading.value = true;
-  handwritingDownloadError.value = '';
-  
-  try {
-    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/download`, {
-      method: 'POST'
-    });
-    
-    const data = await res.json();
-    
-    if (data.success) {
-      await checkHandwritingStatus();
-    } else {
-      handwritingDownloadError.value = data.message || '손글씨 모델 다운로드에 실패했습니다.';
-    }
-  } catch (error) {
-    console.error('Handwriting model download failed:', error);
-    handwritingDownloadError.value = '손글씨 모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
-  } finally {
-    handwritingDownloading.value = false;
+// Gemini Vision 모델 선택
+function selectGeminiVisionModel(modelId: string) {
+  if (!settings.value.ocr) {
+    settings.value.ocr = { engine: 'gemini', geminiModel: modelId };
+  } else {
+    settings.value.ocr.geminiModel = modelId;
   }
+  saveSettings();
 }
 
 // 페이지 마운트 시 데이터 로드
@@ -1086,8 +1036,8 @@ onMounted(async () => {
   initTheme();
   initFonts();
   await initSettings();
+  await fetchOcrEngines();
   await checkOcrStatus();
-  await checkHandwritingStatus();
 });
 
 async function handleRefreshOllama() {
@@ -1833,6 +1783,225 @@ function openApiKeyPage() {
   margin-top: 12px;
   font-size: 12px;
   color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* OCR 엔진 선택 스타일 */
+.ocr-engine-selector {
+  margin-bottom: 16px;
+}
+
+.ocr-engine-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ocr-engine-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ocr-engine-option:hover:not(.disabled) {
+  border-color: var(--accent);
+  background: rgba(201, 167, 108, 0.05);
+}
+
+.ocr-engine-option.selected {
+  border-color: var(--accent);
+  background: rgba(201, 167, 108, 0.1);
+}
+
+.ocr-engine-option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ocr-engine-option input[type="radio"] {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.engine-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.engine-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.engine-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.engine-accuracy {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.engine-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.engine-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.engine-tags .tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.engine-tags .tag.api-key {
+  background: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.engine-tags .tag.free {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.engine-tags .tag.lang {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+/* Gemini Vision 설정 */
+.gemini-vision-settings {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.vision-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.vision-model-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vision-model-option:hover {
+  border-color: var(--accent);
+  background: rgba(201, 167, 108, 0.05);
+}
+
+.vision-model-option.selected {
+  border-color: var(--accent);
+  background: rgba(201, 167, 108, 0.1);
+}
+
+.vision-model-option input[type="radio"] {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.vision-model-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.vision-model-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vision-model-name {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.vision-model-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.badge {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge.recommended {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.badge.free {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.badge.paid {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.gemini-ocr-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(201, 167, 108, 0.1);
+  border: 1px solid rgba(201, 167, 108, 0.2);
+  margin-top: 12px;
+}
+
+.gemini-ocr-notice svg {
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.gemini-ocr-notice span {
+  font-size: 12px;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 

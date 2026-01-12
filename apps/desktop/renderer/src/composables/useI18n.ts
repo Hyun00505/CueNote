@@ -50,9 +50,6 @@ type TranslationKeys = {
   'settings.downloading': string;
   'settings.ocrReady': string;
   'settings.ocrHint': string;
-  'settings.handwritingOcr': string;
-  'settings.handwritingReady': string;
-  'settings.handwritingHint': string;
   'settings.supportedLangs': string;
   'settings.features': string;
 
@@ -256,9 +253,6 @@ const ko: TranslationKeys = {
   'settings.downloading': '다운로드 중...',
   'settings.ocrReady': 'PDF/이미지 문서 변환 기능 사용 가능',
   'settings.ocrHint': 'PDF나 이미지에서 텍스트를 추출하는 OCR 모델입니다. 에디터 툴바의 "문서 변환" 버튼으로 사용할 수 있습니다.',
-  'settings.handwritingOcr': '손글씨 OCR 모델',
-  'settings.handwritingReady': '손글씨 인식 기능 사용 가능',
-  'settings.handwritingHint': '손글씨 텍스트를 인식하는 AI 모델입니다. 문서 변환 시 "손글씨 인식 모드"를 선택하면 사용됩니다.',
   'settings.supportedLangs': '지원 언어:',
   'settings.features': '특징:',
 
@@ -462,9 +456,6 @@ const en: TranslationKeys = {
   'settings.downloading': 'Downloading...',
   'settings.ocrReady': 'PDF/Image conversion ready',
   'settings.ocrHint': 'OCR model extracts text from PDFs and images. Use the "Convert Document" button in the editor toolbar.',
-  'settings.handwritingOcr': 'Handwriting OCR Model',
-  'settings.handwritingReady': 'Handwriting recognition ready',
-  'settings.handwritingHint': 'AI model for recognizing handwritten text. Select "Handwriting mode" when converting documents.',
   'settings.supportedLangs': 'Supported languages:',
   'settings.features': 'Features:',
 
