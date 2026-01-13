@@ -277,6 +277,54 @@
           </span>
         </div>
 
+        <!-- 클러스터 변경 섹션 -->
+        <div class="cluster-change-section">
+          <h4>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <circle cx="4" cy="8" r="2" />
+              <circle cx="20" cy="8" r="2" />
+            </svg>
+            클러스터 소속
+          </h4>
+          <div class="cluster-select-list">
+            <button
+              v-for="cluster in clusters"
+              :key="cluster.id"
+              class="cluster-select-item"
+              :class="{ active: selectedNode.cluster === cluster.id }"
+              @click="handleMoveSelectedToCluster(cluster.id)"
+            >
+              <span class="cluster-dot" :style="{ background: cluster.color }"></span>
+              <span class="cluster-name">{{ cluster.label }}</span>
+              <svg 
+                v-if="selectedNode.cluster === cluster.id" 
+                class="check-icon"
+                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </button>
+          </div>
+          <div class="cluster-change-actions">
+            <button 
+              class="lock-toggle-btn"
+              :class="{ locked: selectedNode && isNoteLocked(selectedNode.id) }"
+              @click="handleToggleSelectedLock"
+            >
+              <svg v-if="selectedNode && isNoteLocked(selectedNode.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+              </svg>
+              {{ selectedNode && isNoteLocked(selectedNode.id) ? '잠금 해제' : 'AI 분류 잠금' }}
+            </button>
+          </div>
+        </div>
+
         <!-- 연결된 노트 -->
         <div class="connected-notes">
           <h4>연결된 노트 ({{ connectedNotes.length }})</h4>
@@ -334,6 +382,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import * as d3Force from 'd3-force';
 import * as d3Selection from 'd3-selection';
 import * as d3Zoom from 'd3-zoom';
+import * as d3Drag from 'd3-drag';
 import { useGraph } from '../composables/useGraph';
 import type { GraphNode, GraphEdge } from '../types';
 
@@ -399,6 +448,9 @@ const renderedEdges = ref<Array<{
 const currentZoom = ref({ k: 1, x: 0, y: 0 });
 let zoomBehavior: d3Zoom.ZoomBehavior<SVGSVGElement, unknown> | null = null;
 
+// 드래그 상태
+const isDragging = ref(false);
+
 // 치수
 const dimensions = computed(() => ({
   width: 1200,
@@ -458,13 +510,37 @@ const handleResetNoteCluster = async () => {
 };
 
 /**
- * 노트 클러스터 잠금/해제 토글
+ * 노트 클러스터 잠금/해제 토글 (컨텍스트 메뉴)
  */
 const handleToggleLock = async () => {
   if (!contextMenuNode.value) return;
   
   const isLocked = isNoteLocked(contextMenuNode.value.id);
   await toggleNoteLock(contextMenuNode.value.id, !isLocked);
+};
+
+/**
+ * 선택된 노드를 다른 클러스터로 이동 (상세 패널)
+ */
+const handleMoveSelectedToCluster = async (clusterId: number) => {
+  if (!selectedNode.value) return;
+  if (selectedNode.value.cluster === clusterId) return; // 같은 클러스터면 무시
+  
+  await moveNoteToCluster(selectedNode.value.id, clusterId);
+  
+  // 시뮬레이션 재시작
+  await nextTick();
+  initSimulation();
+};
+
+/**
+ * 선택된 노드 잠금/해제 토글 (상세 패널)
+ */
+const handleToggleSelectedLock = async () => {
+  if (!selectedNode.value) return;
+  
+  const isLocked = isNoteLocked(selectedNode.value.id);
+  await toggleNoteLock(selectedNode.value.id, !isLocked);
 };
 
 /**
@@ -598,22 +674,86 @@ const updateEdges = () => {
 };
 
 /**
- * 줌 초기화
+ * 줌 초기화 (버그 수정됨)
+ * @param resetToIdentity - true면 줌을 초기 상태로 리셋, false면 현재 상태 유지
  */
-const initZoom = () => {
+const initZoom = (resetToIdentity = false) => {
   if (!svgRef.value || !zoomGroupRef.value) return;
 
   const svg = d3Selection.select(svgRef.value);
   const zoomGroup = d3Selection.select(zoomGroupRef.value);
 
+  // 현재 줌 상태 저장
+  const currentTransform = currentZoom.value;
+
+  // 기존 줌 동작 제거
+  svg.on('.zoom', null);
+
   zoomBehavior = d3Zoom.zoom<SVGSVGElement, unknown>()
     .scaleExtent([0.2, 4])
+    // 노드 드래그 중에는 줌 비활성화
+    .filter((event) => {
+      // 노드 위에서 드래그 중이면 줌 비활성화
+      if (isDragging.value) return false;
+      // 우클릭은 무시
+      if (event.button === 2) return false;
+      // 그 외 휠/더블클릭/터치 허용
+      return !event.target.closest('.node');
+    })
     .on('zoom', (event) => {
       currentZoom.value = event.transform;
       zoomGroup.attr('transform', event.transform.toString());
     });
 
   svg.call(zoomBehavior);
+  
+  // 첫 초기화시에만 줌 리셋, 이후에는 현재 상태 유지
+  if (resetToIdentity) {
+    svg.call(zoomBehavior.transform, d3Zoom.zoomIdentity);
+  } else {
+    // 현재 줌 상태 복원
+    svg.call(zoomBehavior.transform, currentTransform);
+  }
+};
+
+/**
+ * 노드 드래그 기능 초기화
+ */
+const initDrag = () => {
+  if (!svgRef.value) return;
+  
+  const svg = d3Selection.select(svgRef.value);
+  const nodes = svg.selectAll('.node');
+  
+  const dragBehavior = d3Drag.drag<SVGGElement, GraphNode>()
+    .on('start', (event, d) => {
+      isDragging.value = true;
+      // 드래그 시작 시 시뮬레이션 활성화
+      if (simulation.value) {
+        simulation.value.alphaTarget(0.3).restart();
+      }
+      // 노드 고정
+      d.fx = d.x;
+      d.fy = d.y;
+    })
+    .on('drag', (event, d) => {
+      // 줌 변환 적용하여 좌표 계산
+      const transform = currentZoom.value;
+      d.fx = (event.sourceEvent.offsetX - transform.x) / transform.k;
+      d.fy = (event.sourceEvent.offsetY - transform.y) / transform.k;
+    })
+    .on('end', (event, d) => {
+      isDragging.value = false;
+      // 드래그 종료 시 시뮬레이션 감속
+      if (simulation.value) {
+        simulation.value.alphaTarget(0);
+      }
+      // 노드 고정 해제 (원하면 고정 유지 가능)
+      d.fx = null;
+      d.fy = null;
+    });
+  
+  nodes.call(dragBehavior as any);
 };
 
 /**
@@ -674,8 +814,12 @@ defineExpose({
 });
 
 // 데이터 변경 감지
-watch([filteredNodes, filteredEdges], () => {
+watch([filteredNodes, filteredEdges], async () => {
   initSimulation();
+  await nextTick();
+  initDrag();
+  // 줌 동작 재초기화 (필터링 후 줌이 안되는 버그 수정)
+  initZoom();
 }, { deep: true });
 
 // 마운트
@@ -686,7 +830,12 @@ onMounted(async () => {
   await loadGraphData();
   await nextTick();
   initSimulation();
-  initZoom();
+  initZoom(true); // 첫 마운트 시에만 줌 리셋
+  
+  // 약간의 딜레이 후 드래그 초기화 (노드 렌더링 대기)
+  setTimeout(() => {
+    initDrag();
+  }, 100);
   
   // 컨텍스트 메뉴 외부 클릭 리스너
   document.addEventListener('click', handleOutsideClick);
@@ -736,8 +885,12 @@ onUnmounted(() => {
 
 /* 노드 */
 .node {
-  cursor: pointer;
+  cursor: grab;
   transition: opacity 0.2s;
+}
+
+.node:active {
+  cursor: grabbing;
 }
 
 .node.dimmed {
@@ -1145,6 +1298,116 @@ onUnmounted(() => {
 
 .detail-meta svg {
   flex-shrink: 0;
+}
+
+/* 클러스터 변경 섹션 */
+.cluster-change-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+}
+
+.cluster-change-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.cluster-change-section h4 svg {
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.cluster-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.cluster-select-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.cluster-select-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary, #8b5cf6);
+}
+
+.cluster-select-item.active {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: var(--accent-primary, #8b5cf6);
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.cluster-select-item .cluster-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cluster-select-item .cluster-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cluster-select-item .check-icon {
+  flex-shrink: 0;
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.cluster-change-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.lock-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lock-toggle-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary, #8b5cf6);
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.lock-toggle-btn.locked {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--accent-primary, #8b5cf6);
 }
 
 /* 연결된 노트 */

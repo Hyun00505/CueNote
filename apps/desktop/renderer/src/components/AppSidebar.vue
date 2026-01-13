@@ -103,23 +103,34 @@
               </svg>
               <span>AI 클러스터</span>
             </div>
-            <button 
-              class="refresh-graph-btn"
-              @click="emit('refresh-graph')"
-              :disabled="isGraphLoading"
-              title="클러스터 다시 분석"
-            >
-              <svg 
-                width="12" height="12" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                stroke-width="2"
-                :class="{ spinning: isGraphLoading }"
+            <div class="cluster-header-actions">
+              <button 
+                class="add-cluster-btn"
+                @click="openClusterCreate"
+                title="새 클러스터 추가"
               >
-                <path d="M21 2v6h-6M3 22v-6h6M21 12A9 9 0 0 0 6 6l-3 3M3 12a9 9 0 0 0 15 6l3-3" />
-              </svg>
-            </button>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </button>
+              <button 
+                class="refresh-graph-btn"
+                @click="emit('refresh-graph')"
+                :disabled="isGraphLoading"
+                title="클러스터 다시 분석"
+              >
+                <svg 
+                  width="12" height="12" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="2"
+                  :class="{ spinning: isGraphLoading }"
+                >
+                  <path d="M21 2v6h-6M3 22v-6h6M21 12A9 9 0 0 0 6 6l-3 3M3 12a9 9 0 0 0 15 6l3-3" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- 그래프 통계 -->
@@ -465,9 +476,11 @@
   <ClusterEditModal
     :visible="showClusterEditModal"
     :cluster="editingCluster"
+    :isCreateMode="isClusterCreateMode"
     @close="closeClusterEdit"
     @save="handleClusterSave"
     @reset="handleClusterReset"
+    @create="handleClusterCreate"
   />
 </template>
 
@@ -505,6 +518,7 @@ const emit = defineEmits<{
   'similarity-change': [value: number];
   'update-cluster': [data: { id: number; label: string; color: string; keywords: string[] }];
   'reset-cluster': [clusterId: number];
+  'create-cluster': [data: { label: string; color: string; keywords: string[] }];
 }>();
 
 // i18n
@@ -633,15 +647,24 @@ function handleSimilarityInput(e: Event) {
 // Cluster Edit Modal State
 const showClusterEditModal = ref(false);
 const editingCluster = ref<ClusterInfo | null>(null);
+const isClusterCreateMode = ref(false);
 
 function openClusterEdit(cluster: ClusterInfo) {
   editingCluster.value = cluster;
+  isClusterCreateMode.value = false;
+  showClusterEditModal.value = true;
+}
+
+function openClusterCreate() {
+  editingCluster.value = null;
+  isClusterCreateMode.value = true;
   showClusterEditModal.value = true;
 }
 
 function closeClusterEdit() {
   showClusterEditModal.value = false;
   editingCluster.value = null;
+  isClusterCreateMode.value = false;
 }
 
 function handleClusterSave(data: { id: number; label: string; color: string; keywords: string[] }) {
@@ -650,6 +673,10 @@ function handleClusterSave(data: { id: number; label: string; color: string; key
 
 function handleClusterReset(clusterId: number) {
   emit('reset-cluster', clusterId);
+}
+
+function handleClusterCreate(data: { label: string; color: string; keywords: string[] }) {
+  emit('create-cluster', data);
 }
 
 // 환경 초기화
@@ -1933,6 +1960,32 @@ async function handleEmptyTrash() {
 }
 
 .cluster-title svg {
+  color: var(--accent-primary, #8b5cf6);
+}
+
+.cluster-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.add-cluster-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-cluster-btn:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.2);
   color: var(--accent-primary, #8b5cf6);
 }
 

@@ -174,6 +174,8 @@ async def get_graph_data(payload: GraphDataPayload):
     
     # 15. 클러스터 정보 생성 (커스텀 설정 적용)
     clusters = []
+    
+    # 15-1. 노트가 있는 클러스터
     for cluster_id, contents in final_cluster_contents.items():
         ai_label, ai_keywords = cluster_label_map.get(cluster_id, (f"주제 {cluster_id + 1}", []))
         
@@ -181,14 +183,37 @@ async def get_graph_data(payload: GraphDataPayload):
         custom = customizations.get(str(cluster_id), {})
         final_label = custom.get("label") or ai_label
         final_color = custom.get("color") or CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]
-        final_keywords = custom.get("keywords") or ai_keywords
+        # 빈 배열 []도 유효한 사용자 설정으로 처리 (키워드를 지운 경우)
+        custom_keywords = custom.get("keywords")
+        final_keywords = custom_keywords if custom_keywords is not None else ai_keywords
         
         clusters.append(ClusterInfo(
             id=cluster_id,
             label=final_label,
             color=final_color,
             noteCount=len(contents),
-            keywords=final_keywords
+            keywords=final_keywords or []
+        ))
+    
+    # 15-2. 사용자가 만든 빈 클러스터 (노트가 없는 커스텀 클러스터)
+    existing_cluster_ids = set(final_cluster_contents.keys())
+    for cluster_id_str, custom in customizations.items():
+        try:
+            cluster_id = int(cluster_id_str)
+        except ValueError:
+            continue
+        
+        # 이미 추가된 클러스터는 스킵
+        if cluster_id in existing_cluster_ids:
+            continue
+        
+        # 사용자가 만든 빈 클러스터 추가
+        clusters.append(ClusterInfo(
+            id=cluster_id,
+            label=custom.get("label", f"클러스터 {cluster_id + 1}"),
+            color=custom.get("color", CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]),
+            noteCount=0,
+            keywords=custom.get("keywords", [])
         ))
     
     elapsed = time.time() - start_time
@@ -572,7 +597,143 @@ async def get_note_cluster_info(note_path: str):
             "id": cluster_id,
             "label": custom.get("label") or ai_label,
             "color": custom.get("color") or default_color,
-            "keywords": custom.get("keywords") or ai_keywords
+            "keywords": custom.get("keywords") if "keywords" in custom else ai_keywords
         },
         "isLocked": normalized_path in locked_notes
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 사용자 정의 클러스터 관리 API
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/cluster/create")
+async def create_custom_cluster(payload: dict):
+    """새 사용자 정의 클러스터 생성
+    
+    payload: { "label": string, "color": string, "keywords": list[string] }
+    """
+    vault_path = get_current_vault_path()
+    cache = GraphCache(vault_path)
+    
+    label = payload.get("label", "새 클러스터")
+    color = payload.get("color", "#8b5cf6")
+    keywords = payload.get("keywords", [])
+    
+    # 새 클러스터 ID 할당 (기존 최대 ID + 1)
+    customizations = cache.get_cluster_customizations()
+    ai_labels = cache.get_ai_cluster_labels()
+    
+    existing_ids = set()
+    for key in customizations.keys():
+        try:
+            existing_ids.add(int(key))
+        except ValueError:
+            pass
+    for key in ai_labels.keys():
+        existing_ids.add(key)
+    
+    new_cluster_id = max(existing_ids, default=-1) + 1
+    
+    # 클러스터 설정 저장
+    cache.set_cluster_customization(
+        new_cluster_id,
+        label=label,
+        color=color,
+        keywords=keywords
+    )
+    cache.save()
+    
+    logger.info(f"Created custom cluster {new_cluster_id}: {label}")
+    
+    return {
+        "status": "ok",
+        "cluster": {
+            "id": new_cluster_id,
+            "label": label,
+            "color": color,
+            "keywords": keywords,
+            "noteCount": 0
+        }
+    }
+
+
+@router.delete("/cluster/{cluster_id}")
+async def delete_custom_cluster(cluster_id: int):
+    """사용자 정의 클러스터 삭제
+    
+    해당 클러스터에 있는 노트들은 오버라이드가 제거됨
+    """
+    vault_path = get_current_vault_path()
+    cache = GraphCache(vault_path)
+    
+    # 클러스터 커스텀 설정 제거
+    customizations = cache.get_cluster_customizations()
+    if str(cluster_id) in customizations:
+        del customizations[str(cluster_id)]
+        cache.cache_data["cluster_customizations"] = customizations
+    
+    # 해당 클러스터에 있는 노트들의 오버라이드 제거
+    note_overrides = cache.get_note_overrides()
+    notes_to_remove = [
+        note_path for note_path, cid in note_overrides.items() 
+        if cid == cluster_id
+    ]
+    for note_path in notes_to_remove:
+        cache.remove_note_override(note_path)
+    
+    cache.save()
+    
+    logger.info(f"Deleted cluster {cluster_id}, removed {len(notes_to_remove)} note overrides")
+    
+    return {
+        "status": "ok",
+        "clusterId": cluster_id,
+        "removedOverrides": len(notes_to_remove)
+    }
+
+
+@router.get("/clusters")
+async def get_all_clusters():
+    """현재 존재하는 모든 클러스터 목록 조회"""
+    vault_path = get_current_vault_path()
+    cache = GraphCache(vault_path)
+    
+    customizations = cache.get_cluster_customizations()
+    ai_labels = cache.get_ai_cluster_labels()
+    note_overrides = cache.get_note_overrides()
+    ai_assignments = cache.get_ai_cluster_assignments()
+    
+    # 클러스터별 노트 수 계산
+    cluster_note_counts: dict[int, int] = {}
+    
+    # AI 자동 분류 노트 카운트
+    for note_path, cluster_id in ai_assignments.items():
+        if note_path not in note_overrides:  # 오버라이드되지 않은 경우만
+            cluster_note_counts[cluster_id] = cluster_note_counts.get(cluster_id, 0) + 1
+    
+    # 오버라이드 노트 카운트
+    for note_path, cluster_id in note_overrides.items():
+        cluster_note_counts[cluster_id] = cluster_note_counts.get(cluster_id, 0) + 1
+    
+    # 클러스터 목록 생성
+    clusters = []
+    all_cluster_ids = set(cluster_note_counts.keys()) | set(int(k) for k in customizations.keys())
+    
+    for cluster_id in sorted(all_cluster_ids):
+        custom = customizations.get(str(cluster_id), {})
+        ai_label, ai_keywords = ai_labels.get(cluster_id, (f"주제 {cluster_id + 1}", []))
+        
+        clusters.append({
+            "id": cluster_id,
+            "label": custom.get("label") or ai_label,
+            "color": custom.get("color") or CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)],
+            "keywords": custom.get("keywords") if "keywords" in custom else ai_keywords,
+            "noteCount": cluster_note_counts.get(cluster_id, 0),
+            "isCustom": str(cluster_id) in customizations and not ai_labels.get(cluster_id)
+        })
+    
+    return {
+        "clusters": clusters,
+        "totalClusters": len(clusters)
     }

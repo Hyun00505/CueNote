@@ -621,13 +621,16 @@ function scrollToToday() {
 // 모달 열기/닫기
 function openAddModal() {
   editingSchedule.value = null;
-  // 항상 오늘 날짜를 기본값으로 설정
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  // 선택된 날짜를 기본값으로 사용, 없으면 오늘 날짜
+  let defaultDate = selectedDate.value;
+  if (!defaultDate) {
+    const today = new Date();
+    defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  }
   formData.value = {
     title: '',
     description: '',
-    date: todayStr,
+    date: defaultDate,
     startTime: '',
     endTime: '',
     color: '#c9a76c',

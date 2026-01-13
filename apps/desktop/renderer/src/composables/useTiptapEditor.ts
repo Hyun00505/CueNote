@@ -179,8 +179,8 @@ export function useTiptapEditor() {
     html = html.replace(/</g, '&lt;');
     html = html.replace(/>/g, '&gt;');
 
-    // Code blocks (before other processing)
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+    // Code blocks (before other processing) - support both \r\n (Windows) and \n (Unix)
+    html = html.replace(/```(\w*)\r?\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
 
     // Headings
     html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');

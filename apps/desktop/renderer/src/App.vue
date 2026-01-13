@@ -21,6 +21,7 @@
       @similarity-change="handleSimilarityChange"
       @update-cluster="handleUpdateCluster"
       @reset-cluster="handleResetCluster"
+      @create-cluster="handleCreateCluster"
     />
 
     <!-- 저장 확인 모달 -->
@@ -252,7 +253,7 @@ function handleSimilarityChange(value: number) {
 }
 
 // 클러스터 설정 업데이트
-const { updateCluster, resetClusterSettings } = useGraph();
+const { updateCluster, resetClusterSettings, createCluster } = useGraph();
 
 async function handleUpdateCluster(data: { id: number; label: string; color: string; keywords: string[] }) {
   await updateCluster(data.id, {
@@ -261,14 +262,36 @@ async function handleUpdateCluster(data: { id: number; label: string; color: str
     keywords: data.keywords
   });
   
-  // 그래프 새로고침
-  await handleRefreshGraph();
+  // 로컬 상태가 즉시 업데이트되므로 새로고침 불필요
+  // 사이드바 클러스터 목록도 자동 반영
+  updateGraphClustersFromLocal();
 }
 
 async function handleResetCluster(_clusterId: number) {
   // 전체 클러스터 설정 초기화 (개별 클러스터 초기화는 추후 구현)
   await resetClusterSettings();
   await handleRefreshGraph();
+}
+
+async function handleCreateCluster(data: { label: string; color: string; keywords: string[] }) {
+  const newCluster = await createCluster(data.label, data.color, data.keywords);
+  if (newCluster) {
+    // 로컬 상태가 즉시 업데이트되므로 새로고침 불필요
+    updateGraphClustersFromLocal();
+  }
+}
+
+// 로컬 그래프 데이터에서 사이드바 클러스터 목록 업데이트
+const { graphData } = useGraph();
+function updateGraphClustersFromLocal() {
+  if (graphData.value) {
+    graphClusters.value = [...graphData.value.clusters];
+    graphStats.value = {
+      totalNotes: graphData.value.totalNotes,
+      totalClusters: graphData.value.clusters.length,
+      totalEdges: graphData.value.edges.length
+    };
+  }
 }
 
 // 설정 페이지로 이동 시 이전 뷰 저장

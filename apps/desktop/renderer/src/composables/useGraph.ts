@@ -178,8 +178,26 @@ export function useGraph() {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      // 그래프 데이터 새로고침
-      await loadGraphData();
+      // 로컬 상태 즉시 업데이트 (새로고침 없이)
+      if (graphData.value) {
+        // 클러스터 목록 업데이트
+        const clusterIndex = graphData.value.clusters.findIndex(c => c.id === clusterId);
+        if (clusterIndex !== -1) {
+          if (data.label) graphData.value.clusters[clusterIndex].label = data.label;
+          if (data.color) graphData.value.clusters[clusterIndex].color = data.color;
+          if (data.keywords) graphData.value.clusters[clusterIndex].keywords = data.keywords;
+        }
+        
+        // 해당 클러스터의 노드들 색상 업데이트
+        if (data.color) {
+          graphData.value.nodes.forEach(node => {
+            if (node.cluster === clusterId) {
+              node.color = data.color!;
+            }
+          });
+        }
+      }
+
       return true;
     } catch (err) {
       console.error('Failed to update cluster:', err);
@@ -205,8 +223,42 @@ export function useGraph() {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      // 그래프 데이터 새로고침
-      await loadGraphData();
+      // 로컬 상태 즉시 업데이트 (새로고침 없이)
+      if (graphData.value) {
+        const nodeIndex = graphData.value.nodes.findIndex(n => n.id === notePath);
+        if (nodeIndex !== -1) {
+          const oldClusterId = graphData.value.nodes[nodeIndex].cluster;
+          
+          // 노드의 클러스터 및 색상 업데이트
+          const targetCluster = graphData.value.clusters.find(c => c.id === targetClusterId);
+          graphData.value.nodes[nodeIndex].cluster = targetClusterId;
+          if (targetCluster) {
+            graphData.value.nodes[nodeIndex].color = targetCluster.color;
+            graphData.value.nodes[nodeIndex].clusterLabel = targetCluster.label;
+          }
+          
+          // 클러스터 노트 수 업데이트
+          const oldCluster = graphData.value.clusters.find(c => c.id === oldClusterId);
+          if (oldCluster && oldCluster.noteCount > 0) {
+            oldCluster.noteCount--;
+          }
+          if (targetCluster) {
+            targetCluster.noteCount++;
+          }
+          
+          // selectedNode도 함께 업데이트 (같은 노드라면)
+          if (selectedNode.value && selectedNode.value.id === notePath) {
+            selectedNode.value.cluster = targetClusterId;
+            if (targetCluster) {
+              selectedNode.value.color = targetCluster.color;
+              selectedNode.value.clusterLabel = targetCluster.label;
+            }
+            // selectedCluster도 업데이트
+            selectedCluster.value = targetCluster || null;
+          }
+        }
+      }
+
       return true;
     } catch (err) {
       console.error('Failed to move note:', err);
@@ -361,6 +413,62 @@ export function useGraph() {
     return nodes.every(n => lockedNotes.value.has(n.id));
   });
 
+  /**
+   * 새 클러스터 생성
+   */
+  const createCluster = async (label: string, color: string, keywords: string[] = []) => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/cluster/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, color, keywords })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // 로컬 상태 업데이트 (새 클러스터 추가)
+      if (graphData.value && result.cluster) {
+        graphData.value.clusters.push(result.cluster);
+      }
+
+      return result.cluster;
+    } catch (err) {
+      console.error('Failed to create cluster:', err);
+      return null;
+    }
+  };
+
+  /**
+   * 클러스터 삭제
+   */
+  const deleteCluster = async (clusterId: number) => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/cluster/${clusterId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // 로컬 상태 업데이트 (클러스터 제거)
+      if (graphData.value) {
+        graphData.value.clusters = graphData.value.clusters.filter(c => c.id !== clusterId);
+        // 해당 클러스터의 노트들 업데이트
+        graphData.value.nodes = graphData.value.nodes.filter(n => n.cluster !== clusterId);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Failed to delete cluster:', err);
+      return false;
+    }
+  };
+
   return {
     // 상태
     graphData,
@@ -392,6 +500,10 @@ export function useGraph() {
     moveNoteToCluster,
     resetNoteCluster,
     resetClusterSettings,
+
+    // 클러스터 생성/삭제
+    createCluster,
+    deleteCluster,
 
     // 노트 클러스터 잠금
     lockedNotes,

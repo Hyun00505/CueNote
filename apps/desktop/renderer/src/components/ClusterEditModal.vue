@@ -12,7 +12,7 @@
               <circle cx="4" cy="16" r="2" />
               <circle cx="20" cy="16" r="2" />
             </svg>
-            클러스터 편집
+            {{ isCreateMode ? '새 클러스터 만들기' : '클러스터 편집' }}
           </h2>
           <button class="close-btn" @click="handleClose">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -30,8 +30,9 @@
               class="color-dot" 
               :style="{ background: editedColor }"
             ></span>
-            <span class="cluster-name">{{ editedLabel || cluster?.label || '클러스터' }}</span>
-            <span class="note-count">{{ cluster?.noteCount || 0 }}개 노트</span>
+            <span class="cluster-name">{{ editedLabel || cluster?.label || (isCreateMode ? '새 클러스터' : '클러스터') }}</span>
+            <span class="note-count" v-if="!isCreateMode">{{ cluster?.noteCount || 0 }}개 노트</span>
+            <span class="note-count new" v-else>새로 생성</span>
           </div>
 
           <!-- 라벨 수정 -->
@@ -77,15 +78,15 @@
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
-              <!-- 커스텀 색상 -->
-              <div class="custom-color-wrapper">
+              <!-- 커스텀 색상 (그라데이션 버튼) -->
+              <div class="custom-color-btn">
                 <input 
                   type="color" 
                   v-model="editedColor"
                   class="custom-color-input"
                   title="커스텀 색상 선택"
                 />
-                <span class="custom-color-label">커스텀</span>
+                <div class="gradient-overlay"></div>
               </div>
             </div>
           </div>
@@ -128,20 +129,25 @@
 
         <!-- 푸터 -->
         <div class="modal-footer">
-          <button class="btn-secondary" @click="handleReset">
+          <button v-if="!isCreateMode" class="btn-secondary" @click="handleReset">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
             </svg>
             AI 설정으로 복원
           </button>
+          <div v-else></div>
           <div class="btn-group">
             <button class="btn-cancel" @click="handleClose">취소</button>
-            <button class="btn-primary" @click="handleSave" :disabled="isSaving">
+            <button 
+              class="btn-primary" 
+              @click="handleSave" 
+              :disabled="isSaving || (isCreateMode && !editedLabel.trim())"
+            >
               <svg v-if="isSaving" class="spinning" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
-              {{ isSaving ? '저장 중...' : '저장' }}
+              {{ isSaving ? (isCreateMode ? '생성 중...' : '저장 중...') : (isCreateMode ? '생성' : '저장') }}
             </button>
           </div>
         </div>
@@ -157,43 +163,52 @@ import type { ClusterInfo } from '../types';
 const props = defineProps<{
   visible: boolean;
   cluster: ClusterInfo | null;
+  isCreateMode?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'save', data: { id: number; label: string; color: string; keywords: string[] }): void;
   (e: 'reset', clusterId: number): void;
+  (e: 'create', data: { label: string; color: string; keywords: string[] }): void;
 }>();
 
-// 색상 팔레트
+// 파스텔 톤 색상 팔레트 (무지개 순서)
 const colorPalette = [
-  '#8b5cf6', // Purple
-  '#3b82f6', // Blue
-  '#22c55e', // Green
-  '#f59e0b', // Amber
-  '#ef4444', // Red
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#84cc16', // Lime
-  '#f97316', // Orange
-  '#6366f1', // Indigo
-  '#14b8a6', // Teal
-  '#a855f7', // Violet
+  '#fca5a5', // 빨강
+  '#fdba74', // 주황
+  '#fcd34d', // 노랑
+  '#bef264', // 연두
+  '#86efac', // 초록
+  '#5eead4', // 청록
+  '#67e8f9', // 하늘
+  '#93c5fd', // 파랑
+  '#a5b4fc', // 남색
+  '#c4b5fd', // 보라
+  '#f9a8d4', // 분홍
 ];
 
 // 편집 상태
 const editedLabel = ref('');
-const editedColor = ref('#8b5cf6');
+const editedColor = ref('#c4b5fd'); // 기본 파스텔 보라색
 const editedKeywords = ref<string[]>([]);
 const newKeyword = ref('');
 const isSaving = ref(false);
 
-// 클러스터 변경 시 초기값 설정
-watch(() => props.cluster, (newCluster) => {
-  if (newCluster) {
-    editedLabel.value = newCluster.label || '';
-    editedColor.value = newCluster.color || '#8b5cf6';
-    editedKeywords.value = [...(newCluster.keywords || [])];
+// 클러스터 변경 시 또는 생성 모드일 때 초기값 설정
+watch([() => props.cluster, () => props.visible, () => props.isCreateMode], ([newCluster, visible, isCreate]) => {
+  if (visible) {
+    if (isCreate) {
+      // 생성 모드: 빈 값으로 초기화
+      editedLabel.value = '';
+      editedColor.value = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+      editedKeywords.value = [];
+    } else if (newCluster) {
+      // 편집 모드: 기존 값으로 초기화
+      editedLabel.value = newCluster.label || '';
+      editedColor.value = newCluster.color || '#8b5cf6';
+      editedKeywords.value = [...(newCluster.keywords || [])];
+    }
   }
 }, { immediate: true });
 
@@ -213,16 +228,29 @@ function removeKeyword(index: number) {
 
 // 저장
 async function handleSave() {
-  if (!props.cluster) return;
-  
   isSaving.value = true;
   
-  emit('save', {
-    id: props.cluster.id,
-    label: editedLabel.value || props.cluster.label,
-    color: editedColor.value,
-    keywords: editedKeywords.value
-  });
+  if (props.isCreateMode) {
+    // 생성 모드
+    if (!editedLabel.value.trim()) {
+      isSaving.value = false;
+      return;
+    }
+    
+    emit('create', {
+      label: editedLabel.value,
+      color: editedColor.value,
+      keywords: editedKeywords.value
+    });
+  } else if (props.cluster) {
+    // 편집 모드
+    emit('save', {
+      id: props.cluster.id,
+      label: editedLabel.value || props.cluster.label,
+      color: editedColor.value,
+      keywords: editedKeywords.value
+    });
+  }
   
   // 짧은 딜레이 후 닫기 (UX)
   setTimeout(() => {
@@ -368,6 +396,11 @@ function handleClose() {
   border-radius: 12px;
 }
 
+.note-count.new {
+  color: var(--accent-primary, #8b5cf6);
+  background: rgba(139, 92, 246, 0.1);
+}
+
 /* 폼 그룹 */
 .form-group {
   margin-bottom: 20px;
@@ -445,36 +478,55 @@ function handleClose() {
   box-shadow: 0 0 0 2px var(--accent-primary, #8b5cf6);
 }
 
-.custom-color-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
+/* 커스텀 색상 버튼 (그라데이션) */
+.custom-color-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .custom-color-input {
-  width: 32px;
-  height: 32px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border: none;
-  border-radius: 8px;
+  padding: 0;
   cursor: pointer;
-  padding: 0;
-  background: transparent;
+  opacity: 0;
+  z-index: 2;
 }
 
-.custom-color-input::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.custom-color-input::-webkit-color-swatch {
+.gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(
+    from 0deg,
+    #ff6b6b,
+    #ffd93d,
+    #6bcb77,
+    #4d96ff,
+    #9b59b6,
+    #ff6b6b
+  );
   border-radius: 8px;
-  border: 2px solid var(--border-subtle);
+  pointer-events: none;
 }
 
-.custom-color-label {
-  font-size: 9px;
-  color: var(--text-muted);
+.custom-color-btn:hover .gradient-overlay {
+  filter: brightness(1.15);
+  transform: scale(1.1);
+}
+
+.custom-color-btn:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* 키워드 입력 */

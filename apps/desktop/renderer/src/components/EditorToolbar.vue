@@ -453,16 +453,6 @@
           </svg>
         </button>
       </div>
-      <div v-if="noteClusterInfo.cluster?.keywords?.length" class="cluster-keywords">
-        <span 
-          v-for="keyword in noteClusterInfo.cluster.keywords.slice(0, 3)" 
-          :key="keyword"
-          class="keyword-tag"
-          :title="`키워드: ${keyword}`"
-        >
-          {{ keyword }}
-        </span>
-      </div>
     </div>
 
     <!-- 클러스터 배지 숨겨진 상태 - 다시 보기 버튼 -->
@@ -1468,29 +1458,7 @@ watch(showExtractModal, (isOpen) => {
   color: var(--accent-primary, #8b5cf6) !important;
 }
 
-.cluster-keywords {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.keyword-tag {
-  padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  font-size: 10px;
-  color: var(--text-muted);
-  cursor: default;
-  transition: all 0.15s ease;
-}
-
-.keyword-tag:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary);
-}
-
-/* AI Button Styles */
+/* AI Button Styles - 테마 연동 */
 .ai-btn {
   display: flex;
   align-items: center;
@@ -1498,8 +1466,10 @@ watch(showExtractModal, (isOpen) => {
   width: auto;
   padding: 0 10px;
   margin-left: 6px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: color-mix(in srgb, var(--accent-primary, #8b5cf6) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #8b5cf6) 20%, transparent);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
 }
 
 .ai-btn:first-child {
@@ -1507,14 +1477,14 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .ai-btn:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.4);
-  color: #a78bfa;
+  background: color-mix(in srgb, var(--accent-primary, #8b5cf6) 20%, transparent);
+  border-color: var(--accent-primary, #8b5cf6);
+  color: var(--accent-primary, #8b5cf6);
 }
 
 .ai-btn.loading {
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
+  background: color-mix(in srgb, var(--accent-primary, #8b5cf6) 15%, transparent);
+  color: var(--accent-primary, #8b5cf6);
 }
 
 .ai-btn:disabled {
@@ -1530,8 +1500,8 @@ watch(showExtractModal, (isOpen) => {
 .ai-btn .spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #a78bfa;
+  border: 2px solid color-mix(in srgb, var(--accent-primary, #8b5cf6) 20%, transparent);
+  border-top-color: var(--accent-primary, #8b5cf6);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
