@@ -5,6 +5,7 @@ GitHub 연동 기능 (Git Clone 기반 로컬 파일 관리)
 import httpx
 import subprocess
 import os
+import sys
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -26,7 +27,7 @@ def get_git_repos_dir() -> Path:
     if os.name == 'nt':
         base = Path(os.environ.get('APPDATA', '')) / 'cuenote'
     elif os.name == 'posix':
-        if 'darwin' in os.sys.platform:
+        if 'darwin' in sys.platform:
             base = Path.home() / 'Library' / 'Application Support' / 'cuenote'
         else:
             base = Path.home() / '.local' / 'share' / 'cuenote'
@@ -57,7 +58,7 @@ def check_git_installed() -> bool:
         return False
 
 
-def run_git_command(args: list[str], cwd: Path, env: dict = None) -> tuple[bool, str, str]:
+def run_git_command(args: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[bool, str, str]:
     """Git 명령 실행"""
     try:
         full_env = os.environ.copy()
@@ -534,7 +535,7 @@ async def get_repo_status(payload: FetchRepoFilesPayload):
                         "status_text": get_status_text(status)
                     })
         
-            return {
+        return {
             "cloned": True,
             "changes": changes,
             "has_changes": len(changes) > 0
