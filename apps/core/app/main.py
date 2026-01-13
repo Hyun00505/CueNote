@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import init_db
-from .routers import vault_router, todos_router, ai_router, llm_router, environment_router, schedules_router, graph_router
+from .routers import vault_router, todos_router, ai_router, llm_router, environment_router, schedules_router, graph_router, github_router
 
 # 로거 설정
 logger = logging.getLogger("cuenote.core")
@@ -37,6 +37,7 @@ app.include_router(llm_router)
 app.include_router(environment_router)
 app.include_router(schedules_router)
 app.include_router(graph_router)
+app.include_router(github_router)
 
 
 @app.on_event("startup")

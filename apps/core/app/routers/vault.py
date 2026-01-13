@@ -16,6 +16,8 @@ from fastapi.responses import FileResponse
 
 from ..config import VAULT_PATH, TRASH_PATH, TODO_PATTERN, logger, PROJECT_ROOT
 from ..db import get_conn
+from pydantic import BaseModel as PydanticBaseModel
+
 from ..schemas import (
     VaultOpenPayload, VaultFilePayload,
     RenameFilePayload, RestoreFilePayload, PermanentDeletePayload,
@@ -238,6 +240,9 @@ async def rename_vault_file(payload: RenameFilePayload):
     if new_file_path.exists():
         raise HTTPException(status_code=409, detail="File with new name already exists")
     
+    # 대상 폴더가 없으면 생성
+    new_file_path.parent.mkdir(parents=True, exist_ok=True)
+    
     try:
         conn = get_conn()
         try:
@@ -252,6 +257,54 @@ async def rename_vault_file(payload: RenameFilePayload):
     except Exception as e:
         logger.error("Failed to rename file %s: %s", old_safe_path, e)
         raise HTTPException(status_code=500, detail="Failed to rename file")
+
+
+@router.post("/folder/rename")
+async def rename_vault_folder(payload: RenameFilePayload):
+    """Vault 내의 폴더 이름을 변경합니다."""
+    vault_path = get_current_vault_path()
+    old_safe_path = Path(payload.old_path).as_posix()
+    new_safe_path = Path(payload.new_path).as_posix()
+    
+    if ".." in old_safe_path or old_safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid old path")
+    if ".." in new_safe_path or new_safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid new path")
+    
+    old_folder_path = vault_path / old_safe_path
+    new_folder_path = vault_path / new_safe_path
+    
+    if not old_folder_path.exists():
+        raise HTTPException(status_code=404, detail="Folder not found")
+    if not old_folder_path.is_dir():
+        raise HTTPException(status_code=400, detail="Not a folder")
+    if new_folder_path.exists():
+        raise HTTPException(status_code=409, detail="Folder with new name already exists")
+    
+    # 대상 부모 폴더가 없으면 생성
+    new_folder_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # DB의 모든 관련 경로 업데이트
+        conn = get_conn()
+        try:
+            # 해당 폴더 하위의 모든 파일 경로 업데이트
+            cursor = conn.execute("SELECT note_path FROM todos WHERE note_path LIKE ?", (old_safe_path + "/%",))
+            rows = cursor.fetchall()
+            for row in rows:
+                old_note_path = row[0]
+                new_note_path = new_safe_path + old_note_path[len(old_safe_path):]
+                conn.execute("UPDATE todos SET note_path = ? WHERE note_path = ?", (new_note_path, old_note_path))
+            conn.commit()
+        finally:
+            conn.close()
+        
+        old_folder_path.rename(new_folder_path)
+        logger.info("Renamed folder: %s -> %s", old_safe_path, new_safe_path)
+        return {"status": "ok", "old_path": old_safe_path, "new_path": new_safe_path}
+    except Exception as e:
+        logger.error("Failed to rename folder %s: %s", old_safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to rename folder")
 
 
 @router.delete("/file")
@@ -501,3 +554,155 @@ async def list_images():
     
     images.sort(key=lambda x: x['filename'], reverse=True)
     return {"images": images}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 폴더 관리
+# ─────────────────────────────────────────────────────────────────────────────
+
+class CreateFolderPayload(PydanticBaseModel):
+    """폴더 생성 요청"""
+    path: str
+
+
+class DeleteFolderPayload(PydanticBaseModel):
+    """폴더 삭제 요청"""
+    path: str
+
+
+@router.get("/folders")
+async def list_folders():
+    """Vault 내의 모든 폴더를 조회합니다."""
+    vault_path = get_current_vault_path()
+    if not vault_path.exists():
+        return {"folders": []}
+    
+    folders = []
+    for item in vault_path.rglob("*"):
+        if item.is_dir():
+            rel_path = item.relative_to(vault_path)
+            rel_path_str = str(rel_path).replace("\\", "/")
+            
+            # 숨김 폴더, 시스템 폴더 제외
+            if rel_path_str.startswith(".") or "/.trash" in rel_path_str or rel_path_str.startswith(".trash"):
+                continue
+            if rel_path_str.startswith("img"):
+                continue
+                
+            folders.append(rel_path_str)
+    
+    folders.sort()
+    return {"folders": folders}
+
+
+@router.post("/folder")
+async def create_folder(payload: CreateFolderPayload):
+    """Vault 내에 새 폴더를 생성합니다."""
+    vault_path = get_current_vault_path()
+    safe_path = Path(payload.path).as_posix()
+    
+    if ".." in safe_path or safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    # 숨김 폴더 생성 방지
+    if safe_path.startswith(".") or "/." in safe_path:
+        raise HTTPException(status_code=400, detail="Cannot create hidden folders")
+    
+    folder_path = vault_path / safe_path
+    
+    if folder_path.exists():
+        raise HTTPException(status_code=409, detail="Folder already exists")
+    
+    try:
+        folder_path.mkdir(parents=True, exist_ok=True)
+        logger.info("Created folder: %s", safe_path)
+        return {"status": "ok", "path": safe_path}
+    except Exception as e:
+        logger.error("Failed to create folder %s: %s", safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to create folder")
+
+
+@router.delete("/folder")
+async def delete_folder(path: str = Query(..., description="Relative path to folder to delete")):
+    """Vault 내의 폴더를 삭제합니다. 폴더 내 파일도 휴지통으로 이동됩니다."""
+    vault_path = get_current_vault_path()
+    trash_path = get_trash_path()
+    safe_path = Path(path).as_posix()
+    
+    if ".." in safe_path or safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    # 시스템 폴더 삭제 방지
+    if safe_path.startswith(".") or safe_path == "img":
+        raise HTTPException(status_code=400, detail="Cannot delete system folders")
+    
+    folder_path = vault_path / safe_path
+    
+    if not folder_path.exists():
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    if not folder_path.is_dir():
+        raise HTTPException(status_code=400, detail="Not a folder")
+    
+    try:
+        trash_path.mkdir(parents=True, exist_ok=True)
+        
+        # 폴더 내 md 파일들을 휴지통으로 이동
+        moved_files = []
+        for md_file in folder_path.rglob("*.md"):
+            trash_file = trash_path / md_file.name
+            counter = 0
+            while trash_file.exists():
+                counter += 1
+                trash_file = trash_path / f"{md_file.stem}_{counter}{md_file.suffix}"
+            md_file.rename(trash_file)
+            moved_files.append(md_file.name)
+            
+            # TODO 데이터베이스에서 삭제
+            rel_md_path = str(md_file.relative_to(vault_path)).replace("\\", "/")
+            conn = get_conn()
+            try:
+                conn.execute("DELETE FROM todos WHERE note_path = ?", (rel_md_path,))
+                conn.commit()
+            finally:
+                conn.close()
+        
+        # 빈 폴더 삭제 (하위 폴더 포함)
+        import shutil
+        shutil.rmtree(folder_path)
+        
+        logger.info("Deleted folder: %s, moved %d files to trash", safe_path, len(moved_files))
+        return {"status": "ok", "path": safe_path, "moved_files": moved_files}
+    except Exception as e:
+        logger.error("Failed to delete folder %s: %s", safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to delete folder")
+
+
+@router.post("/file/with-folder")
+async def create_file_in_folder(path: str = Query(..., description="Relative path including folder")):
+    """특정 폴더 내에 새 파일을 생성합니다."""
+    vault_path = get_current_vault_path()
+    safe_path = Path(path).as_posix()
+    
+    if ".." in safe_path or safe_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    file_path = vault_path / safe_path
+    
+    if file_path.exists():
+        raise HTTPException(status_code=409, detail="File already exists")
+    
+    try:
+        # 부모 폴더 생성
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 파일 생성
+        title = file_path.stem
+        default_content = f"# {title}\n\n"
+        file_path.write_text(default_content, encoding="utf-8")
+        
+        logger.info("Created file: %s", safe_path)
+        return {"status": "ok", "path": safe_path}
+    except Exception as e:
+        logger.error("Failed to create file %s: %s", safe_path, e)
+        raise HTTPException(status_code=500, detail="Failed to create file")

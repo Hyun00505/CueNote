@@ -378,7 +378,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import * as d3Force from 'd3-force';
 import * as d3Selection from 'd3-selection';
 import * as d3Zoom from 'd3-zoom';
@@ -390,6 +390,7 @@ import type { GraphNode, GraphEdge } from '../types';
 const props = defineProps<{
   filterClusterId?: number | null;
   minSimilarityProp?: number;
+  isActive?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -444,8 +445,8 @@ const renderedEdges = ref<Array<{
   width: number;
 }>>([]);
 
-// 줌 상태
-const currentZoom = ref({ k: 1, x: 0, y: 0 });
+// 줌 상태 - shallowRef를 사용하여 Vue의 프록시가 D3 ZoomTransform을 변형하지 않도록 함
+const currentZoom = shallowRef<d3Zoom.ZoomTransform>(d3Zoom.zoomIdentity);
 let zoomBehavior: d3Zoom.ZoomBehavior<SVGSVGElement, unknown> | null = null;
 
 // 드래그 상태
@@ -576,6 +577,23 @@ watch(() => props.minSimilarityProp, (newVal) => {
     setMinSimilarity(newVal);
   }
 });
+
+// 뷰가 활성화될 때 데이터가 없으면 로드
+watch(() => props.isActive, async (newVal, oldVal) => {
+  if (newVal && !oldVal) {
+    // 활성화되었고 데이터가 없으면 로드
+    if (!graphData.value || graphData.value.totalNotes === 0) {
+      await loadLockedNotes();
+      await loadGraphData();
+      await nextTick();
+      initSimulation();
+      initZoom(true);
+      setTimeout(() => {
+        initDrag();
+      }, 100);
+    }
+  }
+}, { immediate: true });
 
 // 그래프 데이터 로드 후 부모에게 알림
 watch(graphData, (newData) => {

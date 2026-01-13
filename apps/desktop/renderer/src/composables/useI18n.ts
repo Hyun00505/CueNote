@@ -27,6 +27,7 @@ type TranslationKeys = {
   'header.calendar': string;
   'header.graph': string;
   'header.selectNote': string;
+  'header.clickToRename': string;
 
   // Settings
   'settings.title': string;
@@ -231,6 +232,7 @@ const ko: TranslationKeys = {
   'header.calendar': '캘린더',
   'header.graph': '그래프',
   'header.selectNote': '노트를 선택하세요',
+  'header.clickToRename': '클릭하여 이름 변경',
 
   // Settings
   'settings.title': '설정',
@@ -435,6 +437,7 @@ const en: TranslationKeys = {
   'header.calendar': 'Calendar',
   'header.graph': 'Graph',
   'header.selectNote': 'Select a note to begin',
+  'header.clickToRename': 'Click to rename',
 
   // Settings
   'settings.title': 'Settings',
