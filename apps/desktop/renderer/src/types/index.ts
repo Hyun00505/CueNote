@@ -14,7 +14,7 @@ export type TodayPlan = {
   quickWins: string[];
 };
 
-export type ViewType = 'editor' | 'dashboard' | 'settings';
+export type ViewType = 'editor' | 'dashboard' | 'settings' | 'graph';
 
 // 일정 관련 타입
 export type ScheduleItem = {
@@ -47,3 +47,41 @@ export type CalendarDay = {
   completedCount: number;
 };
 
+// 그래프 뷰 & AI 클러스터링 타입
+export type GraphNode = {
+  id: string;
+  label: string;
+  cluster: number;
+  clusterLabel: string;
+  size: number;
+  color: string;
+  x?: number;
+  y?: number;
+  // d3-force 시뮬레이션용
+  vx?: number;
+  vy?: number;
+  fx?: number | null;
+  fy?: number | null;
+};
+
+export type GraphEdge = {
+  source: string | GraphNode;
+  target: string | GraphNode;
+  weight: number;
+  type: 'similarity' | 'link';
+};
+
+export type ClusterInfo = {
+  id: number;
+  label: string;
+  color: string;
+  noteCount: number;
+  keywords: string[];
+};
+
+export type GraphData = {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  clusters: ClusterInfo[];
+  totalNotes: number;
+};

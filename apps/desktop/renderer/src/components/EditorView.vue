@@ -59,6 +59,7 @@
         :editor="editor as Editor" 
         :summarizing="summarizing"
         :note-name="getFileName(activeFile)"
+        :active-file="activeFile"
         @summarize="handleSummarize"
         @extract-result="handleExtractResult"
       />
@@ -540,10 +541,15 @@ function getFileName(path: string): string {
 // Markdown to HTML conversion
 function markdownToHtml(md: string): string {
   let html = md;
+  
+  // Normalize all line endings to \n (Windows uses \r\n, old Mac uses \r)
+  html = html.replace(/\r\n|\r/g, '\n');
 
-  // Code blocks first
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code class="language-${lang}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+  // Code blocks first - handle with or without language, with flexible whitespace
+  html = html.replace(/```(\w*)\s*\n([\s\S]*?)\n?```/g, (_, lang, code) => {
+    // Remove trailing whitespace from code
+    const cleanCode = code.replace(/\s+$/, '');
+    return `<pre><code class="language-${lang}">${cleanCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
   });
 
   // Headings
@@ -667,10 +673,11 @@ function htmlToMarkdown(html: string): string {
   md = md.replace(/<del[^>]*>(.*?)<\/del>/gi, '~~$1~~');
   md = md.replace(/<mark[^>]*>(.*?)<\/mark>/gi, '==$1==');
 
-  // Code
-  md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+  // Code blocks first (before inline code to prevent breaking)
   md = md.replace(/<pre[^>]*><code[^>]*class="language-(\w*)"[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```$1\n$2```\n\n');
   md = md.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```\n$1```\n\n');
+  // Inline code (after code blocks)
+  md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
 
   // Links
   md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
@@ -2436,43 +2443,17 @@ defineExpose({
 
 /* Code Block Container */
 .ProseMirror pre {
-  position: relative;
   background: linear-gradient(135deg, #0d0d12 0%, #12121a 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
+  border-radius: 8px;
   margin: 1.5em 0;
-  box-shadow: 
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-/* Code Block Header Bar */
-.ProseMirror pre::before {
-  content: '';
-  display: block;
-  height: 36px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 8px 16px;
-}
-
-/* Code Block Window Dots */
-.ProseMirror pre::after {
-  content: '●  ●  ●';
-  position: absolute;
-  top: 10px;
-  left: 16px;
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
 }
 
 .ProseMirror pre code {
   display: block;
   background: transparent;
-  padding: 16px 20px 20px;
+  padding: 16px 20px;
   color: #e4e4e7;
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
   font-size: 13.5px;

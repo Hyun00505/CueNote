@@ -8,3 +8,4 @@ export { useSchedule } from './useSchedule';
 export { useI18n } from './useI18n';
 export { useFonts } from './useFonts';
 export { useShortcuts, formatShortcut } from './useShortcuts';
+export { useGraph } from './useGraph';

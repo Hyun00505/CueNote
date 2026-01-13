@@ -25,6 +25,7 @@ type TranslationKeys = {
   // Header
   'header.editor': string;
   'header.calendar': string;
+  'header.graph': string;
   'header.selectNote': string;
 
   // Settings
@@ -228,6 +229,7 @@ const ko: TranslationKeys = {
   // Header
   'header.editor': '에디터',
   'header.calendar': '캘린더',
+  'header.graph': '그래프',
   'header.selectNote': '노트를 선택하세요',
 
   // Settings
@@ -431,6 +433,7 @@ const en: TranslationKeys = {
   // Header
   'header.editor': 'Editor',
   'header.calendar': 'Calendar',
+  'header.graph': 'Graph',
   'header.selectNote': 'Select a note to begin',
 
   // Settings

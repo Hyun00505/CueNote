@@ -7,5 +7,14 @@ from .ai import router as ai_router
 from .llm import router as llm_router
 from .environment import router as environment_router
 from .schedules import router as schedules_router
+from .graph import router as graph_router
 
-__all__ = ["vault_router", "todos_router", "ai_router", "llm_router", "environment_router", "schedules_router"]
+__all__ = [
+    "vault_router", 
+    "todos_router", 
+    "ai_router", 
+    "llm_router", 
+    "environment_router", 
+    "schedules_router",
+    "graph_router"
+]
