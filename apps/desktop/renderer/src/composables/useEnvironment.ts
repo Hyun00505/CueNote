@@ -8,6 +8,14 @@ export interface Environment {
   path: string;
   exists?: boolean;
   is_current?: boolean;
+  // GitHub 환경 관련
+  type?: 'local' | 'github';
+  github?: {
+    owner: string;
+    repo: string;
+    full_name: string;
+    private: boolean;
+  };
 }
 
 // 전역 상태

@@ -4,6 +4,7 @@ const CORE_BASE = 'http://127.0.0.1:8787';
 
 const vaultPath = ref<string | null>(null);
 const vaultFiles = ref<string[]>([]);
+const vaultFolders = ref<string[]>([]);
 const trashFiles = ref<string[]>([]);
 const vaultError = ref('');
 const vaultLoading = ref(false);
@@ -64,12 +65,21 @@ export function useVault() {
 
   async function refreshFiles() {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/files`);
-      const data = await res.json();
-      vaultFiles.value = Array.isArray(data.files) ? data.files : [];
+      // 파일과 폴더 목록을 병렬로 가져오기
+      const [filesRes, foldersRes] = await Promise.all([
+        fetch(`${CORE_BASE}/vault/files`),
+        fetch(`${CORE_BASE}/vault/folders`)
+      ]);
+      
+      const filesData = await filesRes.json();
+      const foldersData = await foldersRes.json();
+      
+      vaultFiles.value = Array.isArray(filesData.files) ? filesData.files : [];
+      vaultFolders.value = Array.isArray(foldersData.folders) ? foldersData.folders : [];
     } catch (error) {
       console.error('Failed to refresh files', error);
       vaultFiles.value = [];
+      vaultFolders.value = [];
     }
   }
 
@@ -261,6 +271,7 @@ export function useVault() {
   return {
     vaultPath,
     vaultFiles,
+    vaultFolders,
     trashFiles,
     vaultError,
     vaultLoading,

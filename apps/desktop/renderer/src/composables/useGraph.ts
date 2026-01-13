@@ -129,6 +129,19 @@ export function useGraph() {
   };
 
   /**
+   * 그래프 데이터 초기화 (환경 변경 시)
+   */
+  const clearGraphData = () => {
+    graphData.value = null;
+    selectedNode.value = null;
+    selectedCluster.value = null;
+    hoveredNode.value = null;
+    showOnlyCluster.value = null;
+    error.value = null;
+    lockedNotes.value = new Set();
+  };
+
+  /**
    * 클러스터 색상 가져오기
    */
   const getClusterColor = (clusterId: number) => {
@@ -492,6 +505,7 @@ export function useGraph() {
     filterByCluster,
     setMinSimilarity,
     refresh,
+    clearGraphData,
     getClusterColor,
     getConnectedNodes,
 

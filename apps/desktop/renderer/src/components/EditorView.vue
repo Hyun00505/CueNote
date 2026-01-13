@@ -35,10 +35,33 @@
           <div class="file-details">
             <span class="file-name">{{ getFileName(activeFile) }}</span>
             <span class="file-ext">.md</span>
+            <span v-if="isGithubFile" class="github-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+              </svg>
+              GitHub
+            </span>
             <span v-if="isDirty" class="unsaved-dot" title="저장되지 않은 변경사항"></span>
           </div>
         </div>
-        <button class="save-btn" :class="{ saving, saved }" :disabled="saving" @click="handleSave">
+        <!-- GitHub 파일 저장 버튼 -->
+        <button v-if="isGithubFile" class="save-btn github-save-btn" :class="{ saving: stagingSaving, saved: stagingSaved }" :disabled="stagingSaving" @click="handleSaveGitHubFile">
+          <svg v-if="stagingSaved" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <svg v-else-if="!stagingSaving" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span class="spinner" v-else></span>
+          <span v-if="stagingSaved">{{ t('common.save') }} ✓</span>
+          <span v-else-if="stagingSaving">{{ t('common.loading') }}</span>
+          <span v-else>{{ t('common.save') }}</span>
+          <kbd v-if="!stagingSaved">Ctrl+S</kbd>
+        </button>
+        <!-- 로컬 파일 저장 버튼 -->
+        <button v-else class="save-btn" :class="{ saving, saved }" :disabled="saving" @click="handleSave">
           <svg v-if="saved" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
@@ -229,7 +252,7 @@ import EditorToolbar from './EditorToolbar.vue';
 import AIContextMenu from './AIContextMenu.vue';
 import AIInlineDiff from './AIInlineDiff.vue';
 import AIProofreadPanel from './AIProofreadPanel.vue';
-import { useSettings, useI18n, useShortcuts } from '../composables';
+import { useSettings, useI18n, useShortcuts, useGitHub } from '../composables';
 
 const lowlight = createLowlight(common);
 const CORE_BASE = 'http://127.0.0.1:8787';
@@ -238,9 +261,12 @@ const CORE_BASE = 'http://127.0.0.1:8787';
 const { settings: llmSettings } = useSettings();
 const { t } = useI18n();
 const { isAIMenuShortcut } = useShortcuts();
+const { saveFile: saveGitHubFile, checkGitStatus } = useGitHub();
 
 const props = defineProps<{
   activeFile: string | null;
+  isGithubFile?: boolean;
+  githubContent?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -268,6 +294,13 @@ const saving = ref(false);
 const saved = ref(false);
 const summarizing = ref(false);
 const isDirty = ref(false);
+
+// GitHub 스테이징 관련 상태
+const stagingSaving = ref(false);
+const stagingSaved = ref(false);
+
+// GitHub 파일 여부 (computed)
+const isGithubFile = computed(() => props.isGithubFile ?? false);
 
 interface SummaryResult {
   summary: string;
@@ -849,6 +882,44 @@ async function handleSave() {
   }
 }
 
+// GitHub 파일 저장 (클론된 로컬 파일에 저장)
+async function handleSaveGitHubFile() {
+  if (!props.activeFile || !editor.value) return;
+
+  stagingSaving.value = true;
+  editorError.value = '';
+
+  try {
+    const html = editor.value.getHTML();
+    const content = htmlToMarkdown(html);
+
+    // 클론된 로컬 파일에 저장
+    const success = await saveGitHubFile(props.activeFile, content);
+    
+    if (!success) {
+      throw new Error('저장 실패');
+    }
+    
+    // 저장 성공 시 dirty 상태 초기화
+    isDirty.value = false;
+    emit('dirty-change', false);
+    
+    // Git 상태 업데이트
+    await checkGitStatus();
+    
+    // 완료 표시 (2초간)
+    stagingSaved.value = true;
+    setTimeout(() => {
+      stagingSaved.value = false;
+    }, 2000);
+  } catch (error) {
+    editorError.value = '저장 실패.';
+    console.error('Save GitHub file failed', error);
+  } finally {
+    stagingSaving.value = false;
+  }
+}
+
 // AI 요약 기능
 async function handleSummarize() {
   if (!editor.value) return;
@@ -968,7 +1039,12 @@ function handleKeydown(e: KeyboardEvent) {
   // 저장: Ctrl/Cmd + S
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
-    handleSave();
+    // GitHub 파일이면 GitHub 저장, 아니면 로컬 저장
+    if (isGithubFile.value) {
+      handleSaveGitHubFile();
+    } else {
+      handleSave();
+    }
     return;
   }
   
@@ -1046,7 +1122,11 @@ function handleExtractResult(markdown: string) {
     .run();
   
   // 자동 저장
-  handleSave();
+  if (isGithubFile.value) {
+    handleSaveGitHubFile();
+  } else {
+    handleSave();
+  }
 }
 
 // 선택된 영역의 텍스트를 마크다운으로 가져오기
@@ -1370,7 +1450,12 @@ function handleAIAccept() {
   originalHtml.value = '';
   streamedContent.value = '';
   savedSelection.value = null;
-  handleSave();
+  // GitHub 파일이면 GitHub 저장, 아니면 로컬 저장
+  if (isGithubFile.value) {
+    handleSaveGitHubFile();
+  } else {
+    handleSave();
+  }
 }
 
 // AI 변경 취소 (원본 복원)
@@ -1867,15 +1952,44 @@ onBeforeUnmount(() => {
 
 watch(() => props.activeFile, (newFile) => {
   if (newFile) {
-    openFile(newFile);
+    // GitHub 파일인 경우 props.githubContent 사용
+    if (props.isGithubFile && props.githubContent !== null && props.githubContent !== undefined) {
+      openGitHubFile(newFile, props.githubContent);
+    } else {
+      openFile(newFile);
+    }
   }
 });
+
+// GitHub 파일 열기 (읽기 전용)
+async function openGitHubFile(filePath: string, content: string) {
+  editorError.value = '';
+  currentFilePath.value = filePath;
+  
+  const htmlContent = markdownToHtml(content);
+  
+  if (editor.value) {
+    editor.value.commands.setContent(htmlContent, { emitUpdate: false });
+    // GitHub 파일은 읽기 전용이므로 dirty 아님
+    isDirty.value = false;
+    emit('dirty-change', false);
+  }
+}
+
+// 통합 저장 함수 (GitHub/로컬 자동 구분)
+async function save() {
+  if (isGithubFile.value) {
+    await handleSaveGitHubFile();
+  } else {
+    await handleSave();
+  }
+}
 
 // 외부에서 접근 가능한 메서드/상태 노출
 defineExpose({
   isDirty,
-  save: handleSave,
-  saveFile: handleSave
+  save,
+  saveFile: save
 });
 </script>
 
@@ -2011,6 +2125,24 @@ defineExpose({
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+.github-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #22c55e;
+}
+
+.github-badge svg {
+  flex-shrink: 0;
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -2075,6 +2207,30 @@ defineExpose({
   font-size: 10px;
   font-family: var(--font-mono);
   color: var(--text-muted);
+}
+
+/* GitHub 스테이징 버튼 */
+.save-btn.github-stage-btn {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+}
+
+.save-btn.github-stage-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+}
+
+.save-btn.github-stage-btn.saving {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.save-btn.github-stage-btn.saved {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
 }
 
 .spinner {

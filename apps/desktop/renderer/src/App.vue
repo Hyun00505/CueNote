@@ -1,7 +1,7 @@
 <template>
   <div class="app-container" :class="{ 'is-resizing': isResizing }">
     <AppSidebar
-      v-if="currentView !== 'settings'"
+      v-if="currentView !== 'settings' && currentView !== 'dashboard'"
       :collapsed="sidebarCollapsed"
       :active-file="activeFile"
       :dirty-files="dirtyFiles"
@@ -12,6 +12,7 @@
       :is-graph-loading="isGraphLoading"
       @toggle-collapse="handleToggleCollapse"
       @select-file="handleSelectFile"
+      @select-github-file="handleSelectGitHubFile"
       @file-deleted="handleFileDeleted"
       @file-created="handleFileCreated"
       @file-restored="handleFileRestored"
@@ -22,6 +23,7 @@
       @update-cluster="handleUpdateCluster"
       @reset-cluster="handleResetCluster"
       @create-cluster="handleCreateCluster"
+      @environment-changed="handleEnvironmentChanged"
     />
 
     <!-- 저장 확인 모달 -->
@@ -66,7 +68,8 @@
         :vault-name="vaultName"
         :current-view="currentView"
         @change-view="handleChangeView"
-        @open-settings="currentView = 'settings'"
+        @open-settings="handleOpenSettings"
+        @rename-file="handleRenameFile"
       />
 
       <div class="content-area">
@@ -74,6 +77,8 @@
           ref="editorViewRef"
           v-show="currentView === 'editor'"
           :active-file="activeFile"
+          :is-github-file="isGitHubFile"
+          :github-content="githubFileContent"
           @dirty-change="isFileDirty = $event"
           @dirty-files-change="handleDirtyFilesChange"
         />
@@ -89,6 +94,7 @@
           v-show="currentView === 'graph'"
           :filter-cluster-id="selectedClusterId"
           :min-similarity-prop="graphMinSimilarity"
+          :is-active="currentView === 'graph'"
           @select-file="handleSelectFile"
           @graph-loaded="handleGraphLoaded"
         />
@@ -103,9 +109,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView, GraphView } from './components';
-import { useVault, useHealth, useFonts, useGraph } from './composables';
+import { useVault, useHealth, useFonts, useGraph, useGitHub } from './composables';
 import type { ViewType, ClusterInfo } from './types';
 
 const sidebarCollapsed = ref(false);
@@ -115,6 +121,10 @@ const previousView = ref<ViewType>('editor');
 const isFileDirty = ref(false);
 const isResizing = ref(false);
 const dirtyFiles = ref<string[]>([]);
+
+// GitHub 파일 관련
+const isGitHubFile = ref(false);
+const githubFileContent = ref<string | null>(null);
 
 // 저장 확인 모달 관련
 const showUnsavedModal = ref(false);
@@ -161,9 +171,10 @@ function handleSidebarWidthChange(width: number) {
   }, 100);
 }
 
-const { vaultPath, initVault } = useVault();
+const { vaultPath, initVault, refreshFiles } = useVault();
 const { checkHealth } = useHealth();
 const { initFonts } = useFonts();
+const { renameFile: renameGitHubFile } = useGitHub();
 
 const vaultName = computed(() => {
   return vaultPath.value?.split(/[/\\]/).pop() ?? null;
@@ -171,10 +182,22 @@ const vaultName = computed(() => {
 
 function handleSelectFile(file: string) {
   // 같은 파일이면 무시
-  if (file === activeFile.value) return;
+  if (file === activeFile.value && !isGitHubFile.value) return;
+  
+  // GitHub 모드 해제
+  isGitHubFile.value = false;
+  githubFileContent.value = null;
   
   // 바로 파일 전환 (저장하지 않은 변경사항은 캐시에 유지됨)
   activeFile.value = file;
+  currentView.value = 'editor';
+}
+
+// GitHub 파일 선택 핸들러
+function handleSelectGitHubFile(path: string, content: string) {
+  isGitHubFile.value = true;
+  githubFileContent.value = content;
+  activeFile.value = path;
   currentView.value = 'editor';
 }
 
@@ -225,6 +248,65 @@ function handleFileRestored(file: string) {
   currentView.value = 'editor';
 }
 
+// 환경 변경 핸들러
+function handleEnvironmentChanged() {
+  // 현재 선택된 파일 초기화
+  activeFile.value = null;
+  isGitHubFile.value = false;
+  githubFileContent.value = null;
+  
+  // 그래프 데이터 초기화 (환경 간 데이터 혼합 방지)
+  clearGraphData();
+  graphClusters.value = [];
+  graphStats.value = { totalNotes: 0, totalClusters: 0, totalEdges: 0 };
+  selectedClusterId.value = null;
+}
+
+function handleOpenSettings() {
+  previousView.value = currentView.value;
+  currentView.value = 'settings';
+}
+
+// 파일 이름 변경
+async function handleRenameFile(payload: { oldPath: string; newName: string }) {
+  const { oldPath, newName } = payload;
+  
+  // 기존 경로에서 폴더 경로 추출
+  const pathParts = oldPath.split('/');
+  pathParts.pop(); // 파일명 제거
+  const folderPath = pathParts.join('/');
+  
+  // 새 경로 생성
+  const newPath = folderPath ? `${folderPath}/${newName}.md` : `${newName}.md`;
+  
+  try {
+    if (isGitHubFile.value) {
+      // GitHub 파일인 경우
+      const success = await renameGitHubFile(oldPath, newPath);
+      if (success) {
+        activeFile.value = newPath;
+      }
+    } else {
+      // 로컬 파일인 경우
+      const response = await fetch('http://localhost:23432/vault/file/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_path: oldPath, new_path: newPath })
+      });
+      
+      if (response.ok) {
+        activeFile.value = newPath;
+        await refreshFiles();
+      } else {
+        const error = await response.json();
+        console.error('Failed to rename file:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error renaming file:', error);
+  }
+}
+
 function handleBackFromSettings() {
   // 설정에서 돌아올 때 이전 뷰로 복원
   currentView.value = previousView.value;
@@ -253,7 +335,7 @@ function handleSimilarityChange(value: number) {
 }
 
 // 클러스터 설정 업데이트
-const { updateCluster, resetClusterSettings, createCluster } = useGraph();
+const { updateCluster, resetClusterSettings, createCluster, clearGraphData } = useGraph();
 
 async function handleUpdateCluster(data: { id: number; label: string; color: string; keywords: string[] }) {
   await updateCluster(data.id, {
@@ -295,7 +377,6 @@ function updateGraphClustersFromLocal() {
 }
 
 // 설정 페이지로 이동 시 이전 뷰 저장
-import { watch } from 'vue';
 watch(currentView, (newView, oldView) => {
   if (newView === 'settings' && oldView !== 'settings') {
     previousView.value = oldView;
@@ -303,10 +384,25 @@ watch(currentView, (newView, oldView) => {
 });
 
 onMounted(async () => {
+  // 앱 시작 시 뷰를 에디터로 명시적 초기화 (중복 설정으로 확실하게)
+  currentView.value = 'editor';
+  previousView.value = 'editor';
+  
+  // 선택된 파일 초기화 (새 파일 없이 시작)
+  activeFile.value = null;
+  isGitHubFile.value = false;
+  githubFileContent.value = null;
+  
   checkHealth();
   initFonts();
   // 앱 시작 시 기본 vault(data 폴더) 자동 로드
   await initVault();
+  
+  // Vue 렌더링 사이클 완료 후 한 번 더 확인
+  await nextTick();
+  if (currentView.value !== 'editor') {
+    currentView.value = 'editor';
+  }
 });
 </script>
 
@@ -340,6 +436,16 @@ onMounted(async () => {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+/* 뷰 컴포넌트들의 기본 스타일 - v-show가 제대로 작동하도록 */
+.content-area > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
 }
 
 /* 저장 확인 모달 */
