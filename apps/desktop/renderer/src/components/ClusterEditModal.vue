@@ -129,15 +129,39 @@
 
         <!-- 푸터 -->
         <div class="modal-footer">
-          <button v-if="!isCreateMode" class="btn-secondary" @click="handleReset">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-            AI 설정으로 복원
-          </button>
-          <div v-else></div>
-          <div class="btn-group">
+          <div class="footer-left" v-if="!isCreateMode">
+            <!-- 삭제 버튼 (확인 전) -->
+            <button 
+              v-if="!showDeleteConfirm" 
+              class="btn-danger-outline" 
+              @click="toggleDeleteConfirm"
+              title="클러스터 삭제"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+              삭제
+            </button>
+            <!-- 삭제 확인 -->
+            <div v-else class="delete-confirm-group">
+              <span class="delete-confirm-text">정말 삭제?</span>
+              <button class="btn-danger" @click="handleDelete">삭제</button>
+              <button class="btn-cancel-sm" @click="toggleDeleteConfirm">취소</button>
+            </div>
+          </div>
+          <div class="footer-left" v-else></div>
+          
+          <div class="btn-group" v-if="!showDeleteConfirm">
+            <button v-if="!isCreateMode" class="btn-secondary" @click="handleReset">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              복원
+            </button>
             <button class="btn-cancel" @click="handleClose">취소</button>
             <button 
               class="btn-primary" 
@@ -171,7 +195,11 @@ const emit = defineEmits<{
   (e: 'save', data: { id: number; label: string; color: string; keywords: string[] }): void;
   (e: 'reset', clusterId: number): void;
   (e: 'create', data: { label: string; color: string; keywords: string[] }): void;
+  (e: 'delete', clusterId: number): void;
 }>();
+
+// 삭제 확인 상태
+const showDeleteConfirm = ref(false);
 
 // 파스텔 톤 색상 팔레트 (무지개 순서)
 const colorPalette = [
@@ -266,8 +294,21 @@ function handleReset() {
   emit('close');
 }
 
+// 삭제 확인 토글
+function toggleDeleteConfirm() {
+  showDeleteConfirm.value = !showDeleteConfirm.value;
+}
+
+// 클러스터 삭제
+function handleDelete() {
+  if (!props.cluster) return;
+  emit('delete', props.cluster.id);
+  emit('close');
+}
+
 // 닫기
 function handleClose() {
+  showDeleteConfirm.value = false;
   emit('close');
 }
 </script>
@@ -609,9 +650,86 @@ function handleClose() {
   background: var(--bg-secondary);
 }
 
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn-group {
   display: flex;
   gap: 10px;
+}
+
+/* 삭제 버튼 스타일 */
+.btn-danger-outline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-danger-outline:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.delete-confirm-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-confirm-text {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-cancel-sm {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-sm:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .btn-secondary,

@@ -1,26 +1,10 @@
 <template>
   <div class="calendar-view">
-    <!-- 캘린더 헤더 -->
-    <div class="calendar-header">
-      <div class="calendar-title-section">
-        <h1>{{ t('calendar.title') }}</h1>
-        <p>{{ t('calendar.subtitle') }}</p>
-      </div>
-      <div class="calendar-actions">
-        <button class="action-btn ai-extract-btn" @click="showExtractModal = true" :title="t('calendar.aiExtract')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
-          </svg>
-          <span>{{ t('calendar.aiExtract') }}</span>
-        </button>
-        <button class="action-btn today-btn" @click="scrollToToday">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>{{ t('common.today') }}</span>
-        </button>
-      </div>
+    <!-- 배경 효과 -->
+    <div class="view-background">
+      <div class="bg-gradient bg-gradient-1"></div>
+      <div class="bg-gradient bg-gradient-2"></div>
+      <div class="bg-noise"></div>
     </div>
 
     <div class="calendar-body">
@@ -28,8 +12,10 @@
       <CalendarGrid
         ref="calendarGridRef"
         :calendar-months="calendarMonths"
+        :all-schedules="rangeSchedules"
         @select-date="selectDate"
         @load-more="loadMoreMonths"
+        @fetch-range-schedules="fetchSchedulesByDateRange"
       />
 
       <!-- 일정 상세 패널 -->
@@ -42,6 +28,8 @@
         @edit-schedule="openEditModal"
         @delete-schedule="openDeleteConfirm"
         @toggle-complete="toggleComplete"
+        @ai-extract="showExtractModal = true"
+        @go-today="scrollToToday"
       />
     </div>
 
@@ -107,6 +95,7 @@ const {
   selectedDate,
   loading,
   error,
+  rangeSchedules,
   goToToday,
   selectDate,
   loadMoreMonths,
@@ -116,6 +105,7 @@ const {
   toggleComplete,
   extractSchedulesFromNote,
   createSchedulesBatch,
+  fetchSchedulesByDateRange,
   init,
 } = useSchedule();
 
@@ -140,9 +130,9 @@ const extractConfidence = ref(0);
 // 오늘로 스크롤
 function scrollToToday() {
   goToToday();
-  nextTick(() => {
-    calendarGridRef.value?.scrollToToday();
-  });
+  setTimeout(() => {
+    calendarGridRef.value?.scrollToToday(true); // 버튼 클릭시에는 부드럽게 애니메이션
+  }, 50);
 }
 
 // 모달 열기/닫기
@@ -226,10 +216,10 @@ async function saveExtractedSchedules(indexes: number[]) {
 // 초기화
 onMounted(() => {
   init();
-  // 오늘 날짜로 스크롤
-  nextTick(() => {
-    calendarGridRef.value?.scrollToToday();
-  });
+  // 오늘 날짜로 스크롤 (DOM 완전히 렌더링 후)
+  setTimeout(() => {
+    calendarGridRef.value?.scrollToToday(false); // 초기 로드시에는 애니메이션 없이
+  }, 150);
 });
 
 // 외부에서 호출 가능하도록 노출
@@ -240,6 +230,7 @@ defineExpose({
 
 <style scoped>
 .calendar-view {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -247,130 +238,97 @@ defineExpose({
   overflow: hidden;
 }
 
-/* Header */
-.calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22px 32px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
-  flex-shrink: 0;
+/* 배경 효과 */
+.view-background {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
 }
 
-.calendar-title-section h1 {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 4px 0;
-  letter-spacing: -0.02em;
+.bg-gradient {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.04;
 }
 
-.calendar-title-section p {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0;
+.bg-gradient-1 {
+  width: 600px;
+  height: 600px;
+  background: linear-gradient(135deg, #c9a76c 0%, #e8d5b7 50%, #d4a574 100%);
+  top: -200px;
+  left: -200px;
+  animation: gradientFloat1 20s ease-in-out infinite;
 }
 
-.calendar-actions {
-  display: flex;
-  gap: 10px;
+.bg-gradient-2 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(225deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+  bottom: -150px;
+  right: -150px;
+  animation: gradientFloat2 25s ease-in-out infinite;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
+@keyframes gradientFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, 20px) scale(1.05); }
+  66% { transform: translate(-20px, 30px) scale(0.95); }
 }
 
-.action-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--border-default);
-  color: var(--text-primary);
+@keyframes gradientFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, -15px) scale(1.03); }
+  66% { transform: translate(20px, -25px) scale(0.97); }
 }
 
-.ai-extract-btn {
-  background: rgba(139, 92, 246, 0.08);
-  border-color: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
+.bg-noise {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  mix-blend-mode: overlay;
 }
 
-.ai-extract-btn:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.35);
-}
-
-.today-btn {
-  background: rgba(201, 167, 108, 0.1);
-  border-color: rgba(201, 167, 108, 0.25);
-  color: #e8d5b7;
-}
-
-.today-btn:hover {
-  background: rgba(201, 167, 108, 0.18);
-  border-color: rgba(201, 167, 108, 0.4);
-}
-
-/* Body */
+/* 본문 */
 .calendar-body {
+  position: relative;
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 380px;
   min-height: 0;
   overflow: hidden;
+  z-index: 1;
 }
 
-/* Light theme */
-:global([data-theme="light"]) .calendar-header {
-  background: #ffffff;
-  border-bottom-color: rgba(0, 0, 0, 0.06);
+/* ======== Light Theme ======== */
+:global([data-theme="light"]) .calendar-view {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-:global([data-theme="light"]) .calendar-title-section h1 {
-  color: #1f2937;
+:global([data-theme="light"]) .bg-gradient {
+  opacity: 0.06;
 }
 
-:global([data-theme="light"]) .action-btn {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.1);
-  color: #374151;
+:global([data-theme="light"]) .bg-gradient-1 {
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
 }
 
-:global([data-theme="light"]) .action-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #111827;
+:global([data-theme="light"]) .bg-gradient-2 {
+  background: linear-gradient(225deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
 }
 
-:global([data-theme="light"]) .ai-extract-btn {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.2);
-  color: #6366f1;
+:global([data-theme="light"]) .bg-noise {
+  opacity: 0.02;
 }
 
-:global([data-theme="light"]) .ai-extract-btn:hover {
-  background: rgba(99, 102, 241, 0.14);
-  border-color: rgba(99, 102, 241, 0.3);
-}
-
-:global([data-theme="light"]) .today-btn {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-}
-
-:global([data-theme="light"]) .today-btn:hover {
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.3);
+/* 반응형 */
+@media (max-width: 900px) {
+  .calendar-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
 }
 </style>

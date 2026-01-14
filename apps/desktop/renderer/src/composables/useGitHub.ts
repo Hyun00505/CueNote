@@ -61,6 +61,10 @@ const gitChanges = ref<GitChange[]>([]);
 const hasChanges = computed(() => gitChanges.value.length > 0);
 const gitInstalled = ref(true);
 
+// 스테이징 선택 상태
+const stagedFiles = ref<Set<string>>(new Set());
+const stagedCount = computed(() => stagedFiles.value.size);
+
 // GitHub 활성 모드 (환경 전환 시에도 연결 유지)
 const isGitHubActive = ref(false);
 
@@ -502,7 +506,7 @@ export function useGitHub() {
     }
   }
 
-  // 파일 삭제
+  // 파일 삭제 (실제 삭제)
   async function deleteFile(filePath: string): Promise<boolean> {
     if (!token.value || !selectedRepo.value) {
       error.value = '리포지토리를 먼저 선택해주세요';
@@ -527,7 +531,6 @@ export function useGitHub() {
 
       // 파일 목록 새로고침
       await fetchRepoFiles();
-      await fetchTrashFiles();
       await checkGitStatus();
       
       return true;
@@ -659,7 +662,12 @@ export function useGitHub() {
 
   // Git 상태 확인
   async function checkGitStatus(): Promise<void> {
-    if (!token.value || !selectedRepo.value) return;
+    if (!token.value || !selectedRepo.value) {
+      console.log('[checkGitStatus] Skipped: token or selectedRepo missing');
+      return;
+    }
+
+    console.log('[checkGitStatus] Checking status for:', selectedRepo.value.owner, selectedRepo.value.name);
 
     try {
       const res = await fetch(`${CORE_BASE}/github/status`, {
@@ -675,8 +683,12 @@ export function useGitHub() {
 
       if (res.ok) {
         const data = await res.json();
+        console.log('[checkGitStatus] Response:', data);
         isCloned.value = data.cloned;
         gitChanges.value = data.changes || [];
+        console.log('[checkGitStatus] gitChanges updated:', gitChanges.value.length, 'files');
+      } else {
+        console.error('[checkGitStatus] Request failed:', res.status);
       }
     } catch (e) {
       console.error('Failed to check git status:', e);
@@ -724,8 +736,8 @@ export function useGitHub() {
     }
   }
 
-  // Push (변경사항 업로드)
-  async function push(message: string): Promise<boolean> {
+  // Push (변경사항 업로드) - 선택된 파일만 스테이징
+  async function push(message: string, selectedFiles?: string[]): Promise<boolean> {
     if (!token.value || !selectedRepo.value) {
       error.value = '리포지토리를 먼저 선택해주세요';
       return false;
@@ -733,6 +745,13 @@ export function useGitHub() {
 
     if (!message.trim()) {
       error.value = '커밋 메시지를 입력해주세요';
+      return false;
+    }
+
+    // 선택된 파일이 없으면 에러
+    const filesToCommit = selectedFiles || Array.from(stagedFiles.value);
+    if (filesToCommit.length === 0) {
+      error.value = '커밋할 파일을 선택해주세요';
       return false;
     }
 
@@ -747,7 +766,8 @@ export function useGitHub() {
           token: token.value,
           owner: selectedRepo.value.owner,
           repo: selectedRepo.value.name,
-          message: message.trim()
+          message: message.trim(),
+          files: filesToCommit  // 선택된 파일 목록 전달
         })
       });
 
@@ -756,8 +776,11 @@ export function useGitHub() {
         throw new Error(errData.detail || 'Push에 실패했습니다');
       }
 
-      // 상태 초기화
-      gitChanges.value = [];
+      // 스테이징 상태 초기화
+      stagedFiles.value.clear();
+      
+      // Git 상태 새로고침
+      await checkGitStatus();
       
       return true;
     } catch (e: any) {
@@ -767,6 +790,36 @@ export function useGitHub() {
     } finally {
       isPushing.value = false;
     }
+  }
+
+  // 파일 스테이징 토글
+  function toggleStageFile(path: string) {
+    if (stagedFiles.value.has(path)) {
+      stagedFiles.value.delete(path);
+    } else {
+      stagedFiles.value.add(path);
+    }
+    // 반응성을 위해 새 Set 생성
+    stagedFiles.value = new Set(stagedFiles.value);
+  }
+
+  // 전체 스테이징
+  function stageAll() {
+    gitChanges.value.forEach(change => {
+      stagedFiles.value.add(change.path);
+    });
+    stagedFiles.value = new Set(stagedFiles.value);
+  }
+
+  // 전체 스테이징 해제
+  function unstageAll() {
+    stagedFiles.value.clear();
+    stagedFiles.value = new Set(stagedFiles.value);
+  }
+
+  // 파일이 스테이징되었는지 확인
+  function isFileStaged(path: string): boolean {
+    return stagedFiles.value.has(path);
   }
 
   // 로그아웃
@@ -782,11 +835,11 @@ export function useGitHub() {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  // 리포지토리 연결 해제
-  async function disconnectRepo() {
+  // 리포지토리 연결 해제 (로컬 클론 파일 삭제)
+  async function disconnectRepo(): Promise<boolean> {
     if (selectedRepo.value && token.value) {
       try {
-        await fetch(`${CORE_BASE}/github/disconnect`, {
+        const res = await fetch(`${CORE_BASE}/github/disconnect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -796,8 +849,24 @@ export function useGitHub() {
             path: ''
           })
         });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          console.error('Failed to disconnect repo:', errData);
+          error.value = errData.detail || '연결 해제에 실패했습니다';
+          return false;
+        }
+        
+        // 파일 삭제 실패 경고 확인
+        const data = await res.json();
+        if (data.warning) {
+          console.warn('Disconnect warning:', data.warning);
+          // 경고가 있어도 연결 해제는 진행
+        }
       } catch (e) {
         console.error('Failed to disconnect repo:', e);
+        error.value = '연결 해제 중 오류가 발생했습니다';
+        return false;
       }
     }
     
@@ -805,8 +874,10 @@ export function useGitHub() {
     files.value = [];
     isCloned.value = false;
     gitChanges.value = [];
+    stagedFiles.value.clear();
     isGitHubActive.value = false;
     saveSettings();
+    return true;
   }
 
   // 새 리포지토리 생성
@@ -876,6 +947,47 @@ export function useGitHub() {
     isGitHubActive.value = active;
   }
 
+  // GitHub 리포지토리에 이미지 업로드
+  async function uploadImage(base64Data: string, noteName?: string): Promise<string | null> {
+    if (!token.value || !selectedRepo.value) {
+      error.value = '리포지토리를 먼저 선택해주세요';
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${CORE_BASE}/github/repo/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token.value,
+          owner: selectedRepo.value.owner,
+          repo: selectedRepo.value.name,
+          data: base64Data,
+          note_name: noteName
+        })
+      });
+
+      if (!res.ok) {
+        console.error('GitHub image upload failed:', res.status);
+        return null;
+      }
+
+      const data = await res.json();
+      // GitHub에서 보이도록 상대 경로 반환 (img/filename.png)
+      // 에디터에서는 markdownToHtml에서 로컬 URL로 변환하여 표시
+      return data.path;
+    } catch (e) {
+      console.error('GitHub image upload error:', e);
+      return null;
+    }
+  }
+
+  // GitHub 이미지의 상대 경로를 로컬 URL로 변환 (에디터에서 이미지 표시용)
+  function getImageUrl(relativePath: string): string {
+    if (!selectedRepo.value) return relativePath;
+    return `${CORE_BASE}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${relativePath.replace('img/', '')}`;
+  }
+
   return {
     // State
     token,
@@ -897,6 +1009,10 @@ export function useGitHub() {
     hasChanges,
     gitInstalled,
     isGitHubActive,
+    
+    // Staging State
+    stagedFiles,
+    stagedCount,
     
     // Trash State
     trashFiles,
@@ -923,6 +1039,14 @@ export function useGitHub() {
     logout,
     disconnectRepo,
     createRepo,
+    uploadImage,
+    getImageUrl,
+    
+    // Staging Actions
+    toggleStageFile,
+    stageAll,
+    unstageAll,
+    isFileStaged,
     
     // Trash Actions
     fetchTrashFiles,

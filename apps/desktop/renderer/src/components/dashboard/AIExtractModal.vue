@@ -657,13 +657,13 @@ async function selectFile(filePath: string) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #a78bfa;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
 }
 
 .extract-btn:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.25);
+  background: rgba(16, 185, 129, 0.25);
 }
 
 .extract-btn:disabled {

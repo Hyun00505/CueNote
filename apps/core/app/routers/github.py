@@ -5,10 +5,14 @@ GitHub 연동 기능 (Git Clone 기반 로컬 파일 관리)
 import httpx
 import subprocess
 import os
+import sys
 import shutil
+import base64
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..config import logger
@@ -26,7 +30,7 @@ def get_git_repos_dir() -> Path:
     if os.name == 'nt':
         base = Path(os.environ.get('APPDATA', '')) / 'cuenote'
     elif os.name == 'posix':
-        if 'darwin' in os.sys.platform:
+        if 'darwin' in sys.platform:
             base = Path.home() / 'Library' / 'Application Support' / 'cuenote'
         else:
             base = Path.home() / '.local' / 'share' / 'cuenote'
@@ -57,7 +61,7 @@ def check_git_installed() -> bool:
         return False
 
 
-def run_git_command(args: list[str], cwd: Path, env: dict = None) -> tuple[bool, str, str]:
+def run_git_command(args: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[bool, str, str]:
     """Git 명령 실행"""
     try:
         full_env = os.environ.copy()
@@ -69,6 +73,7 @@ def run_git_command(args: list[str], cwd: Path, env: dict = None) -> tuple[bool,
             cwd=str(cwd),
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=120,  # 2분 타임아웃 (대용량 클론 대비)
             env=full_env
         )
@@ -151,6 +156,7 @@ class CommitPayload(BaseModel):
     owner: str
     repo: str
     message: str
+    files: Optional[list[str]] = None  # 선택된 파일 목록 (None이면 전체)
 
 
 class DeleteFilePayload(BaseModel):
@@ -334,6 +340,7 @@ async def clone_repo(payload: CloneRepoPayload):
             cwd=str(get_git_repos_dir()),
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=300,  # 5분 타임아웃
             env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
         )
@@ -393,12 +400,13 @@ async def pull_repo(payload: CloneRepoPayload):
             env=env
         )
         
-        # Pull
+        # Pull (--autostash로 unstaged changes 자동 처리)
         result = subprocess.run(
-            ['git', 'pull', '--rebase'],
+            ['git', 'pull', '--rebase', '--autostash'],
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=120,
             env=env
         )
@@ -429,7 +437,7 @@ async def pull_repo(payload: CloneRepoPayload):
 
 @router.post("/push")
 async def push_repo(payload: CommitPayload):
-    """변경사항 푸시 (git push)"""
+    """변경사항 푸시 (git push) - 선택된 파일만 스테이징"""
     if not check_git_installed():
         raise HTTPException(status_code=500, detail="Git이 설치되어 있지 않습니다")
     
@@ -454,14 +462,34 @@ async def push_repo(payload: CommitPayload):
             env=env
         )
         
-        # Stage all changes
-        subprocess.run(
-            ['git', 'add', '-A'],
-            cwd=str(repo_path),
-            capture_output=True,
-            timeout=30,
-            env=env
-        )
+        # 선택된 파일만 스테이징 또는 전체 스테이징
+        if payload.files and len(payload.files) > 0:
+            # 먼저 모든 스테이징 해제
+            subprocess.run(
+                ['git', 'reset', 'HEAD'],
+                cwd=str(repo_path),
+                capture_output=True,
+                timeout=30,
+                env=env
+            )
+            # 선택된 파일만 스테이징
+            for file_path in payload.files:
+                subprocess.run(
+                    ['git', 'add', '--', file_path],
+                    cwd=str(repo_path),
+                    capture_output=True,
+                    timeout=30,
+                    env=env
+                )
+        else:
+            # 전체 스테이징
+            subprocess.run(
+                ['git', 'add', '-A'],
+                cwd=str(repo_path),
+                capture_output=True,
+                timeout=30,
+                env=env
+            )
         
         # Commit
         commit_result = subprocess.run(
@@ -469,6 +497,7 @@ async def push_repo(payload: CommitPayload):
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=30,
             env=env
         )
@@ -486,6 +515,7 @@ async def push_repo(payload: CommitPayload):
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=120,
             env=env
         )
@@ -505,36 +535,79 @@ async def push_repo(payload: CommitPayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def decode_git_path(path: str) -> str:
+    """Git 경로 디코딩 (한글 등 비ASCII 문자 처리)"""
+    # 따옴표로 둘러싸인 경우 8진수 이스케이프 시퀀스가 포함됨
+    if path.startswith('"') and path.endswith('"'):
+        path = path[1:-1]
+        # 8진수 이스케이프 시퀀스 디코딩 (\xxx 형식)
+        import codecs
+        try:
+            # unicode_escape는 \xxx를 bytes로 변환
+            # latin-1로 인코딩하여 bytes로 만든 후 utf-8로 디코딩
+            decoded = codecs.decode(path, 'unicode_escape').encode('latin-1').decode('utf-8')
+            return decoded
+        except Exception:
+            return path
+    return path
+
+
 @router.post("/status")
 async def get_repo_status(payload: FetchRepoFilesPayload):
     """Git 상태 확인 (변경된 파일 목록)"""
     repo_path = get_repo_local_path(payload.owner, payload.repo)
     
+    logger.info(f"Checking git status for: {repo_path}")
+    
     if not repo_path.exists():
+        logger.warning(f"Repo path does not exist: {repo_path}")
         return {"cloned": False, "changes": []}
     
     try:
         result = subprocess.run(
-            ['git', 'status', '--porcelain'],
+            ['git', '-c', 'core.quotePath=false', 'status', '--porcelain'],
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=30
         )
         
+        logger.info(f"Git status output: {repr(result.stdout)}")
+        
         changes = []
-        for line in result.stdout.strip().split('\n'):
-            if line:
-                status = line[:2].strip()
-                path = line[3:].strip()
-                if path.endswith('.md'):
+        for line in result.stdout.splitlines():
+            if line and len(line) >= 3:
+                # Git status porcelain 형식: XY filename (X=staged, Y=unstaged)
+                status = line[:2].replace(' ', '')
+                # 파일명은 3번째 문자부터 (앞에 "XY " 3문자)
+                path_part = line[3:]  # strip() 제거 - 한글 첫 글자 손상 방지
+                
+                # 리네임된 경우 "old -> new" 형식
+                if ' -> ' in path_part:
+                    path = path_part.split(' -> ')[1]
+                else:
+                    path = path_part
+                
+                # 한글 파일명 등 디코딩
+                path = decode_git_path(path)
+                
+                logger.info(f"Found change: status={status}, path={path}")
+                
+                # .md 파일, .gitkeep 파일, 폴더(/ 로 끝나는 경로), img/ 폴더의 이미지 파일 포함
+                is_folder = path.endswith('/') or path.endswith('.gitkeep')
+                is_image = path.startswith('img/') and any(path.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
+                if path.endswith('.md') or path.endswith('.gitkeep') or path.endswith('/') or is_image:
                     changes.append({
                         "path": path,
                         "status": status,
-                        "status_text": get_status_text(status)
+                        "status_text": get_status_text(status),
+                        "is_folder": is_folder
                     })
         
-            return {
+        logger.info(f"Total changes found: {len(changes)}")
+        
+        return {
             "cloned": True,
             "changes": changes,
             "has_changes": len(changes) > 0
@@ -563,8 +636,8 @@ def get_local_md_files(repo_path: Path) -> list[dict]:
     """로컬 리포지토리에서 md 파일과 폴더만 가져오기"""
     files = []
     
-    # 제외할 폴더
-    exclude_dirs = {'.git', 'node_modules', '__pycache__', 'dist', 'build', '.vscode', '.idea'}
+    # 제외할 폴더 (img 폴더도 사이드바에서 숨김)
+    exclude_dirs = {'.git', 'node_modules', '__pycache__', 'dist', 'build', '.vscode', '.idea', 'img', 'images', 'assets'}
     
     def scan_dir(dir_path: Path, relative_path: str = ""):
         items = []
@@ -803,7 +876,7 @@ def get_repo_trash_path(owner: str, repo: str) -> Path:
 
 @router.post("/repo/delete-file")
 async def delete_file(payload: DeleteFilePayload):
-    """파일을 휴지통으로 이동"""
+    """파일/폴더 실제 삭제"""
     repo_path = get_repo_local_path(payload.owner, payload.repo)
     
     if not repo_path.exists():
@@ -814,29 +887,12 @@ async def delete_file(payload: DeleteFilePayload):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
     
-    trash_path = get_repo_trash_path(payload.owner, payload.repo)
-    
     try:
-        trash_path.mkdir(parents=True, exist_ok=True)
-        
         if file_path.is_file():
-            # 파일을 휴지통으로 이동
-            trash_file = trash_path / file_path.name
-            counter = 0
-            while trash_file.exists():
-                counter += 1
-                trash_file = trash_path / f"{file_path.stem}_{counter}{file_path.suffix}"
-            file_path.rename(trash_file)
+            # 파일 실제 삭제
+            file_path.unlink()
         else:
-            # 폴더의 경우 내부 md 파일들을 휴지통으로 이동
-            for md_file in file_path.rglob("*.md"):
-                trash_file = trash_path / md_file.name
-                counter = 0
-                while trash_file.exists():
-                    counter += 1
-                    trash_file = trash_path / f"{md_file.stem}_{counter}{md_file.suffix}"
-                md_file.rename(trash_file)
-            # 폴더 삭제
+            # 폴더 실제 삭제
             shutil.rmtree(file_path)
         
         return {
@@ -930,17 +986,59 @@ async def empty_trash(token: str, owner: str, repo: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def remove_readonly(func, path, excinfo):
+    """Windows에서 읽기 전용 파일 삭제를 위한 헬퍼"""
+    import stat
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def safe_rmtree(path: Path, max_retries: int = 5, delay: float = 0.5):
+    """안전하게 디렉토리 삭제 (Windows 파일 잠금 처리)"""
+    import time
+    import gc
+    
+    for attempt in range(max_retries):
+        try:
+            # 가비지 컬렉션으로 파일 핸들 해제 유도
+            gc.collect()
+            time.sleep(delay)
+            
+            shutil.rmtree(path, onerror=remove_readonly)
+            return True
+        except PermissionError as e:
+            logger.warning(f"Delete attempt {attempt + 1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(delay * (attempt + 1))  # 점점 더 오래 대기
+            else:
+                raise
+        except Exception as e:
+            raise
+    return False
+
+
 @router.post("/disconnect")
 async def disconnect_repo(payload: FetchRepoFilesPayload):
     """리포지토리 연결 해제 (로컬 클론 삭제)"""
     repo_path = get_repo_local_path(payload.owner, payload.repo)
     
+    logger.info(f"Disconnecting repo: {repo_path}")
+    
     if repo_path.exists():
         try:
-            shutil.rmtree(repo_path)
+            # Windows에서 파일 잠금 문제를 위한 재시도 로직
+            safe_rmtree(repo_path)
+            logger.info(f"Successfully removed repo: {repo_path}")
         except Exception as e:
-            logger.error("Failed to remove repo: %s", e)
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Failed to remove repo after retries: %s", e)
+            # 삭제 실패해도 연결 해제는 진행 (파일은 수동 삭제 필요)
+            return {
+                "success": True,
+                "warning": f"파일 삭제 실패. 수동으로 삭제해주세요: {repo_path}",
+                "path": str(repo_path)
+            }
+    else:
+        logger.warning(f"Repo path does not exist: {repo_path}")
     
     return {"success": True}
 
@@ -998,3 +1096,133 @@ async def create_repository(payload: CreateRepoPayload):
     except Exception as e:
         logger.error("Failed to create repo: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GitHub 리포지토리 이미지 관리
+# ─────────────────────────────────────────────────────────────────────────────
+
+class GitHubImagePayload(BaseModel):
+    """GitHub 리포지토리 이미지 업로드 요청"""
+    token: str
+    owner: str
+    repo: str
+    data: str  # Base64 인코딩된 이미지 데이터
+    note_name: Optional[str] = None
+
+
+def sanitize_filename(name: str) -> str:
+    """파일명에서 특수문자 제거"""
+    # 특수문자 제거 또는 언더스코어로 대체
+    invalid_chars = '<>:"/\\|?*'
+    for char in invalid_chars:
+        name = name.replace(char, '_')
+    # 연속된 언더스코어 정리
+    while '__' in name:
+        name = name.replace('__', '_')
+    return name.strip('_')
+
+
+@router.post("/repo/image")
+async def upload_github_image(payload: GitHubImagePayload):
+    """GitHub 리포지토리에 이미지 업로드 (로컬 클론 경로에 저장)"""
+    repo_path = get_repo_local_path(payload.owner, payload.repo)
+    
+    if not repo_path.exists():
+        raise HTTPException(status_code=404, detail="클론된 리포지토리가 없습니다")
+    
+    try:
+        data = payload.data
+        
+        # Data URL 형식 처리 (data:image/png;base64,...)
+        if data.startswith('data:'):
+            # MIME 타입과 데이터 분리
+            header, encoded = data.split(',', 1)
+            mime_type = header.split(':')[1].split(';')[0]
+            
+            # 확장자 결정
+            ext_map = {
+                'image/png': '.png',
+                'image/jpeg': '.jpg',
+                'image/jpg': '.jpg',
+                'image/gif': '.gif',
+                'image/webp': '.webp',
+                'image/svg+xml': '.svg',
+            }
+            ext = ext_map.get(mime_type, '.png')
+        else:
+            # 순수 Base64 데이터
+            encoded = data
+            ext = '.png'
+        
+        # 파일명 생성: YYYYMMDD_HHMMSS.확장자
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:20]
+        filename = f"{timestamp}{ext}"
+        
+        # 노트 이름으로 하위 폴더 생성: img/노트이름/
+        if payload.note_name:
+            # .md 확장자 제거하고 sanitize
+            note_base = payload.note_name.replace('.md', '')
+            note_base = sanitize_filename(note_base)
+            img_path = repo_path / "img" / note_base
+        else:
+            img_path = repo_path / "img" / "unnamed"
+        
+        img_path.mkdir(parents=True, exist_ok=True)
+        
+        # 파일 저장
+        file_path = img_path / filename
+        image_data = base64.b64decode(encoded)
+        file_path.write_bytes(image_data)
+        
+        # 상대 경로 생성 (img/노트이름/파일명)
+        relative_folder = img_path.name  # 노트이름 또는 unnamed
+        relative_path = f"img/{relative_folder}/{filename}"
+        
+        logger.info("GitHub image saved: %s (%d bytes)", relative_path, len(image_data))
+        
+        # 상대 경로 반환 (마크다운에서 사용) - GitHub에서 접근 가능한 상대 경로
+        return {
+            "status": "ok",
+            "filename": filename,
+            "path": relative_path,
+            "url": f"/github/repo/image/{payload.owner}/{payload.repo}/{relative_folder}/{filename}"
+        }
+    except Exception as e:
+        logger.error("Failed to save GitHub image: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
+
+
+@router.get("/repo/image/{owner}/{repo}/{file_path:path}")
+async def get_github_image(owner: str, repo: str, file_path: str):
+    """GitHub 리포지토리의 이미지 반환 (img/노트이름/파일명 또는 img/파일명 형식 지원)"""
+    repo_path = get_repo_local_path(owner, repo)
+    
+    # 경로 탐색 방지
+    if ".." in file_path:
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    
+    # img/ 폴더 아래의 파일 경로
+    full_path = repo_path / "img" / file_path
+    
+    # 기존 방식(img/파일명)과의 호환성: img 폴더 바로 아래에서도 찾아봄
+    if not full_path.exists():
+        # 하위 폴더 없이 바로 파일명인 경우
+        full_path = repo_path / "img" / file_path
+    
+    if not full_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    # MIME 타입 결정
+    ext = full_path.suffix.lower()
+    mime_types = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+    }
+    media_type = mime_types.get(ext, 'application/octet-stream')
+    
+    return FileResponse(full_path, media_type=media_type)

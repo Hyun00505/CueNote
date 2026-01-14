@@ -60,7 +60,7 @@
             class="commit-input"
             placeholder="커밋 메시지를 입력하세요..."
             rows="3"
-            :disabled="isPushing || changesCount === 0"
+            :disabled="isPushing || stagedCount === 0"
           ></textarea>
           
           <div class="commit-actions">
@@ -76,7 +76,7 @@
                 <path d="M22 2L11 13"/>
                 <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
               </svg>
-              {{ isPushing ? '푸시 중...' : 'Commit & Push' }}
+              {{ isPushing ? '푸시 중...' : `Commit & Push (${stagedCount})` }}
             </button>
           </div>
         </div>
@@ -84,18 +84,46 @@
         <!-- 변경된 파일 목록 -->
         <div class="changes-section" v-if="changesCount > 0">
           <div class="section-header">
-            <span class="section-title">Changes</span>
-            <span class="changes-count">{{ changesCount }}</span>
+            <div class="section-header-left">
+              <label 
+                class="custom-checkbox"
+                :class="{ checked: isAllSelected, indeterminate: isPartialSelected }"
+                title="전체 선택/해제"
+                @click.prevent="toggleSelectAll"
+              >
+                <svg v-if="isAllSelected" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <svg v-else-if="isPartialSelected" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </label>
+              <span class="section-title">STAGED CHANGES</span>
+            </div>
+            <span class="changes-count" :class="{ 'has-staged': stagedCount > 0 }">
+              {{ stagedCount }}/{{ changesCount }}
+            </span>
           </div>
           <div class="file-list">
             <div 
               v-for="change in gitChanges" 
               :key="change.path"
               class="changed-file"
+              :class="{ 'staged': isFileStaged(change.path) }"
               :title="change.path"
+              @click="toggleStageFile(change.path)"
             >
-              <span class="status-dot" :class="getStatusClass(change.status)"></span>
+              <label 
+                class="custom-checkbox"
+                :class="{ checked: isFileStaged(change.path) }"
+                @click.stop="toggleStageFile(change.path)"
+              >
+                <svg v-if="isFileStaged(change.path)" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </label>
               <span class="file-name">{{ getFileName(change.path) }}</span>
+              <span class="status-badge" :class="getStatusClass(change.status_text)">{{ change.status_text }}</span>
             </div>
           </div>
         </div>
@@ -149,7 +177,14 @@ const {
   cloneOrPull,
   pull,
   push,
-  checkGitStatus
+  checkGitStatus,
+  // Staging
+  stagedFiles,
+  stagedCount,
+  toggleStageFile,
+  stageAll,
+  unstageAll,
+  isFileStaged
 } = useGitHub();
 
 const isExpanded = ref(true);
@@ -157,36 +192,59 @@ const commitMessage = ref('');
 
 const isVisible = computed(() => props.isGitHubMode);
 const changesCount = computed(() => gitChanges.value.length);
+
+// 커밋 가능 여부: 선택된 파일이 있고 메시지가 있어야 함
 const canCommit = computed(() => 
   !isPushing.value && 
-  changesCount.value > 0 && 
+  stagedCount.value > 0 && 
   commitMessage.value.trim().length > 0
 );
+
+// 전체 선택 상태
+const isAllSelected = computed(() => 
+  changesCount.value > 0 && stagedCount.value === changesCount.value
+);
+
+// 일부만 선택된 상태
+const isPartialSelected = computed(() => 
+  stagedCount.value > 0 && stagedCount.value < changesCount.value
+);
+
+// 전체 선택/해제 토글
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    unstageAll();
+  } else {
+    stageAll();
+  }
+}
 
 function toggleExpanded() {
   isExpanded.value = !isExpanded.value;
 }
 
 function getFileName(path: string): string {
+  // 폴더인 경우 (/ 로 끝나거나 .gitkeep)
+  if (path.endsWith('/')) {
+    const folderPath = path.slice(0, -1);  // 마지막 / 제거
+    const parts = folderPath.split('/');
+    return parts[parts.length - 1] + '/';  // 폴더임을 표시
+  }
+  if (path.endsWith('.gitkeep')) {
+    const folderPath = path.replace('/.gitkeep', '').replace('.gitkeep', '');
+    const parts = folderPath.split('/');
+    return parts[parts.length - 1] + '/';  // 폴더임을 표시
+  }
   const parts = path.split('/');
   return parts[parts.length - 1];
 }
 
 function getStatusClass(status: string): string {
-  switch (status) {
-    case 'M':
-    case 'MM':
-      return 'modified';
-    case 'A':
-    case 'AM':
-      return 'added';
-    case 'D':
-      return 'deleted';
-    case '??':
-      return 'untracked';
-    default:
-      return '';
-  }
+  const statusLower = status.toLowerCase();
+  if (statusLower.includes('삭제') || statusLower.includes('delete')) return 'deleted';
+  if (statusLower.includes('추가') || statusLower.includes('add') || statusLower.includes('new')) return 'added';
+  if (statusLower.includes('수정') || statusLower.includes('modif')) return 'modified';
+  return 'default';
 }
 
 async function handleClone() {
@@ -474,11 +532,59 @@ watch(() => props.isGitHubMode, async (isActive) => {
   margin-bottom: 6px;
 }
 
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 커스텀 체크박스 */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.custom-checkbox:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.custom-checkbox.checked {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  border-color: #22c55e;
+}
+
+.custom-checkbox.checked:hover {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-color: #16a34a;
+}
+
+.custom-checkbox.indeterminate {
+  background: rgba(74, 222, 128, 0.3);
+  border-color: #4ade80;
+}
+
+.custom-checkbox svg {
+  color: white;
+}
+
+.custom-checkbox.indeterminate svg {
+  color: #4ade80;
+}
+
 .section-title {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
@@ -487,8 +593,14 @@ watch(() => props.isGitHubMode, async (isActive) => {
   font-weight: 600;
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.08);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 10px;
+  transition: all 0.15s ease;
+}
+
+.changes-count.has-staged {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
 }
 
 .file-list {
@@ -501,36 +613,56 @@ watch(() => props.isGitHubMode, async (isActive) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border-radius: 4px;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .changed-file:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.changed-file.staged {
+  background: rgba(74, 222, 128, 0.08);
 }
 
-.status-dot.modified {
-  background: #f59e0b;
+.changed-file.staged:hover {
+  background: rgba(74, 222, 128, 0.12);
 }
 
-.status-dot.added {
-  background: #22c55e;
+.changed-file .custom-checkbox {
+  width: 15px;
+  height: 15px;
 }
 
-.status-dot.deleted {
-  background: #ef4444;
+.status-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: lowercase;
 }
 
-.status-dot.untracked {
-  background: #3b82f6;
+.status-badge.deleted {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.status-badge.added {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.status-badge.modified {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+}
+
+.status-badge.default {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .file-name {

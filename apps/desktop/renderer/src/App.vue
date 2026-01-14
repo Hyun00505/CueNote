@@ -10,6 +10,7 @@
       :selected-cluster-id="selectedClusterId"
       :graph-stats="graphStats"
       :is-graph-loading="isGraphLoading"
+      :unclustered-count="unclusteredCount"
       @toggle-collapse="handleToggleCollapse"
       @select-file="handleSelectFile"
       @select-github-file="handleSelectGitHubFile"
@@ -19,10 +20,10 @@
       @sidebar-width-change="handleSidebarWidthChange"
       @filter-cluster="handleFilterCluster"
       @refresh-graph="handleRefreshGraph"
-      @similarity-change="handleSimilarityChange"
       @update-cluster="handleUpdateCluster"
       @reset-cluster="handleResetCluster"
       @create-cluster="handleCreateCluster"
+      @delete-cluster="handleDeleteCluster"
       @environment-changed="handleEnvironmentChanged"
     />
 
@@ -69,7 +70,6 @@
         :current-view="currentView"
         @change-view="handleChangeView"
         @open-settings="handleOpenSettings"
-        @rename-file="handleRenameFile"
       />
 
       <div class="content-area">
@@ -93,7 +93,6 @@
           ref="graphViewRef"
           v-show="currentView === 'graph'"
           :filter-cluster-id="selectedClusterId"
-          :min-similarity-prop="graphMinSimilarity"
           :is-active="currentView === 'graph'"
           @select-file="handleSelectFile"
           @graph-loaded="handleGraphLoaded"
@@ -136,9 +135,8 @@ const graphViewRef = ref<InstanceType<typeof GraphView> | null>(null);
 // 그래프 뷰 관련 상태
 const graphClusters = ref<ClusterInfo[]>([]);
 const graphStats = ref({ totalNotes: 0, totalClusters: 0, totalEdges: 0 });
-const selectedClusterId = ref<number | null>(null);
+const selectedClusterId = ref<number | null | 'unclustered'>(null);
 const isGraphLoading = ref(false);
-const graphMinSimilarity = ref(0.3);
 
 // dirty 파일 목록 업데이트
 function handleDirtyFilesChange(files: string[]) {
@@ -249,17 +247,24 @@ function handleFileRestored(file: string) {
 }
 
 // 환경 변경 핸들러
-function handleEnvironmentChanged() {
+async function handleEnvironmentChanged() {
+  console.log('[App] Environment changed, current view:', currentView.value);
+  
   // 현재 선택된 파일 초기화
   activeFile.value = null;
   isGitHubFile.value = false;
   githubFileContent.value = null;
   
-  // 그래프 데이터 초기화 (환경 간 데이터 혼합 방지)
-  clearGraphData();
+  // 그래프 관련 상태 초기화
   graphClusters.value = [];
   graphStats.value = { totalNotes: 0, totalClusters: 0, totalEdges: 0 };
   selectedClusterId.value = null;
+  
+  // 그래프 뷰가 비활성 상태면 데이터만 초기화
+  // (활성 상태면 GraphView의 환경 watch가 자동으로 새 데이터 로드)
+  if (currentView.value !== 'graph') {
+    clearGraphData();
+  }
 }
 
 function handleOpenSettings() {
@@ -319,7 +324,7 @@ function handleGraphLoaded(data: { clusters: ClusterInfo[]; stats: any }) {
   isGraphLoading.value = false;
 }
 
-function handleFilterCluster(clusterId: number | null) {
+function handleFilterCluster(clusterId: number | null | 'unclustered') {
   selectedClusterId.value = clusterId;
 }
 
@@ -330,12 +335,8 @@ async function handleRefreshGraph() {
   }
 }
 
-function handleSimilarityChange(value: number) {
-  graphMinSimilarity.value = value;
-}
-
 // 클러스터 설정 업데이트
-const { updateCluster, resetClusterSettings, createCluster, clearGraphData } = useGraph();
+const { updateCluster, resetClusterSettings, createCluster, deleteCluster, clearGraphData, unclusteredCount } = useGraph();
 
 async function handleUpdateCluster(data: { id: number; label: string; color: string; keywords: string[] }) {
   await updateCluster(data.id, {
@@ -359,6 +360,17 @@ async function handleCreateCluster(data: { label: string; color: string; keyword
   const newCluster = await createCluster(data.label, data.color, data.keywords);
   if (newCluster) {
     // 로컬 상태가 즉시 업데이트되므로 새로고침 불필요
+    updateGraphClustersFromLocal();
+  }
+}
+
+async function handleDeleteCluster(clusterId: number) {
+  const success = await deleteCluster(clusterId);
+  if (success) {
+    // 삭제된 클러스터 필터링 중이었다면 전체 보기로 전환
+    if (selectedClusterId.value === clusterId) {
+      selectedClusterId.value = null;
+    }
     updateGraphClustersFromLocal();
   }
 }

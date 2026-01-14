@@ -15,7 +15,7 @@ from ..schemas import (
     SaveClusterSettingsPayload, ClusterSettingsResponse,
     UpdateClusterPayload, MoveNoteToClusterPayload,
     ClusterCustomization, NoteClusterOverride,
-    LockNoteClusterPayload
+    LockNoteClusterPayload, CustomEdgePayload
 )
 
 # 분리된 모듈에서 import
@@ -159,17 +159,41 @@ async def get_graph_data(payload: GraphDataPayload):
             color=final_color
         ))
     
-    # 14. 엣지 생성 (유사도 기반)
+    # 14. 엣지 생성 (유사도 기반 + 사용자 커스텀)
+    custom_edges = cache.get_custom_edges()
     edges = []
+    
+    # 14-1. 유사도 기반 엣지 (사용자가 삭제한 엣지 제외)
     for i in range(len(notes)):
         for j in range(i + 1, len(notes)):
             similarity = similarity_matrix[i][j]
             if similarity >= payload.minSimilarity:
+                source, target = notes[i]["path"], notes[j]["path"]
+                # 사용자가 삭제한 엣지는 제외
+                if not cache.is_edge_removed(source, target):
+                    edges.append(GraphEdge(
+                        source=source,
+                        target=target,
+                        weight=similarity,
+                        type="similarity"
+                    ))
+    
+    # 14-2. 사용자가 추가한 커스텀 엣지
+    note_paths = {n["path"] for n in notes}
+    for edge in custom_edges.get("added", []):
+        if len(edge) == 2 and edge[0] in note_paths and edge[1] in note_paths:
+            # 이미 유사도 기반으로 추가되지 않은 경우에만 추가
+            existing = any(
+                (e.source == edge[0] and e.target == edge[1]) or 
+                (e.source == edge[1] and e.target == edge[0]) 
+                for e in edges
+            )
+            if not existing:
                 edges.append(GraphEdge(
-                    source=notes[i]["path"],
-                    target=notes[j]["path"],
-                    weight=similarity,
-                    type="similarity"
+                    source=edge[0],
+                    target=edge[1],
+                    weight=1.0,  # 사용자 추가 엣지는 최대 가중치
+                    type="custom"
                 ))
     
     # 15. 클러스터 정보 생성 (커스텀 설정 적용)
@@ -736,4 +760,51 @@ async def get_all_clusters():
     return {
         "clusters": clusters,
         "totalClusters": len(clusters)
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 사용자 정의 엣지 관리 API
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/edge/custom")
+async def manage_custom_edge(payload: CustomEdgePayload):
+    """
+    사용자 정의 엣지 추가/삭제
+    - add: 두 노트 사이에 연결 추가
+    - remove: 두 노트 사이의 연결 삭제 (시스템 생성 엣지 숨김)
+    """
+    vault_path = get_current_vault_path()
+    cache = GraphCache(vault_path)
+    
+    if payload.action == "add":
+        cache.add_custom_edge(payload.source, payload.target)
+        logger.info(f"Added custom edge: {payload.source} <-> {payload.target}")
+    elif payload.action == "remove":
+        cache.remove_custom_edge(payload.source, payload.target)
+        logger.info(f"Removed edge: {payload.source} <-> {payload.target}")
+    else:
+        raise HTTPException(status_code=400, detail=f"Invalid action: {payload.action}")
+    
+    cache.save()
+    
+    return {
+        "status": "ok",
+        "action": payload.action,
+        "source": payload.source,
+        "target": payload.target
+    }
+
+
+@router.get("/edges/custom")
+async def get_custom_edges():
+    """사용자 정의 엣지 목록 조회"""
+    vault_path = get_current_vault_path()
+    cache = GraphCache(vault_path)
+    
+    custom_edges = cache.get_custom_edges()
+    
+    return {
+        "added": custom_edges.get("added", []),
+        "removed": custom_edges.get("removed", [])
     }

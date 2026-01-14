@@ -42,24 +42,12 @@
             <path d="M12 5v14M5 12h14"/>
           </svg>
         </button>
-        <div class="delete-popover-wrapper">
-          <button class="folder-action-btn delete" @click.stop="showFolderDeletePopover = true" title="폴더 삭제">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-          </button>
-          <!-- 폴더 삭제 확인 팝오버 -->
-          <Transition name="popover">
-            <div v-if="showFolderDeletePopover" class="delete-popover" @click.stop>
-              <p class="delete-popover-text">삭제할까요?</p>
-              <div class="delete-popover-actions">
-                <button class="popover-btn cancel" @click.stop="showFolderDeletePopover = false">취소</button>
-                <button class="popover-btn confirm" @click.stop="confirmFolderDelete">삭제</button>
-              </div>
-            </div>
-          </Transition>
-        </div>
+        <button class="folder-action-btn delete" @click.stop="showDeletePopover($event, 'folder')" :title="t('common.delete')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -135,31 +123,59 @@
       
       <!-- 파일 액션 버튼 -->
       <div class="file-actions" v-if="editingFile !== item.path">
-        <div class="delete-popover-wrapper">
-          <button class="file-action-btn delete" @click.stop="showFileDeletePopover = true" title="삭제">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-          </button>
-          <!-- 파일 삭제 확인 팝오버 -->
-          <Transition name="popover">
-            <div v-if="showFileDeletePopover" class="delete-popover" @click.stop>
-              <p class="delete-popover-text">삭제할까요?</p>
-              <div class="delete-popover-actions">
-                <button class="popover-btn cancel" @click.stop="showFileDeletePopover = false">취소</button>
-                <button class="popover-btn confirm" @click.stop="confirmFileDelete">삭제</button>
-              </div>
-            </div>
-          </Transition>
-        </div>
+        <button class="file-action-btn delete" @click.stop="showDeletePopover($event, 'file')" :title="t('common.delete')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
       </div>
     </div>
+
+    <!-- 삭제 확인 팝오버 (Teleport to body) -->
+    <Teleport to="body">
+      <!-- 폴더 삭제 팝오버 -->
+      <Transition name="popover">
+        <div 
+          v-if="showFolderDeletePopover" 
+          class="delete-popover-fixed" 
+          :class="{ 'github-warning': isGitHub }"
+          :style="{ left: popoverPosition.x + 'px', top: popoverPosition.y + 'px' }"
+          @click.stop
+        >
+          <p class="delete-popover-text">{{ isGitHub ? t('file.deleteFolder') : t('file.deleteQuestion') }}</p>
+          <p v-if="isGitHub" class="delete-popover-warning">⚠️ {{ t('file.deleteWarning') }}</p>
+          <div class="delete-popover-actions">
+            <button class="popover-btn cancel" @click.stop="showFolderDeletePopover = false">{{ t('common.cancel') }}</button>
+            <button class="popover-btn confirm" @click.stop="confirmFolderDelete">{{ t('common.delete') }}</button>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- 파일 삭제 팝오버 -->
+      <Transition name="popover">
+        <div 
+          v-if="showFileDeletePopover" 
+          class="delete-popover-fixed" 
+          :class="{ 'github-warning': isGitHub }"
+          :style="{ left: popoverPosition.x + 'px', top: popoverPosition.y + 'px' }"
+          @click.stop
+        >
+          <p class="delete-popover-text">{{ isGitHub ? t('file.deleteFile') : t('file.deleteQuestion') }}</p>
+          <p v-if="isGitHub" class="delete-popover-warning">⚠️ {{ t('file.deleteWarning') }}</p>
+          <div class="delete-popover-actions">
+            <button class="popover-btn cancel" @click.stop="showFileDeletePopover = false">{{ t('common.cancel') }}</button>
+            <button class="popover-btn confirm" @click.stop="confirmFileDelete">{{ t('common.delete') }}</button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
+import { useI18n } from '../../composables';
 
 interface TreeNode {
   name: string;
@@ -202,14 +218,44 @@ const folderEditInputRef = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
 const isDragOver = ref(false);
 
+// i18n
+const { t } = useI18n();
+
 // 삭제 팝오버 상태
 const showFileDeletePopover = ref(false);
 const showFolderDeletePopover = ref(false);
+const popoverPosition = ref({ x: 0, y: 0 });
+
+// 팝오버 위치 계산 및 표시
+function showDeletePopover(event: MouseEvent, type: 'file' | 'folder') {
+  const btn = event.currentTarget as HTMLElement;
+  const rect = btn.getBoundingClientRect();
+  
+  // 팝오버를 버튼 왼쪽에 표시
+  popoverPosition.value = {
+    x: rect.left - 160,
+    y: rect.top - 10
+  };
+  
+  // 화면 밖으로 나가지 않도록 조정
+  if (popoverPosition.value.x < 10) {
+    popoverPosition.value.x = rect.right + 10;
+  }
+  if (popoverPosition.value.y + 100 > window.innerHeight) {
+    popoverPosition.value.y = window.innerHeight - 110;
+  }
+  
+  if (type === 'file') {
+    showFileDeletePopover.value = true;
+  } else {
+    showFolderDeletePopover.value = true;
+  }
+}
 
 // 팝오버 외부 클릭 시 닫기
 function handleOutsideClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (!target.closest('.delete-popover-wrapper')) {
+  if (!target.closest('.delete-popover-fixed')) {
     showFileDeletePopover.value = false;
     showFolderDeletePopover.value = false;
   }
@@ -573,18 +619,15 @@ function onDrop(event: DragEvent) {
   position: relative;
 }
 
-.delete-popover {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
+.delete-popover-fixed {
+  position: fixed;
   background: var(--bg-secondary, #1e1e2e);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: 8px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 100;
-  min-width: 120px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+  min-width: 160px;
 }
 
 .delete-popover-text {
@@ -592,6 +635,20 @@ function onDrop(event: DragEvent) {
   color: var(--text-primary);
   margin: 0 0 8px 0;
   white-space: nowrap;
+}
+
+.delete-popover-warning {
+  font-size: 11px;
+  color: #ff6b6b;
+  margin: 0 0 10px 0;
+  padding: 6px 8px;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.delete-popover-fixed.github-warning {
+  min-width: 200px;
 }
 
 .delete-popover-actions {

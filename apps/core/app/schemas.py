@@ -430,3 +430,10 @@ class LockNoteClusterPayload(BaseModel):
     """노트 클러스터 잠금/해제"""
     notePath: str = Field(..., description="노트 파일 경로")
     locked: bool = Field(..., description="잠금 여부")
+
+
+class CustomEdgePayload(BaseModel):
+    """사용자 정의 엣지 추가/삭제"""
+    source: str = Field(..., description="소스 노트 경로")
+    target: str = Field(..., description="타겟 노트 경로")
+    action: str = Field(..., description="add 또는 remove")

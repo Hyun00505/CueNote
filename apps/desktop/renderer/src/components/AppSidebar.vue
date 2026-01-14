@@ -55,10 +55,9 @@
           :selected-cluster-id="selectedClusterId || null"
           :stats="graphStats || null"
           :is-loading="isGraphLoading || false"
-          :min-similarity="minSimilarity"
+          :unclustered-count="unclusteredCount || 0"
           @filter-cluster="emit('filter-cluster', $event)"
           @refresh-graph="emit('refresh-graph')"
-          @similarity-change="handleSimilarityChange"
           @edit-cluster="openClusterEdit"
           @create-cluster="openClusterCreate"
         />
@@ -175,6 +174,14 @@
     @confirm="confirmDeleteEnvironment"
   />
 
+  <!-- GitHub 연결 해제 확인 모달 -->
+  <DisconnectGitHubModal
+    :visible="showDisconnectGitHubModal"
+    :repo-name="githubSelectedRepo?.name || ''"
+    @close="closeDisconnectGitHubModal"
+    @confirm="confirmDisconnectGitHub"
+  />
+
   <!-- 클러스터 편집 모달 -->
   <ClusterEditModal
     :visible="showClusterEditModal"
@@ -184,6 +191,7 @@
     @save="handleClusterSave"
     @reset="handleClusterReset"
     @create="handleClusterCreate"
+    @delete="handleClusterDelete"
   />
 </template>
 
@@ -199,6 +207,7 @@ import {
   EnvAddModal,
   CreateRepoModal,
   DeleteEnvModal,
+  DisconnectGitHubModal,
   GitPanel
 } from './sidebar';
 
@@ -210,9 +219,10 @@ const props = defineProps<{
   dirtyFiles: string[];
   currentView: ViewType;
   clusters?: ClusterInfo[];
-  selectedClusterId?: number | null;
+  selectedClusterId?: number | null | 'unclustered';
   graphStats?: { totalNotes: number; totalClusters: number; totalEdges: number };
   isGraphLoading?: boolean;
+  unclusteredCount?: number;
 }>();
 
 const emit = defineEmits<{
@@ -225,12 +235,12 @@ const emit = defineEmits<{
   'file-renamed': [oldPath: string, newPath: string];
   'environment-changed': [];
   'sidebar-width-change': [width: number];
-  'filter-cluster': [clusterId: number | null];
+  'filter-cluster': [clusterId: number | null | 'unclustered'];
   'refresh-graph': [];
-  'similarity-change': [value: number];
   'update-cluster': [data: { id: number; label: string; color: string; keywords: string[] }];
   'reset-cluster': [clusterId: number];
   'create-cluster': [data: { label: string; color: string; keywords: string[] }];
+  'delete-cluster': [clusterId: number];
 }>();
 
 // 리사이즈 관련
@@ -339,12 +349,12 @@ const envSelectorRef = ref<InstanceType<typeof EnvironmentSelector> | null>(null
 const showEnvModal = ref(false);
 const showDeleteEnvModal = ref(false);
 const envToDelete = ref<{ id: string; name: string; path: string } | null>(null);
+const showDisconnectGitHubModal = ref(false);
 const showCreateRepoModal = ref(false);
 const creatingRepo = ref(false);
 const createRepoError = ref<string | null>(null);
 
 // Graph/Cluster State
-const minSimilarity = ref(0.3);
 const showClusterEditModal = ref(false);
 const editingCluster = ref<ClusterInfo | null>(null);
 const isClusterCreateMode = ref(false);
@@ -400,9 +410,20 @@ async function handleSelectGitHubEnv() {
 }
 
 function handleDisconnectGitHub() {
-  disconnectRepo();
+  showDisconnectGitHubModal.value = true;
   envSelectorRef.value?.closeDropdown();
-  emit('environment-changed');
+}
+
+function closeDisconnectGitHubModal() {
+  showDisconnectGitHubModal.value = false;
+}
+
+async function confirmDisconnectGitHub() {
+  const success = await disconnectRepo();
+  showDisconnectGitHubModal.value = false;
+  if (success) {
+    emit('environment-changed');
+  }
 }
 
 function handleRemoveEnvironment(id: string) {
@@ -647,11 +668,6 @@ function handleCommitSuccess() {
 }
 
 // Graph handlers
-function handleSimilarityChange(value: number) {
-  minSimilarity.value = value;
-  emit('similarity-change', value);
-}
-
 function openClusterEdit(cluster: ClusterInfo) {
   editingCluster.value = cluster;
   isClusterCreateMode.value = false;
@@ -680,6 +696,10 @@ function handleClusterReset(clusterId: number) {
 
 function handleClusterCreate(data: { label: string; color: string; keywords: string[] }) {
   emit('create-cluster', data);
+}
+
+function handleClusterDelete(clusterId: number) {
+  emit('delete-cluster', clusterId);
 }
 </script>
 
@@ -724,7 +744,8 @@ function handleClusterCreate(data: { label: string; color: string; keywords: str
 /* Collapsed state hiding */
 .sidebar.collapsed .logo-text,
 .sidebar.collapsed .vault-stats,
-.sidebar.collapsed .status-text {
+.sidebar.collapsed .status-text,
+.sidebar.collapsed .sidebar-content {
   display: none;
 }
 
@@ -742,8 +763,14 @@ function handleClusterCreate(data: { label: string; color: string; keywords: str
   margin: 0 auto;
 }
 
-.sidebar.collapsed .sidebar-content {
-  padding: 8px 4px;
+.sidebar.collapsed .sidebar-footer {
+  padding: 12px 8px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .status-indicator {
+  justify-content: center;
+  padding: 8px;
 }
 
 /* Header */
@@ -751,7 +778,8 @@ function handleClusterCreate(data: { label: string; color: string; keywords: str
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  min-height: var(--header-height);
   border-bottom: 1px solid var(--border-subtle);
 }
 
