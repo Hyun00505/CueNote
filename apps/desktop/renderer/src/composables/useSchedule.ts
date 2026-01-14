@@ -182,6 +182,8 @@ export function useSchedule() {
       if (res.ok) {
         const data = await res.json();
         schedules.value.push(data.schedule);
+        // rangeSchedules에도 추가 (해당 날짜 범위에 포함되면)
+        rangeSchedules.value.push(data.schedule);
         await fetchAllVisibleCounts();
         return data.schedule;
       }
@@ -209,6 +211,11 @@ export function useSchedule() {
         if (index !== -1) {
           schedules.value[index] = data.schedule;
         }
+        // rangeSchedules도 업데이트
+        const rangeIndex = rangeSchedules.value.findIndex(s => s.id === id);
+        if (rangeIndex !== -1) {
+          rangeSchedules.value[rangeIndex] = data.schedule;
+        }
         await fetchAllVisibleCounts();
         return data.schedule;
       }
@@ -230,6 +237,8 @@ export function useSchedule() {
       });
       if (res.ok) {
         schedules.value = schedules.value.filter(s => s.id !== id);
+        // rangeSchedules에서도 제거
+        rangeSchedules.value = rangeSchedules.value.filter(s => s.id !== id);
         await fetchAllVisibleCounts();
         return true;
       }
@@ -313,6 +322,23 @@ export function useSchedule() {
     return [];
   }
 
+  // 날짜 범위로 스케줄 가져오기 (주간 뷰용)
+  const rangeSchedules = ref<ScheduleItem[]>([]);
+  
+  async function fetchSchedulesByDateRange(startDate: string, endDate: string): Promise<ScheduleItem[]> {
+    try {
+      const res = await fetch(`${API_BASE}/schedules?start_date=${startDate}&end_date=${endDate}`);
+      if (res.ok) {
+        const data = await res.json();
+        rangeSchedules.value = data.schedules || [];
+        return rangeSchedules.value;
+      }
+    } catch (e) {
+      console.error('날짜 범위 스케줄 조회 실패:', e);
+    }
+    return [];
+  }
+
   // 초기화
   function init() {
     const todayStr = formatDate(today);
@@ -332,6 +358,7 @@ export function useSchedule() {
     selectedSchedules,
     visibleMonthsCount,
     startMonthOffset,
+    rangeSchedules,
     
     // 액션
     goToToday,
@@ -339,6 +366,7 @@ export function useSchedule() {
     loadMoreMonths,
     fetchAllVisibleCounts,
     fetchSchedulesByDate,
+    fetchSchedulesByDateRange,
     createSchedule,
     updateSchedule,
     deleteSchedule,

@@ -103,27 +103,27 @@
           </svg>
         </button>
       </div>
+      
+      <!-- 미분류 노트 -->
+      <button
+        v-if="unclusteredCount > 0"
+        class="cluster-item unclustered"
+        :class="{ active: selectedClusterId === 'unclustered' }"
+        @click="emit('filter-cluster', 'unclustered')"
+      >
+        <span class="cluster-dot unclustered-dot">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </span>
+        <span class="cluster-name">미분류</span>
+        <span class="cluster-count unclustered">{{ unclusteredCount }}</span>
+      </button>
     </div>
 
-    <!-- 유사도 슬라이더 -->
-    <div class="similarity-control">
-      <label>
-        <span>연결 민감도</span>
-        <span class="similarity-value">{{ Math.round(minSimilarity * 100) }}%</span>
-      </label>
-      <input
-        type="range"
-        min="0.1"
-        max="0.8"
-        step="0.05"
-        :value="minSimilarity"
-        @input="handleSimilarityInput"
-      />
-      <div class="similarity-hint">
-        <span>많은 연결</span>
-        <span>적은 연결</span>
-      </div>
-    </div>
+    <!-- 연결 민감도는 10%로 고정 (사용자가 직접 연결 관리) -->
   </div>
 </template>
 
@@ -132,24 +132,18 @@ import type { ClusterInfo } from '../../types';
 
 const props = defineProps<{
   clusters: ClusterInfo[];
-  selectedClusterId: number | null;
+  selectedClusterId: number | null | 'unclustered';
   stats: { totalNotes: number; totalClusters: number; totalEdges: number } | null;
   isLoading: boolean;
-  minSimilarity: number;
+  unclusteredCount: number;
 }>();
 
 const emit = defineEmits<{
-  'filter-cluster': [clusterId: number | null];
+  'filter-cluster': [clusterId: number | null | 'unclustered'];
   'refresh-graph': [];
-  'similarity-change': [value: number];
   'edit-cluster': [cluster: ClusterInfo];
   'create-cluster': [];
 }>();
-
-function handleSimilarityInput(e: Event) {
-  const value = parseFloat((e.target as HTMLInputElement).value);
-  emit('similarity-change', value);
-}
 </script>
 
 <style scoped>
@@ -312,6 +306,39 @@ function handleSimilarityInput(e: Event) {
   background: linear-gradient(135deg, #8b5cf6, #3b82f6, #22c55e);
 }
 
+.cluster-dot.unclustered-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(156, 163, 175, 0.2);
+  border: 1px dashed rgba(156, 163, 175, 0.5);
+}
+
+.cluster-dot.unclustered-dot svg {
+  color: var(--text-muted);
+}
+
+.cluster-item.unclustered {
+  opacity: 0.8;
+  border-style: dashed;
+  border-color: var(--border-subtle);
+}
+
+.cluster-item.unclustered:hover {
+  opacity: 1;
+}
+
+.cluster-item.unclustered.active {
+  opacity: 1;
+  background: rgba(156, 163, 175, 0.12);
+  border-color: rgba(156, 163, 175, 0.25);
+}
+
+.cluster-count.unclustered {
+  color: var(--text-muted);
+  background: rgba(156, 163, 175, 0.15);
+}
+
 .cluster-info {
   flex: 1;
   min-width: 0;
@@ -383,51 +410,4 @@ function handleSimilarityInput(e: Event) {
   color: var(--accent-primary, #8b5cf6);
 }
 
-/* Similarity Control */
-.similarity-control {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.similarity-control label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.similarity-value {
-  color: var(--accent-primary, #8b5cf6);
-  font-weight: 600;
-}
-
-.similarity-control input[type="range"] {
-  width: 100%;
-  height: 4px;
-  background: var(--bg-hover);
-  border-radius: 2px;
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-}
-
-.similarity-control input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--accent-primary, #8b5cf6);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
-}
-
-.similarity-hint {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: var(--text-muted);
-  opacity: 0.6;
-  margin-top: 4px;
-}
 </style>

@@ -145,6 +145,7 @@
         @dragover="handleDragOver"
         @dragleave="handleDragLeave"
         @drop="handleDrop"
+        @paste="handlePaste"
       >
         <EditorContent :editor="editor" class="editor-content" />
         
@@ -261,7 +262,7 @@ const CORE_BASE = 'http://127.0.0.1:8787';
 const { settings: llmSettings } = useSettings();
 const { t } = useI18n();
 const { isAIMenuShortcut } = useShortcuts();
-const { saveFile: saveGitHubFile, checkGitStatus } = useGitHub();
+const { saveFile: saveGitHubFile, checkGitStatus, uploadImage: uploadGitHubImage, getImageUrl: getGitHubImageUrl, selectedRepo } = useGitHub();
 
 const props = defineProps<{
   activeFile: string | null;
@@ -606,7 +607,15 @@ function markdownToHtml(md: string): string {
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
   // Images - Base64 이미지도 지원 (긴 URL 처리)
-  html = html.replace(/!\[([^\]]*)\]\((data:[^)]+|[^)]+)\)/g, '<img src="$2" alt="$1">');
+  // GitHub 파일일 때 상대 경로(img/...)를 로컬 서버 URL로 변환하여 에디터에서 표시
+  html = html.replace(/!\[([^\]]*)\]\((data:[^)]+|[^)]+)\)/g, (match, alt, src) => {
+    // GitHub 파일이고 상대 경로(img/...)인 경우 로컬 서버 URL로 변환
+    if (isGithubFile.value && selectedRepo.value && src.startsWith('img/')) {
+      const filename = src.replace('img/', '');
+      src = `${CORE_BASE}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${filename}`;
+    }
+    return `<img src="${src}" alt="${alt}">`;
+  });
 
   // Task lists
   html = html.replace(/^- \[x\] (.+)$/gm, '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked><span></span></label><div>$1</div></li></ul>');
@@ -716,12 +725,22 @@ function htmlToMarkdown(html: string): string {
   md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
 
   // Images - 다양한 속성 순서와 Base64 이미지 지원
+  // GitHub 파일일 때 로컬 서버 URL을 상대 경로로 변환하여 저장 (GitHub에서 표시되도록)
   md = md.replace(/<img[^>]+>/gi, (match) => {
     const srcMatch = match.match(/src="([^"]+)"/i);
     const altMatch = match.match(/alt="([^"]*)"/i);
-    const src = srcMatch ? srcMatch[1] : '';
+    let src = srcMatch ? srcMatch[1] : '';
     const alt = altMatch ? altMatch[1] : '';
     if (!src) return ''; // src가 없으면 무시
+    
+    // GitHub 파일일 때 로컬 서버 URL을 상대 경로로 변환
+    if (isGithubFile.value && selectedRepo.value) {
+      const githubImagePrefix = `${CORE_BASE}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/`;
+      if (src.startsWith(githubImagePrefix)) {
+        src = 'img/' + src.replace(githubImagePrefix, '');
+      }
+    }
+    
     return `![${alt}](${src})`;
   });
 
@@ -1887,6 +1906,49 @@ async function handleDrop(e: DragEvent) {
   }
 }
 
+// 클립보드 붙여넣기 핸들러 (캡처 이미지 지원)
+async function handlePaste(e: ClipboardEvent) {
+  if (!editor.value) return;
+  
+  const clipboardData = e.clipboardData;
+  if (!clipboardData) return;
+  
+  // 클립보드에서 이미지 파일 찾기
+  const items = Array.from(clipboardData.items);
+  const imageItems = items.filter(item => item.type.startsWith('image/'));
+  
+  // 이미지가 없으면 기본 붙여넣기 동작 허용
+  if (imageItems.length === 0) return;
+  
+  // 이미지가 있으면 기본 동작 방지하고 이미지 업로드 처리
+  e.preventDefault();
+  
+  for (const item of imageItems) {
+    const file = item.getAsFile();
+    if (!file) continue;
+    
+    try {
+      // 파일을 Base64로 변환 후 서버에 업로드
+      const base64 = await fileToBase64(file);
+      const imageUrl = await uploadImage(base64);
+      
+      if (!imageUrl) {
+        handleAIError('이미지 업로드에 실패했습니다.');
+        continue;
+      }
+      
+      // 현재 커서 위치에 이미지 삽입
+      editor.value.chain()
+        .focus()
+        .setImage({ src: imageUrl })
+        .run();
+    } catch (error) {
+      console.error('Image paste failed:', error);
+      handleAIError('이미지 붙여넣기에 실패했습니다.');
+    }
+  }
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1902,6 +1964,13 @@ async function uploadImage(base64Data: string): Promise<string | null> {
     // 현재 편집 중인 파일명 추출
     const noteName = props.activeFile || undefined;
     
+    // GitHub 환경이면 GitHub 리포지토리 경로에 저장
+    if (isGithubFile.value) {
+      const imageUrl = await uploadGitHubImage(base64Data, noteName);
+      return imageUrl;
+    }
+    
+    // 로컬 환경이면 기존 방식대로 vault/image에 저장
     const res = await fetch(`${CORE_BASE}/vault/image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

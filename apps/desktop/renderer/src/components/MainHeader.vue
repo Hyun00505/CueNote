@@ -16,27 +16,13 @@
           <span class="logo-cue">Cue</span><span class="logo-note">Note</span>
         </span>
       </div>
-      <!-- 파일 선택 시 breadcrumb -->
+      <!-- 파일 선택 시 breadcrumb (폴더 경로만 표시) -->
       <div class="breadcrumb" v-else-if="activeFile">
         <span class="breadcrumb-vault">{{ vaultName }}</span>
-        <span class="breadcrumb-sep">/</span>
-        <!-- 편집 모드 -->
-        <input
-          v-if="isEditing"
-          ref="editInputRef"
-          v-model="editingName"
-          class="breadcrumb-file-input"
-          @keydown.enter="confirmRename"
-          @keydown.escape="cancelRename"
-          @blur="confirmRename"
-        />
-        <!-- 일반 모드 - 클릭 시 편집 -->
-        <span 
-          v-else 
-          class="breadcrumb-file editable" 
-          @click="startRename"
-          :title="t('header.clickToRename')"
-        >{{ getDisplayName(activeFile) }}</span>
+        <template v-if="getFolderPath(activeFile)">
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-folder">{{ getFolderPath(activeFile) }}</span>
+        </template>
       </div>
       <div v-else class="welcome-text">
         <span>{{ t('header.selectNote') }}</span>
@@ -100,7 +86,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue';
 import type { ViewType } from '../types';
 import { useI18n } from '../composables';
 
@@ -115,62 +100,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   'change-view': [view: ViewType];
   'open-settings': [];
-  'rename-file': [payload: { oldPath: string; newName: string }];
 }>();
 
-// 편집 관련 상태
-const isEditing = ref(false);
-const editingName = ref('');
-const editInputRef = ref<HTMLInputElement | null>(null);
-
-// 파일명 추출 (확장자 포함)
-function getFileName(path: string): string {
-  return path.split(/[/\\]/).pop() || path;
+// 폴더 경로 추출 (파일명 제외)
+function getFolderPath(path: string): string | null {
+  const parts = path.split('/');
+  if (parts.length <= 1) return null; // 루트에 있는 파일
+  return parts.slice(0, -1).join('/');
 }
-
-// 표시용 이름 (확장자 제외)
-function getDisplayName(path: string): string {
-  const fileName = getFileName(path);
-  return fileName.replace(/\.md$/i, '');
-}
-
-// 이름 변경 시작
-function startRename() {
-  if (!props.activeFile) return;
-  editingName.value = getDisplayName(props.activeFile);
-  isEditing.value = true;
-  nextTick(() => {
-    editInputRef.value?.focus();
-    editInputRef.value?.select();
-  });
-}
-
-// 이름 변경 확정
-function confirmRename() {
-  if (!isEditing.value || !props.activeFile) return;
-  
-  const trimmedName = editingName.value.trim();
-  const oldName = getDisplayName(props.activeFile);
-  
-  if (trimmedName && trimmedName !== oldName) {
-    emit('rename-file', {
-      oldPath: props.activeFile,
-      newName: trimmedName
-    });
-  }
-  
-  isEditing.value = false;
-}
-
-// 이름 변경 취소
-function cancelRename() {
-  isEditing.value = false;
-}
-
-// 파일이 변경되면 편집 모드 종료
-watch(() => props.activeFile, () => {
-  isEditing.value = false;
-});
 </script>
 
 <style scoped>
@@ -251,38 +188,9 @@ watch(() => props.activeFile, () => {
   opacity: 0.4;
 }
 
-.breadcrumb-file {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.breadcrumb-file.editable {
-  cursor: pointer;
-  padding: 2px 6px;
-  margin: -2px -6px;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.breadcrumb-file.editable:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.breadcrumb-file-input {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-  outline: none;
-  min-width: 120px;
-}
-
-.breadcrumb-file-input:focus {
-  border-color: #a78bfa;
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+.breadcrumb-folder {
+  color: var(--text-secondary);
+  font-weight: 450;
 }
 
 .welcome-text {

@@ -33,7 +33,7 @@
         <button @click="handleRefresh">다시 시도</button>
       </div>
 
-      <!-- 빈 상태 -->
+      <!-- 빈 상태 (전체 노트 없음) -->
       <div v-else-if="!graphData || graphData.totalNotes === 0" class="empty-state">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="12" cy="12" r="3" />
@@ -44,6 +44,17 @@
         </svg>
         <h3>노트를 추가해주세요</h3>
         <p>노트가 있어야 AI 클러스터링을 할 수 있습니다.</p>
+      </div>
+
+      <!-- 빈 클러스터 선택 시 -->
+      <div v-else-if="filteredNodes.length === 0" class="empty-state cluster-empty">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10" stroke-dasharray="4 2" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <circle cx="12" cy="15" r="0.5" fill="currentColor" />
+        </svg>
+        <h3>빈 클러스터</h3>
+        <p>이 클러스터에는 노트가 없습니다.</p>
       </div>
 
       <!-- SVG 그래프 -->
@@ -89,7 +100,10 @@
               :class="{ 
                 selected: selectedNode?.id === node.id,
                 dimmed: hoveredNode && hoveredNode.id !== node.id && !isConnected(hoveredNode.id, node.id),
-                locked: isNoteLocked(node.id)
+                locked: isNoteLocked(node.id),
+                'link-source': linkSourceNode?.id === node.id,
+                'link-candidate': linkEditMode && linkSourceNode?.id !== node.id,
+                'has-connection': linkEditMode === 'remove' && linkSourceNode && hasEdgeBetween(linkSourceNode.id, node.id)
               }"
               :transform="`translate(${node.x}, ${node.y})`"
               @mouseenter="handleNodeHover(node)"
@@ -167,6 +181,30 @@
             </svg>
           </button>
         </div>
+        <div class="context-menu-divider"></div>
+        
+        <!-- 연결 관리 -->
+        <div class="context-menu-section">
+          <span class="context-section-label">연결 관리</span>
+          <div class="context-link-buttons">
+            <button class="link-btn add" @click="startLinkAdd">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              연결 추가
+            </button>
+            <button class="link-btn remove" @click="startLinkRemove">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              연결 삭제
+            </button>
+          </div>
+        </div>
+        
+        <div class="context-menu-divider"></div>
+        
         <div class="context-menu-footer">
           <!-- 잠금/해제 버튼 -->
           <button 
@@ -198,6 +236,32 @@
               <path d="M3 3v5h5" />
             </svg>
             AI 자동 분류로 복원
+          </button>
+        </div>
+      </div>
+
+      <!-- 연결 편집 모드 오버레이 -->
+      <div v-if="linkEditMode" class="link-edit-overlay" @click="cancelLinkEdit">
+        <div class="link-edit-banner" @click.stop>
+          <div class="link-edit-icon">
+            <svg v-if="linkEditMode === 'add'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </div>
+          <div class="link-edit-text">
+            <strong>{{ linkSourceNode?.label }}</strong>
+            <span>{{ linkEditMode === 'add' ? '에 연결할 노드를 클릭하세요' : '에서 연결을 삭제할 노드를 클릭하세요' }}</span>
+          </div>
+          <button class="link-edit-cancel" @click="cancelLinkEdit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            취소
           </button>
         </div>
       </div>
@@ -384,12 +448,12 @@ import * as d3Selection from 'd3-selection';
 import * as d3Zoom from 'd3-zoom';
 import * as d3Drag from 'd3-drag';
 import { useGraph } from '../composables/useGraph';
+import { useEnvironment } from '../composables/useEnvironment';
 import type { GraphNode, GraphEdge } from '../types';
 
 // Props & Emits
 const props = defineProps<{
-  filterClusterId?: number | null;
-  minSimilarityProp?: number;
+  filterClusterId?: number | null | 'unclustered';
   isActive?: boolean;
 }>();
 
@@ -406,7 +470,6 @@ const {
   selectedNode,
   selectedCluster,
   hoveredNode,
-  minSimilarity,
   showOnlyCluster,
   filteredNodes,
   filteredEdges,
@@ -415,8 +478,8 @@ const {
   loadGraphData,
   selectNode,
   filterByCluster,
-  setMinSimilarity,
   refresh,
+  clearGraphData,
   getConnectedNodes,
   moveNoteToCluster,
   resetNoteCluster,
@@ -425,7 +488,9 @@ const {
   toggleNoteLock,
   isNoteLocked,
   lockNotesBatch,
-  areAllFilteredNodesLocked
+  areAllFilteredNodesLocked,
+  addCustomEdge,
+  removeCustomEdge
 } = useGraph();
 
 // Refs
@@ -468,6 +533,10 @@ const connectedNotes = computed(() => {
 const showContextMenu = ref(false);
 const contextMenuPos = ref({ x: 0, y: 0 });
 const contextMenuNode = ref<GraphNode | null>(null);
+
+// 연결 편집 모드 상태
+const linkEditMode = ref<'add' | 'remove' | null>(null);
+const linkSourceNode = ref<GraphNode | null>(null);
 
 /**
  * 노드 우클릭 핸들러
@@ -558,6 +627,64 @@ const handleLockAllFiltered = async () => {
 };
 
 /**
+ * 연결 추가 모드 시작
+ */
+const startLinkAdd = () => {
+  linkEditMode.value = 'add';
+  linkSourceNode.value = contextMenuNode.value;
+  showContextMenu.value = false;
+};
+
+/**
+ * 연결 삭제 모드 시작
+ */
+const startLinkRemove = () => {
+  linkEditMode.value = 'remove';
+  linkSourceNode.value = contextMenuNode.value;
+  showContextMenu.value = false;
+};
+
+/**
+ * 연결 편집 모드 취소
+ */
+const cancelLinkEdit = () => {
+  linkEditMode.value = null;
+  linkSourceNode.value = null;
+};
+
+/**
+ * 두 노드 간 연결 존재 여부 확인
+ */
+const hasEdgeBetween = (node1: string, node2: string): boolean => {
+  if (!graphData.value) return false;
+  return graphData.value.edges.some(
+    e => (e.source === node1 && e.target === node2) ||
+         (e.source === node2 && e.target === node1)
+  );
+};
+
+/**
+ * 연결 편집 완료 (두 번째 노드 클릭)
+ */
+const completeLinkEdit = async (targetNode: GraphNode) => {
+  if (!linkSourceNode.value || linkSourceNode.value.id === targetNode.id) {
+    cancelLinkEdit();
+    return;
+  }
+  
+  const source = linkSourceNode.value.id;
+  const target = targetNode.id;
+  
+  if (linkEditMode.value === 'add') {
+    await addCustomEdge(source, target);
+  } else if (linkEditMode.value === 'remove') {
+    await removeCustomEdge(source, target);
+  }
+  
+  cancelLinkEdit();
+};
+
+/**
  * 컨텍스트 메뉴 외부 클릭 시 닫기
  */
 const handleOutsideClick = (event: MouseEvent) => {
@@ -572,28 +699,65 @@ watch(() => props.filterClusterId, (newVal) => {
   filterByCluster(newVal ?? null);
 });
 
-watch(() => props.minSimilarityProp, (newVal) => {
-  if (newVal !== undefined) {
-    setMinSimilarity(newVal);
-  }
-});
 
-// 뷰가 활성화될 때 데이터가 없으면 로드
+// 환경 감시 (환경 변경 시 그래프 데이터 재로드)
+const { currentId: currentEnvId } = useEnvironment();
+const lastLoadedEnvId = ref<string | null>(null);
+const isLoadingGraph = ref(false);
+
+// 그래프 데이터 로드 함수
+async function loadGraphForCurrentEnv() {
+  if (isLoadingGraph.value) return; // 중복 로드 방지
+  
+  isLoadingGraph.value = true;
+  try {
+    console.log('[GraphView] Loading graph for env:', currentEnvId.value);
+    
+    // 현재 환경 ID 먼저 기록 (중복 로드 방지)
+    lastLoadedEnvId.value = currentEnvId.value;
+    
+    // 기존 데이터 초기화 (필터 상태 포함)
+    clearGraphData();
+    
+    await loadLockedNotes();
+    await loadGraphData();
+    await nextTick();
+    initSimulation();
+    initZoom(true);
+    setTimeout(() => {
+      initDrag();
+    }, 100);
+    
+    console.log('[GraphView] Graph loaded, nodes:', graphData.value?.nodes.length);
+  } finally {
+    isLoadingGraph.value = false;
+  }
+}
+
+// 뷰가 활성화될 때 데이터 로드 필요 여부 확인
 watch(() => props.isActive, async (newVal, oldVal) => {
-  if (newVal && !oldVal) {
-    // 활성화되었고 데이터가 없으면 로드
-    if (!graphData.value || graphData.value.totalNotes === 0) {
-      await loadLockedNotes();
-      await loadGraphData();
-      await nextTick();
-      initSimulation();
-      initZoom(true);
-      setTimeout(() => {
-        initDrag();
-      }, 100);
+  if (newVal) {
+    // 환경이 변경되었거나 데이터가 없으면 로드
+    const envChanged = lastLoadedEnvId.value !== currentEnvId.value;
+    const noData = !graphData.value || graphData.value.nodes.length === 0;
+    
+    console.log('[GraphView] isActive changed:', { newVal, envChanged, noData, lastEnv: lastLoadedEnvId.value, currentEnv: currentEnvId.value });
+    
+    if (envChanged || noData) {
+      await loadGraphForCurrentEnv();
     }
   }
 }, { immediate: true });
+
+// 환경 변경 감지 (그래프 뷰가 활성 상태일 때 즉시 재로드)
+watch(currentEnvId, async (newEnvId, oldEnvId) => {
+  console.log('[GraphView] Environment changed:', { oldEnvId, newEnvId, isActive: props.isActive });
+  
+  // 환경이 변경되었고 그래프 뷰가 활성 상태일 때
+  if (newEnvId && newEnvId !== lastLoadedEnvId.value && props.isActive) {
+    await loadGraphForCurrentEnv();
+  }
+});
 
 // 그래프 데이터 로드 후 부모에게 알림
 watch(graphData, (newData) => {
@@ -802,9 +966,21 @@ const resetZoom = () => {
  * 이벤트 핸들러
  */
 const handleRefresh = async () => {
-  await refresh();
-  await nextTick();
-  initSimulation();
+  // loadGraphForCurrentEnv 대신 직접 refresh 호출 (환경 변경 없이 데이터만 새로고침)
+  if (isLoadingGraph.value) return;
+  
+  isLoadingGraph.value = true;
+  try {
+    console.log('[GraphView] Manual refresh, env:', currentEnvId.value);
+    await loadLockedNotes();
+    await loadGraphData();
+    await nextTick();
+    initSimulation();
+    // 현재 환경 ID 유지 (환경 변경 감지 방지)
+    lastLoadedEnvId.value = currentEnvId.value;
+  } finally {
+    isLoadingGraph.value = false;
+  }
 };
 
 const handleNodeHover = (node: GraphNode | null) => {
@@ -812,6 +988,11 @@ const handleNodeHover = (node: GraphNode | null) => {
 };
 
 const handleNodeClick = (node: GraphNode) => {
+  // 연결 편집 모드인 경우
+  if (linkEditMode.value && linkSourceNode.value) {
+    completeLinkEdit(node);
+    return;
+  }
   selectNode(node);
 };
 
@@ -825,7 +1006,6 @@ const handleOpenNote = () => {
 defineExpose({
   refresh: handleRefresh,
   filterByCluster,
-  setMinSimilarity,
   clusters,
   stats,
   isLoading
@@ -1091,6 +1271,161 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+/* 연결 관리 섹션 */
+.context-menu-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
+.context-menu-section {
+  padding: 8px 12px;
+}
+
+.context-section-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-link-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.link-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.link-btn.add:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.link-btn.remove:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* 연결 편집 모드 오버레이 */
+.link-edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.link-edit-banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.link-edit-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-primary, #8b5cf6);
+  border-radius: 8px;
+  color: white;
+}
+
+.link-edit-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link-edit-text strong {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.link-edit-text span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.link-edit-cancel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.link-edit-cancel:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* 노드 연결 편집 모드 스타일 */
+.node.link-source .node-circle {
+  stroke: var(--accent-primary, #8b5cf6);
+  stroke-width: 3px;
+  filter: url(#glow);
+}
+
+.node.link-candidate {
+  cursor: crosshair;
+}
+
+.node.link-candidate .node-circle {
+  stroke: var(--text-muted);
+  stroke-width: 2px;
+  stroke-dasharray: 4 2;
+}
+
+.node.link-candidate:hover .node-circle {
+  stroke: #22c55e;
+  stroke-width: 3px;
+  stroke-dasharray: none;
+}
+
+.node.has-connection .node-circle {
+  stroke: #ef4444;
+  stroke-width: 2px;
+}
+
 .context-menu-footer {
   padding: 8px;
   border-top: 1px solid var(--border-subtle);
@@ -1234,6 +1569,11 @@ onUnmounted(() => {
 .empty-state p {
   margin: 0;
   font-size: 14px;
+}
+
+.empty-state.cluster-empty svg {
+  color: var(--accent-primary, #8b5cf6);
+  opacity: 0.5;
 }
 
 /* 상세 패널 */

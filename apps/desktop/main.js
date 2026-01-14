@@ -1,7 +1,8 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme, protocol } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const url = require('url');
 
 // 개발 모드 감지
 const isDev = !app.isPackaged;
@@ -172,6 +173,8 @@ async function createWindow() {
         nodeIntegration: false,
         backgroundThrottling: false,
         enableWebSQL: false,
+        // 로컬 폰트 파일 로드를 위해 webSecurity 비활성화 (개발 모드에서만)
+        webSecurity: !isDev,
       }
     });
 
@@ -195,9 +198,9 @@ async function createWindow() {
     }
     
     // 개발 모드에서 DevTools 열기 (선택사항)
-    if (isDev) {
-      // mainWindow.webContents.openDevTools();
-    }
+    // if (isDev) {
+    //   mainWindow.webContents.openDevTools();
+    // }
   } catch (err) {
     console.error('Failed to create window:', err);
     app.quit();
@@ -205,6 +208,14 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // 로컬 폰트 파일 접근을 위한 프로토콜 핸들러 등록
+  protocol.handle('cuenote-font', (request) => {
+    const filePath = decodeURIComponent(request.url.replace('cuenote-font://', ''));
+    return new Response(fs.readFileSync(filePath), {
+      headers: { 'Content-Type': 'font/ttf' }
+    });
+  });
+
   // IPC 핸들러 등록
   ipcMain.handle('cuenote:select-vault', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {

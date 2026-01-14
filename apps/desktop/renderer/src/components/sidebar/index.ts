@@ -6,4 +6,5 @@ export { default as TrashSection } from './TrashSection.vue';
 export { default as EnvAddModal } from './EnvAddModal.vue';
 export { default as CreateRepoModal } from './CreateRepoModal.vue';
 export { default as DeleteEnvModal } from './DeleteEnvModal.vue';
+export { default as DisconnectGitHubModal } from './DisconnectGitHubModal.vue';
 export { default as GitPanel } from './GitPanel.vue';

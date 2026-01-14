@@ -93,6 +93,12 @@ type TranslationKeys = {
   'aiExtract.extracting': string;
   'aiExtract.addSelected': string;
   'aiExtract.noSchedulesFound': string;
+  'aiExtract.selectFile': string;
+  'aiExtract.enterText': string;
+  'aiExtract.searchPlaceholder': string;
+  'aiExtract.noFilesFound': string;
+  'aiExtract.loadingFile': string;
+  'aiExtract.textPlaceholder': string;
 
   // Days
   'days.sun': string;
@@ -102,6 +108,43 @@ type TranslationKeys = {
   'days.thu': string;
   'days.fri': string;
   'days.sat': string;
+
+  // Months
+  'months.jan': string;
+  'months.feb': string;
+  'months.mar': string;
+  'months.apr': string;
+  'months.may': string;
+  'months.jun': string;
+  'months.jul': string;
+  'months.aug': string;
+  'months.sep': string;
+  'months.oct': string;
+  'months.nov': string;
+  'months.dec': string;
+
+  // Calendar extended
+  'calendar.loadPrevious': string;
+  'calendar.loadNext': string;
+  'calendar.total': string;
+  'calendar.completed': string;
+  'calendar.remaining': string;
+  'calendar.loading': string;
+  'calendar.addScheduleHint': string;
+  'calendar.weekView': string;
+  'calendar.monthView': string;
+  'calendar.yearView': string;
+  'calendar.previous': string;
+  'calendar.next': string;
+
+  // Days short
+  'days.sunShort': string;
+  'days.monShort': string;
+  'days.tueShort': string;
+  'days.wedShort': string;
+  'days.thuShort': string;
+  'days.friShort': string;
+  'days.satShort': string;
 
   // Themes
   'theme.dark': string;
@@ -170,6 +213,18 @@ type TranslationKeys = {
   'env.removeBtn': string;
   'env.removeQuestion': string;
   'env.removeNote': string;
+
+  // GitHub
+  'github.disconnect': string;
+  'github.disconnectQuestion': string;
+  'github.disconnectWarning': string;
+  'github.disconnectBtn': string;
+
+  // File Delete
+  'file.deleteQuestion': string;
+  'file.deleteFolder': string;
+  'file.deleteFile': string;
+  'file.deleteWarning': string;
 
   // Fonts
   'fonts.title': string;
@@ -261,8 +316,8 @@ const ko: TranslationKeys = {
   'settings.features': '특징:',
 
   // Calendar
-  'calendar.title': '일정 관리',
-  'calendar.subtitle': '스크롤하여 월별 일정을 확인하세요',
+  'calendar.title': '달력',
+  'calendar.subtitle': '  ',
   'calendar.aiExtract': 'AI 일정 추출',
   'calendar.addSchedule': '일정 추가',
   'calendar.loadMore': '더보기',
@@ -298,15 +353,58 @@ const ko: TranslationKeys = {
   'aiExtract.extracting': '추출 중...',
   'aiExtract.addSelected': '선택한 일정 추가',
   'aiExtract.noSchedulesFound': '일정 정보를 찾을 수 없습니다.',
+  'aiExtract.selectFile': '노트 선택',
+  'aiExtract.enterText': '텍스트 입력',
+  'aiExtract.searchPlaceholder': '노트 검색...',
+  'aiExtract.noFilesFound': '노트를 찾을 수 없습니다.',
+  'aiExtract.loadingFile': '파일을 불러오는 중...',
+  'aiExtract.textPlaceholder': '일정이 포함된 텍스트를 입력하세요...',
 
   // Days
-  'days.sun': '일',
-  'days.mon': '월',
-  'days.tue': '화',
-  'days.wed': '수',
-  'days.thu': '목',
-  'days.fri': '금',
-  'days.sat': '토',
+  'days.sun': '일요일',
+  'days.mon': '월요일',
+  'days.tue': '화요일',
+  'days.wed': '수요일',
+  'days.thu': '목요일',
+  'days.fri': '금요일',
+  'days.sat': '토요일',
+
+  // Months
+  'months.jan': '1월',
+  'months.feb': '2월',
+  'months.mar': '3월',
+  'months.apr': '4월',
+  'months.may': '5월',
+  'months.jun': '6월',
+  'months.jul': '7월',
+  'months.aug': '8월',
+  'months.sep': '9월',
+  'months.oct': '10월',
+  'months.nov': '11월',
+  'months.dec': '12월',
+
+  // Calendar extended
+  'calendar.loadPrevious': '이전 달 보기',
+  'calendar.loadNext': '다음 달 보기',
+  'calendar.total': '전체',
+  'calendar.completed': '완료',
+  'calendar.remaining': '남음',
+  'calendar.loading': '불러오는 중...',
+  'calendar.addScheduleHint': '새로운 일정을 추가해보세요',
+  'calendar.weekView': '주',
+  'calendar.monthView': '월',
+  'calendar.yearView': '연',
+  'calendar.previous': '이전',
+  'calendar.next': '다음',
+
+  // Days short
+  'days.sunShort': '일',
+  'days.monShort': '월',
+  'days.tueShort': '화',
+  'days.wedShort': '수',
+  'days.thuShort': '목',
+  'days.friShort': '금',
+  'days.satShort': '토',
 
   // Themes
   'theme.dark': '다크',
@@ -375,6 +473,18 @@ const ko: TranslationKeys = {
   'env.removeBtn': '제거',
   'env.removeQuestion': '이 환경을 목록에서 제거하시겠습니까?',
   'env.removeNote': '실제 폴더와 파일은 삭제되지 않습니다.',
+
+  // GitHub
+  'github.disconnect': 'GitHub 연결 해제',
+  'github.disconnectQuestion': '이 리포지토리 연결을 해제하시겠습니까?',
+  'github.disconnectWarning': '로컬에 저장된 파일이 모두 삭제됩니다',
+  'github.disconnectBtn': '연결 해제',
+
+  // File Delete
+  'file.deleteQuestion': '삭제할까요?',
+  'file.deleteFolder': '폴더를 삭제할까요?',
+  'file.deleteFile': '파일을 삭제할까요?',
+  'file.deleteWarning': '실제 파일이 영구 삭제됩니다',
 
   // Fonts
   'fonts.title': '폰트',
@@ -503,15 +613,58 @@ const en: TranslationKeys = {
   'aiExtract.extracting': 'Extracting...',
   'aiExtract.addSelected': 'Add Selected',
   'aiExtract.noSchedulesFound': 'No schedule information found.',
+  'aiExtract.selectFile': 'Select Note',
+  'aiExtract.enterText': 'Enter Text',
+  'aiExtract.searchPlaceholder': 'Search notes...',
+  'aiExtract.noFilesFound': 'No notes found.',
+  'aiExtract.loadingFile': 'Loading file...',
+  'aiExtract.textPlaceholder': 'Enter text containing schedule information...',
 
   // Days
-  'days.sun': 'Sun',
-  'days.mon': 'Mon',
-  'days.tue': 'Tue',
-  'days.wed': 'Wed',
-  'days.thu': 'Thu',
-  'days.fri': 'Fri',
-  'days.sat': 'Sat',
+  'days.sun': 'Sunday',
+  'days.mon': 'Monday',
+  'days.tue': 'Tuesday',
+  'days.wed': 'Wednesday',
+  'days.thu': 'Thursday',
+  'days.fri': 'Friday',
+  'days.sat': 'Saturday',
+
+  // Months
+  'months.jan': 'January',
+  'months.feb': 'February',
+  'months.mar': 'March',
+  'months.apr': 'April',
+  'months.may': 'May',
+  'months.jun': 'June',
+  'months.jul': 'July',
+  'months.aug': 'August',
+  'months.sep': 'September',
+  'months.oct': 'October',
+  'months.nov': 'November',
+  'months.dec': 'December',
+
+  // Calendar extended
+  'calendar.loadPrevious': 'Load Previous Month',
+  'calendar.loadNext': 'Load Next Month',
+  'calendar.total': 'Total',
+  'calendar.completed': 'Done',
+  'calendar.remaining': 'Left',
+  'calendar.loading': 'Loading...',
+  'calendar.addScheduleHint': 'Add a new schedule',
+  'calendar.weekView': 'Week',
+  'calendar.monthView': 'Month',
+  'calendar.yearView': 'Year',
+  'calendar.previous': 'Previous',
+  'calendar.next': 'Next',
+
+  // Days short
+  'days.sunShort': 'Sun',
+  'days.monShort': 'Mon',
+  'days.tueShort': 'Tue',
+  'days.wedShort': 'Wed',
+  'days.thuShort': 'Thu',
+  'days.friShort': 'Fri',
+  'days.satShort': 'Sat',
 
   // Themes
   'theme.dark': 'Dark',
@@ -580,6 +733,18 @@ const en: TranslationKeys = {
   'env.removeBtn': 'Remove',
   'env.removeQuestion': 'Remove this environment from the list?',
   'env.removeNote': 'The actual folder and files will not be deleted.',
+
+  // GitHub
+  'github.disconnect': 'Disconnect GitHub',
+  'github.disconnectQuestion': 'Disconnect this repository?',
+  'github.disconnectWarning': 'All locally stored files will be deleted',
+  'github.disconnectBtn': 'Disconnect',
+
+  // File Delete
+  'file.deleteQuestion': 'Delete?',
+  'file.deleteFolder': 'Delete this folder?',
+  'file.deleteFile': 'Delete this file?',
+  'file.deleteWarning': 'Files will be permanently deleted',
 
   // Fonts
   'fonts.title': 'Fonts',

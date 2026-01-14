@@ -16,9 +16,9 @@ const selectedNode = ref<GraphNode | null>(null);
 const selectedCluster = ref<ClusterInfo | null>(null);
 const hoveredNode = ref<GraphNode | null>(null);
 
-// 필터 상태
-const minSimilarity = ref(0.3);
-const showOnlyCluster = ref<number | null>(null);
+// 필터 상태 (민감도 10%로 고정 - 사용자가 직접 연결 관리)
+const minSimilarity = ref(0.1);
+const showOnlyCluster = ref<number | null | 'unclustered'>(null);
 
 export function useGraph() {
   const { settings } = useSettings();
@@ -65,7 +65,21 @@ export function useGraph() {
   const filteredNodes = computed(() => {
     if (!graphData.value) return [];
     if (showOnlyCluster.value === null) return graphData.value.nodes;
+    if (showOnlyCluster.value === 'unclustered') {
+      // 미분류 노트: cluster가 -1이거나 유효한 클러스터에 속하지 않는 노트
+      const validClusterIds = new Set(graphData.value.clusters.map(c => c.id));
+      return graphData.value.nodes.filter(n => n.cluster === -1 || !validClusterIds.has(n.cluster));
+    }
     return graphData.value.nodes.filter(n => n.cluster === showOnlyCluster.value);
+  });
+
+  /**
+   * 미분류 노트 수
+   */
+  const unclusteredCount = computed(() => {
+    if (!graphData.value) return 0;
+    const validClusterIds = new Set(graphData.value.clusters.map(c => c.id));
+    return graphData.value.nodes.filter(n => n.cluster === -1 || !validClusterIds.has(n.cluster)).length;
   });
 
   /**
@@ -110,7 +124,7 @@ export function useGraph() {
   /**
    * 클러스터 필터링
    */
-  const filterByCluster = (clusterId: number | null) => {
+  const filterByCluster = (clusterId: number | null | 'unclustered') => {
     showOnlyCluster.value = clusterId;
   };
 
@@ -482,6 +496,74 @@ export function useGraph() {
     }
   };
 
+  /**
+   * 사용자 정의 엣지 추가
+   */
+  const addCustomEdge = async (source: string, target: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/edge/custom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, target, action: 'add' })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // 로컬 상태에 엣지 추가
+      if (graphData.value) {
+        const existingEdge = graphData.value.edges.find(
+          e => (e.source === source && e.target === target) || 
+               (e.source === target && e.target === source)
+        );
+        if (!existingEdge) {
+          graphData.value.edges.push({
+            source,
+            target,
+            weight: 1.0,
+            type: 'custom'
+          });
+        }
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Failed to add custom edge:', err);
+      return false;
+    }
+  };
+
+  /**
+   * 사용자 정의 엣지 삭제
+   */
+  const removeCustomEdge = async (source: string, target: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${BASE_URL}/graph/edge/custom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, target, action: 'remove' })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // 로컬 상태에서 엣지 제거
+      if (graphData.value) {
+        graphData.value.edges = graphData.value.edges.filter(
+          e => !((e.source === source && e.target === target) || 
+                 (e.source === target && e.target === source))
+        );
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Failed to remove edge:', err);
+      return false;
+    }
+  };
+
   return {
     // 상태
     graphData,
@@ -498,12 +580,12 @@ export function useGraph() {
     filteredEdges,
     clusters,
     stats,
+    unclusteredCount,
 
     // 메서드
     loadGraphData,
     selectNode,
     filterByCluster,
-    setMinSimilarity,
     refresh,
     clearGraphData,
     getClusterColor,
@@ -525,6 +607,10 @@ export function useGraph() {
     toggleNoteLock,
     isNoteLocked,
     lockNotesBatch,
-    areAllFilteredNodesLocked
+    areAllFilteredNodesLocked,
+
+    // 사용자 정의 엣지
+    addCustomEdge,
+    removeCustomEdge
   };
 }

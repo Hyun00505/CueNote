@@ -235,6 +235,62 @@ class GraphCache:
         self.cache_data["cluster_customizations"] = {}
         self.cache_data["note_overrides"] = {}
         self.cache_data["locked_notes"] = []
+        self.cache_data["custom_edges"] = {"added": [], "removed": []}
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # 사용자 정의 엣지 관리
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    def get_custom_edges(self) -> dict[str, list[list[str]]]:
+        """사용자 정의 엣지 가져오기 (추가/삭제 목록)"""
+        return self.cache_data.get("custom_edges", {"added": [], "removed": []})
+    
+    def add_custom_edge(self, source: str, target: str):
+        """사용자 정의 엣지 추가"""
+        if "custom_edges" not in self.cache_data:
+            self.cache_data["custom_edges"] = {"added": [], "removed": []}
+        
+        edge = sorted([source, target])
+        
+        # 삭제 목록에 있으면 제거
+        self._remove_from_list(self.cache_data["custom_edges"]["removed"], edge)
+        
+        # 추가 목록에 없으면 추가
+        if edge not in self.cache_data["custom_edges"]["added"]:
+            self.cache_data["custom_edges"]["added"].append(edge)
+    
+    def remove_custom_edge(self, source: str, target: str):
+        """사용자 정의 엣지 삭제 (시스템 생성 엣지 숨김)"""
+        if "custom_edges" not in self.cache_data:
+            self.cache_data["custom_edges"] = {"added": [], "removed": []}
+        
+        edge = sorted([source, target])
+        
+        # 추가 목록에 있으면 제거
+        self._remove_from_list(self.cache_data["custom_edges"]["added"], edge)
+        
+        # 삭제 목록에 없으면 추가 (시스템 생성 엣지 숨김)
+        if edge not in self.cache_data["custom_edges"]["removed"]:
+            self.cache_data["custom_edges"]["removed"].append(edge)
+    
+    def _remove_from_list(self, lst: list[list[str]], edge: list[str]):
+        """리스트에서 엣지 제거"""
+        for i, e in enumerate(lst):
+            if sorted(e) == edge:
+                lst.pop(i)
+                return
+    
+    def is_edge_removed(self, source: str, target: str) -> bool:
+        """엣지가 사용자에 의해 삭제되었는지 확인"""
+        custom_edges = self.get_custom_edges()
+        edge = sorted([source, target])
+        return edge in custom_edges["removed"]
+    
+    def is_edge_custom_added(self, source: str, target: str) -> bool:
+        """엣지가 사용자에 의해 추가되었는지 확인"""
+        custom_edges = self.get_custom_edges()
+        edge = sorted([source, target])
+        return edge in custom_edges["added"]
     
     def save(self):
         """캐시 저장"""
