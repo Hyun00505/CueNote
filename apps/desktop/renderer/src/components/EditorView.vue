@@ -13,13 +13,13 @@
           </svg>
         </div>
       </div>
-      <h2>문서를 선택하세요</h2>
-      <p>사이드바에서 마크다운 파일을 선택하여 편집을 시작하세요</p>
+      <h2>{{ t('editor.emptyTitle') }}</h2>
+      <p>{{ t('editor.emptySubtitle') }}</p>
       <div class="empty-hint">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="empty-hint-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
-        <span>왼쪽의 볼트에서 파일을 선택하세요</span>
+        <span>{{ t('editor.emptyHint') }}</span>
       </div>
     </div>
 
@@ -2068,6 +2068,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .empty-state {
@@ -2097,7 +2098,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   color: var(--text-muted);
@@ -2122,7 +2123,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   color: var(--text-secondary);
@@ -2132,6 +2133,10 @@ defineExpose({
 .empty-hint svg {
   color: var(--accent-secondary);
   opacity: 0.7;
+}
+
+.empty-hint-arrow {
+  transform: rotate(180deg);
 }
 
 .editor-container {
@@ -2162,9 +2167,9 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(232, 213, 183, 0.1);
+  background: var(--accent-gold-glow);
   border-radius: 6px;
-  color: #e8d5b7;
+  color: var(--accent-gold);
 }
 
 .file-details {
@@ -2222,7 +2227,7 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border: 1px solid var(--border-default);
   border-radius: 6px;
   color: var(--text-secondary);
@@ -2233,14 +2238,14 @@ defineExpose({
 }
 
 .save-btn:hover:not(:disabled) {
-  background: rgba(232, 213, 183, 0.15);
-  border-color: rgba(232, 213, 183, 0.3);
-  color: #e8d5b7;
+  background: var(--accent-gold-glow);
+  border-color: var(--accent-gold-glow);
+  color: var(--accent-gold);
 }
 
 .save-btn.saving {
-  background: rgba(232, 213, 183, 0.1);
-  color: #e8d5b7;
+  background: var(--accent-gold-glow);
+  color: var(--accent-gold);
 }
 
 .save-btn.saved {
@@ -2271,7 +2276,7 @@ defineExpose({
 
 .save-btn kbd {
   padding: 2px 5px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-3);
   border-radius: 3px;
   font-size: 10px;
   font-family: var(--font-mono);
@@ -2305,8 +2310,8 @@ defineExpose({
 .spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(232, 213, 183, 0.2);
-  border-top-color: #e8d5b7;
+  border: 2px solid var(--accent-gold-glow);
+  border-top-color: var(--accent-gold);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -2325,8 +2330,8 @@ defineExpose({
 }
 
 .editor-content-wrapper.drag-over {
-  background: rgba(201, 167, 108, 0.05);
-  outline: 2px dashed rgba(201, 167, 108, 0.5);
+  background: var(--accent-gold-glow);
+  outline: 2px dashed var(--accent-gold-dim);
   outline-offset: -8px;
 }
 
@@ -2338,9 +2343,9 @@ defineExpose({
   transform: translate(-50%, -50%);
   padding: 20px 40px;
   background: rgba(30, 30, 35, 0.95);
-  border: 2px dashed rgba(201, 167, 108, 0.6);
+  border: 2px dashed var(--accent-gold-dim);
   border-radius: 16px;
-  color: #e8d5b7;
+  color: var(--accent-gold);
   font-size: 16px;
   font-weight: 500;
   pointer-events: none;
@@ -2443,7 +2448,7 @@ defineExpose({
   font-weight: 400;
   color: var(--text-muted);
   padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   border-radius: 10px;
 }
 
@@ -2463,7 +2468,7 @@ defineExpose({
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-highlight);
   color: var(--text-primary);
 }
 
@@ -2596,17 +2601,17 @@ defineExpose({
 
 /* Links */
 .ProseMirror a {
-  color: #c9a76c;
+  color: var(--accent-gold-dim);
   text-decoration: underline;
-  text-decoration-color: rgba(201, 167, 108, 0.4);
+  text-decoration-color: var(--accent-gold-glow);
   text-underline-offset: 2px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .ProseMirror a:hover {
-  color: #e8d5b7;
-  text-decoration-color: rgba(232, 213, 183, 0.6);
+  color: var(--accent-gold);
+  text-decoration-color: var(--accent-gold-dim);
 }
 
 /* Bold, Italic, etc */
@@ -2625,7 +2630,7 @@ defineExpose({
 }
 
 .ProseMirror mark {
-  background: rgba(201, 167, 108, 0.25);
+  background: var(--accent-gold-glow);
   padding: 1px 4px;
   border-radius: 2px;
 }
@@ -2659,17 +2664,10 @@ defineExpose({
   border: 1px solid var(--border-default);
 }
 
-/* Light mode inline code */
-[data-theme="light"] .ProseMirror code {
-  background: rgba(107, 114, 128, 0.1);
-  color: #1f2937;
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
 /* Code Block Container */
 .ProseMirror pre {
-  background: linear-gradient(135deg, #0d0d12 0%, #12121a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   margin: 1.5em 0;
   overflow: hidden;
@@ -2762,22 +2760,22 @@ defineExpose({
 }
 
 .ProseMirror pre code::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border-radius: 3px;
 }
 
 .ProseMirror pre code::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-4);
   border-radius: 3px;
 }
 
 .ProseMirror pre code::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--glass-highlight);
 }
 
 /* Blockquote */
 .ProseMirror blockquote {
-  border-left: 2px solid #c9a76c;
+  border-left: 2px solid var(--accent-gold-dim);
   padding-left: 16px;
   margin: 1em 0;
   color: var(--text-secondary);
@@ -2825,7 +2823,7 @@ defineExpose({
 .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #c9a76c;
+  accent-color: var(--accent-gold-dim);
   cursor: pointer;
 }
 
@@ -2850,7 +2848,7 @@ defineExpose({
 }
 
 .ProseMirror img.ProseMirror-selectednode {
-  outline: 2px solid #c9a76c;
+  outline: 2px solid var(--accent-gold-dim);
 }
 
 /* Tables */
@@ -2886,12 +2884,12 @@ defineExpose({
 }
 
 .ProseMirror .selectedCell {
-  background: rgba(201, 167, 108, 0.1);
+  background: var(--accent-gold-glow);
 }
 
 /* Selection */
 .ProseMirror ::selection {
-  background: rgba(201, 167, 108, 0.25);
+  background: var(--accent-gold-glow);
 }
 
 /* AI 스트리밍 프리뷰 - 우아한 글래스모피즘 디자인 */
@@ -3045,7 +3043,7 @@ defineExpose({
   gap: 16px;
   padding: 12px 20px;
   background: var(--bg-secondary, #16161a);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   box-shadow: 
     0 20px 40px -12px rgba(0, 0, 0, 0.4),
@@ -3124,112 +3122,34 @@ defineExpose({
   opacity: 0;
   transform: translateX(-50%) translateY(20px);
 }
+</style>
 
-/* Light mode styles */
-[data-theme="light"] .ProseMirror pre {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-color: rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .ProseMirror pre::before {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%);
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .ProseMirror pre::after {
-  color: rgba(0, 0, 0, 0.2);
-}
-
-[data-theme="light"] .ProseMirror pre code {
-  color: #1e293b;
-}
-
-[data-theme="light"] .ProseMirror blockquote {
-  border-left-color: var(--text-muted);
-}
-
-[data-theme="light"] .ProseMirror a {
-  color: #374151;
-}
-
-[data-theme="light"] .ProseMirror mark {
-  background: rgba(107, 114, 128, 0.2);
-}
-
-[data-theme="light"] .ProseMirror mark[data-color="#ef444480"] {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
-  border-bottom: 2px wavy #dc2626;
-}
-
+<style>
 /* Dim theme code styles */
-[data-theme="dim"] .ProseMirror code {
+html[data-theme="dim"] .ProseMirror code {
   background: rgba(139, 148, 158, 0.15);
   color: #adbac7;
   border-color: rgba(139, 148, 158, 0.2);
 }
 
-[data-theme="dim"] .ProseMirror pre {
-  background: linear-gradient(135deg, #171717 0%, #1c1c1c 100%);
-  border-color: rgba(255, 255, 255, 0.1);
+html[data-theme="dim"] .ProseMirror pre {
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 100%);
+  border-color: var(--border-default);
 }
 
 /* GitHub Dark theme code styles */
-[data-theme="github-dark"] .ProseMirror code {
+html[data-theme="github-dark"] .ProseMirror code {
   background: rgba(88, 166, 255, 0.1);
   color: #79c0ff;
   border-color: rgba(88, 166, 255, 0.2);
 }
 
-[data-theme="github-dark"] .ProseMirror pre {
+html[data-theme="github-dark"] .ProseMirror pre {
   background: linear-gradient(135deg, #010409 0%, #0d1117 100%);
   border-color: rgba(240, 246, 252, 0.1);
 }
 
-[data-theme="github-dark"] .ProseMirror a {
+html[data-theme="github-dark"] .ProseMirror a {
   color: #58a6ff;
-}
-
-/* Sepia theme code styles */
-[data-theme="sepia"] .ProseMirror code {
-  background: rgba(92, 75, 55, 0.1);
-  color: #5c4b37;
-  border-color: rgba(92, 75, 55, 0.2);
-}
-
-[data-theme="sepia"] .ProseMirror pre {
-  background: linear-gradient(135deg, #ebe3cf 0%, #f4ecd8 100%);
-  border-color: rgba(92, 75, 55, 0.15);
-  box-shadow: 0 2px 8px rgba(92, 75, 55, 0.1);
-}
-
-[data-theme="sepia"] .ProseMirror pre::before {
-  background: linear-gradient(90deg, rgba(92, 75, 55, 0.03) 0%, rgba(92, 75, 55, 0.01) 100%);
-  border-bottom-color: rgba(92, 75, 55, 0.1);
-}
-
-[data-theme="sepia"] .ProseMirror pre::after {
-  color: rgba(92, 75, 55, 0.25);
-}
-
-[data-theme="sepia"] .ProseMirror pre code {
-  color: #3d3327;
-}
-
-[data-theme="sepia"] .ProseMirror blockquote {
-  border-left-color: #9c8b78;
-}
-
-[data-theme="sepia"] .ProseMirror a {
-  color: #5c4b37;
-}
-
-[data-theme="sepia"] .ProseMirror mark {
-  background: rgba(92, 75, 55, 0.15);
-}
-
-[data-theme="sepia"] .ProseMirror mark[data-color="#ef444480"] {
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
-  border-bottom: 2px wavy #b91c1c;
 }
 </style>

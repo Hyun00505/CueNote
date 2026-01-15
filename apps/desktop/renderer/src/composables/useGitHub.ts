@@ -192,6 +192,20 @@ export function useGitHub() {
     selectedRepo.value = repo;
     saveSettings();
     
+    // 환경으로 추가 (백엔드에 등록)
+    const { addEnvironment } = await import('./useEnvironment').then(m => m.useEnvironment());
+    await addEnvironment(
+      repo.name, 
+      `github://${repo.owner}/${repo.name}`, 
+      'github', 
+      {
+        owner: repo.owner,
+        repo: repo.name,
+        full_name: repo.full_name,
+        private: repo.private
+      }
+    );
+    
     // 클론 또는 Pull
     const success = await cloneOrPull();
     if (success) {
@@ -929,6 +943,8 @@ export function useGitHub() {
     token.value = settings.token;
     user.value = settings.user;
     selectedRepo.value = settings.selectedRepo;
+    // 앱 시작 시 GitHub 모드는 자동 활성화하지 않음
+    isGitHubActive.value = false;
     
     // Git 설치 확인
     await checkGitInstalled();
@@ -937,8 +953,6 @@ export function useGitHub() {
     if (selectedRepo.value && token.value) {
       await fetchRepoFiles();
       await checkGitStatus();
-      // 저장된 리포가 있으면 GitHub 모드 활성화
-      isGitHubActive.value = true;
     }
   }
 

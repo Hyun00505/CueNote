@@ -197,6 +197,7 @@ function saveShortcuts() {
   margin-bottom: 48px;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .category-title {
@@ -253,7 +254,7 @@ function saveShortcuts() {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
 }
@@ -317,7 +318,7 @@ function saveShortcuts() {
 .shortcut-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;

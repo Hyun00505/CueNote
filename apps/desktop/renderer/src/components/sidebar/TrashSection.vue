@@ -121,7 +121,7 @@ function getFileName(path: string): string {
 }
 
 .trash-count {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover);
   padding: 1px 6px;
   border-radius: 8px;
   font-size: 10px;
@@ -148,8 +148,8 @@ function getFileName(path: string): string {
 }
 
 .empty-trash-btn:hover {
-  background: rgba(220, 38, 38, 0.15);
-  color: #dc2626;
+  background: var(--error-glow);
+  color: var(--error);
 }
 
 .file-list {
@@ -226,12 +226,12 @@ function getFileName(path: string): string {
 }
 
 .restore-btn:hover {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--success-glow);
+  color: var(--success);
 }
 
 .permanent-delete-btn:hover {
-  background: rgba(220, 38, 38, 0.15);
-  color: #dc2626;
+  background: var(--error-glow);
+  color: var(--error);
 }
 </style>

@@ -39,7 +39,7 @@ const { t } = useI18n();
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,13 +122,13 @@ const { t } = useI18n();
 }
 
 .cancel-btn {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
 
 .cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-4);
   border-color: var(--border-default);
 }
 
@@ -142,19 +142,4 @@ const { t } = useI18n();
   background: rgba(239, 68, 68, 0.3);
 }
 
-/* Light theme */
-:global([data-theme="light"]) .modal-content {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-:global([data-theme="light"]) .delete-confirm-btn {
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.2);
-  color: #dc2626;
-}
-
-:global([data-theme="light"]) .delete-confirm-btn:hover {
-  background: rgba(220, 38, 38, 0.18);
-}
 </style>

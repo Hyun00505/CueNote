@@ -6,22 +6,24 @@
         <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
       </svg>
       <span class="env-label">환경</span>
-      <button class="env-add-btn" @click="emit('open-add-modal')" title="환경 추가">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-      </button>
+      <div class="env-actions">
+        <button class="env-add-btn" @click="emit('open-add-modal')" title="로컬 환경 추가">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+            </svg>
+        </button>
+      </div>
     </div>
     
     <!-- 환경 선택기 -->
     <div class="env-selector" @click="toggleDropdown">
-      <div class="env-current" :class="{ 'github-mode': isGitHubMode }">
+      <div class="env-current" :class="{ 'github-mode': currentEnvironment?.type === 'github' }">
         <!-- GitHub 모드 -->
-        <template v-if="isGitHubMode">
+        <template v-if="currentEnvironment?.type === 'github'">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="env-github-icon">
             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
           </svg>
-          <span class="env-name">{{ githubSelectedRepo?.name }}</span>
+          <span class="env-name">{{ currentEnvironment.name }}</span>
           <span class="env-github-badge">GitHub</span>
         </template>
         <!-- 로컬 모드 -->
@@ -36,27 +38,30 @@
     
     <!-- 환경 드롭다운 -->
     <div v-if="dropdownOpen" class="env-dropdown">
-      <!-- GitHub 연결된 리포지토리 -->
-      <div v-if="githubSelectedRepo" class="env-dropdown-section">
+      
+      <!-- GitHub 환경들 -->
+      <div v-if="githubEnvironments.length > 0" class="env-dropdown-section">
         <div class="env-dropdown-section-title">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
           </svg>
-          GitHub
+          GitHub Repos
         </div>
         <div 
+          v-for="env in githubEnvironments"
+          :key="env.id"
           class="env-item github-item"
-          :class="{ active: isGitHubMode }"
-          @click="emit('select-github')"
+          :class="{ active: env.id === currentId }"
+          @click="selectEnv(env.id)"
         >
           <div class="env-item-info">
-            <span class="env-item-name">{{ githubSelectedRepo.name }}</span>
-            <span class="env-item-path">{{ githubSelectedRepo.owner }}/{{ githubSelectedRepo.name }}</span>
+            <span class="env-item-name">{{ env.name }}</span>
+            <span class="env-item-path">{{ env.github?.owner }}/{{ env.github?.repo }}</span>
           </div>
           <button 
             class="env-remove-btn" 
-            @click.stop="emit('disconnect-github')"
-            title="GitHub 연결 해제"
+            @click.stop="emit('remove-environment', env.id)"
+            title="연결 해제"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
@@ -66,7 +71,7 @@
       </div>
       
       <!-- 로컬 환경들 -->
-      <div v-if="environments.length > 0" class="env-dropdown-section">
+      <div v-if="localEnvironments.length > 0" class="env-dropdown-section">
         <div class="env-dropdown-section-title">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -74,11 +79,11 @@
           로컬 폴더
         </div>
         <div 
-          v-for="env in environments" 
+          v-for="env in localEnvironments" 
           :key="env.id" 
           class="env-item"
-          :class="{ active: !isGitHubMode && env.id === currentId, invalid: !env.exists }"
-          @click="emit('select-environment', env.id)"
+          :class="{ active: env.id === currentId, invalid: !env.exists }"
+          @click="selectEnv(env.id)"
         >
           <div class="env-item-info">
             <span class="env-item-name">{{ env.name }}</span>
@@ -96,35 +101,47 @@
           </button>
         </div>
       </div>
+
+       <div v-if="environments.length === 0" class="env-empty">
+        환경이 없습니다.
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { Environment } from '../../composables/useEnvironment';
-import type { GitHubRepo } from '../../composables/useGitHub';
 
 const props = defineProps<{
   environments: Environment[];
   currentId: string | null;
   currentEnvironment: Environment | null;
-  isGitHubMode: boolean;
-  githubSelectedRepo: GitHubRepo | null;
 }>();
 
 const emit = defineEmits<{
   'open-add-modal': [];
   'select-environment': [id: string];
-  'select-github': [];
-  'disconnect-github': [];
   'remove-environment': [id: string];
 }>();
 
 const dropdownOpen = ref(false);
 
+const githubEnvironments = computed(() => 
+  props.environments.filter(env => env.type === 'github')
+);
+
+const localEnvironments = computed(() => 
+  props.environments.filter(env => env.type !== 'github')
+);
+
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value;
+}
+
+function selectEnv(id: string) {
+  emit('select-environment', id);
+  dropdownOpen.value = false;
 }
 
 function truncatePath(path: string): string {
@@ -213,8 +230,8 @@ defineExpose({ closeDropdown });
 .env-github-badge {
   font-size: 9px;
   padding: 2px 5px;
-  background: rgba(var(--accent-rgb), 0.15);
-  color: var(--accent);
+  background: var(--bg-active);
+  color: var(--text-primary);
   border-radius: 4px;
   font-weight: 500;
   flex-shrink: 0;
@@ -290,19 +307,19 @@ defineExpose({ closeDropdown });
 }
 
 .env-item:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-hover);
 }
 
 .env-item.github-item {
-  background: rgba(var(--accent-rgb), 0.03);
+  background: var(--bg-hover);
 }
 
 .env-item.github-item:hover {
-  background: rgba(var(--accent-rgb), 0.06);
+  background: var(--bg-active);
 }
 
 .env-item.active {
-  background: rgba(var(--accent-rgb), 0.1);
+  background: var(--bg-active);
 }
 
 .env-item.invalid {
@@ -350,7 +367,7 @@ defineExpose({ closeDropdown });
 }
 
 .env-remove-btn:hover {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
+  background: var(--error-glow);
+  color: var(--error);
 }
 </style>

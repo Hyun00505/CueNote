@@ -65,6 +65,7 @@
         :editing-folder="editingFolder"
         :editing-folder-name="editingFolderName"
         :is-github="isGitHub"
+        :collapse-trigger="collapseTrigger"
         @select-file="emit('select-file', $event)"
         @start-rename="emit('start-rename', $event)"
         @delete-file="emit('delete-file', $event)"
@@ -93,8 +94,8 @@
       }"
       :style="{ paddingLeft: `${depth * 12 + 8}px` }"
       :draggable="editingFile !== item.path"
-      @click="emit('select-file', item.path)"
-      @dblclick="startRename"
+      @click="handleFileClick"
+      @dblclick.stop.prevent="handleFileDoubleClick"
       @contextmenu.prevent="showFileMenu"
       @dragstart="onDragStart"
       @dragend="onDragEnd"
@@ -194,6 +195,7 @@ const props = defineProps<{
   editingFolder?: string | null;
   editingFolderName?: string;
   isGitHub?: boolean;
+  collapseTrigger?: number;
 }>();
 
 const emit = defineEmits<{
@@ -212,11 +214,17 @@ const emit = defineEmits<{
   'update-editing-folder-name': [name: string];
 }>();
 
-const isExpanded = ref(true);
+const isExpanded = ref(false);
 const editInputRef = ref<HTMLInputElement | null>(null);
 const folderEditInputRef = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
 const isDragOver = ref(false);
+const clickTimer = ref<number | null>(null);
+
+// Collapse trigger watcher
+watch(() => props.collapseTrigger, () => {
+  isExpanded.value = false;
+});
 
 // i18n
 const { t } = useI18n();
@@ -272,6 +280,10 @@ watch([showFileDeletePopover, showFolderDeletePopover], ([file, folder]) => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
+  if (clickTimer.value !== null) {
+    window.clearTimeout(clickTimer.value);
+    clickTimer.value = null;
+  }
 });
 
 // 파일 삭제 확인
@@ -302,6 +314,24 @@ function toggleExpand() {
 // 파일 이름 변경 시작
 function startRename() {
   emit('start-rename', props.item.path);
+}
+
+function handleFileClick() {
+  if (clickTimer.value !== null) {
+    window.clearTimeout(clickTimer.value);
+  }
+  clickTimer.value = window.setTimeout(() => {
+    emit('select-file', props.item.path);
+    clickTimer.value = null;
+  }, 100);
+}
+
+function handleFileDoubleClick() {
+  if (clickTimer.value !== null) {
+    window.clearTimeout(clickTimer.value);
+    clickTimer.value = null;
+  }
+  startRename();
 }
 
 // 편집 입력 핸들러
@@ -423,7 +453,7 @@ function onDrop(event: DragEvent) {
 }
 
 .tree-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-hover);
 }
 
 /* 파일 아이템 */
@@ -432,9 +462,9 @@ function onDrop(event: DragEvent) {
 }
 
 .file-item.active {
-  background: rgba(139, 92, 246, 0.15);
-  border-left: 2px solid #a78bfa;
-  margin-left: 2px;
+  background: transparent;
+  color: var(--accent-primary);
+  margin-left: 4px;
 }
 
 .file-item.dirty .item-name {
@@ -448,7 +478,7 @@ function onDrop(event: DragEvent) {
 }
 
 .file-item.active .file-icon {
-  color: #a78bfa;
+  color: var(--accent-primary);
   opacity: 1;
 }
 
@@ -469,12 +499,12 @@ function onDrop(event: DragEvent) {
 }
 
 .folder-item .folder-icon {
-  color: #f59e0b;
+  color: var(--warning);
   flex-shrink: 0;
 }
 
 .folder-item.expanded .folder-icon {
-  color: #fbbf24;
+  color: var(--warning);
 }
 
 /* 아이템 이름 */
@@ -487,9 +517,14 @@ function onDrop(event: DragEvent) {
   white-space: nowrap;
 }
 
+.file-item.active .item-name {
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
 /* 변경 표시 */
 .dirty-indicator {
-  color: #f59e0b;
+  color: var(--warning);
   font-size: 8px;
   flex-shrink: 0;
   margin-left: 4px;
@@ -513,7 +548,7 @@ function onDrop(event: DragEvent) {
   justify-content: center;
   width: 22px;
   height: 22px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover);
   border: none;
   border-radius: 4px;
   color: var(--text-secondary);
@@ -522,13 +557,13 @@ function onDrop(event: DragEvent) {
 }
 
 .folder-action-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--bg-active);
   color: var(--text-primary);
 }
 
 .folder-action-btn.delete:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--error-glow);
+  color: var(--error);
 }
 
 /* 파일 액션 버튼 */
@@ -549,7 +584,7 @@ function onDrop(event: DragEvent) {
   justify-content: center;
   width: 22px;
   height: 22px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover);
   border: none;
   border-radius: 4px;
   color: var(--text-secondary);
@@ -558,21 +593,21 @@ function onDrop(event: DragEvent) {
 }
 
 .file-action-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--bg-active);
   color: var(--text-primary);
 }
 
 .file-action-btn.delete:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--error-glow);
+  color: var(--error);
 }
 
 /* 파일 이름 편집 입력 */
 .file-name-edit-input,
 .folder-name-edit-input {
   flex: 1;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: var(--bg-active);
+  border: 1px solid var(--accent-primary);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 13px;
@@ -582,17 +617,12 @@ function onDrop(event: DragEvent) {
 
 .file-name-edit-input:focus,
 .folder-name-edit-input:focus {
-  border-color: #a78bfa;
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .folder-item.editing {
-  background: rgba(139, 92, 246, 0.1);
-}
-
-/* 자식 노드들 */
-.tree-children {
-  /* 자식 노드 표시 */
+  background: var(--bg-active);
 }
 
 /* 드래그 앤 드롭 스타일 */
@@ -609,8 +639,8 @@ function onDrop(event: DragEvent) {
 }
 
 .folder-item.drag-over {
-  background: rgba(139, 92, 246, 0.2);
-  border: 1px dashed #a78bfa;
+  background: var(--accent-glow);
+  border: 1px dashed var(--accent-primary);
   border-radius: 6px;
 }
 
@@ -621,11 +651,11 @@ function onDrop(event: DragEvent) {
 
 .delete-popover-fixed {
   position: fixed;
-  background: var(--bg-secondary, #1e1e2e);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
   border-radius: 10px;
   padding: 12px 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
   z-index: 10000;
   min-width: 160px;
 }
@@ -639,10 +669,10 @@ function onDrop(event: DragEvent) {
 
 .delete-popover-warning {
   font-size: 11px;
-  color: #ff6b6b;
+  color: var(--error);
   margin: 0 0 10px 0;
   padding: 6px 8px;
-  background: rgba(255, 107, 107, 0.1);
+  background: var(--error-glow);
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -668,22 +698,23 @@ function onDrop(event: DragEvent) {
 }
 
 .popover-btn.cancel {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover);
   color: var(--text-muted);
 }
 
 .popover-btn.cancel:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--bg-active);
   color: var(--text-primary);
 }
 
 .popover-btn.confirm {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--error-glow);
+  color: var(--error);
 }
 
 .popover-btn.confirm:hover {
-  background: rgba(239, 68, 68, 0.35);
+  background: var(--error-glow);
+  filter: brightness(1.2);
 }
 
 /* 팝오버 애니메이션 */

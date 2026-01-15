@@ -72,15 +72,20 @@ export function useEnvironment() {
   }
 
   // 환경 추가
-  async function addEnvironment(name: string, path: string): Promise<boolean> {
+  async function addEnvironment(name: string, path: string, type: 'local' | 'github' = 'local', githubInfo?: Environment['github']): Promise<boolean> {
     loading.value = true;
     error.value = null;
     
     try {
+      const body: any = { name, path, type };
+      if (type === 'github' && githubInfo) {
+        body.github = githubInfo;
+      }
+
       const res = await fetch(`${CORE_BASE}/environment/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, path })
+        body: JSON.stringify(body)
       });
       
       if (!res.ok) {

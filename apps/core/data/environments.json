@@ -3,7 +3,16 @@
     {
       "id": "cea4bd6c57c6",
       "name": "기본 노트",
-      "path": "C:\\Users\\SSAFY\\Desktop\\git\\CueNote\\data"
+      "path": "C:\\Users\\SSAFY\\Desktop\\git\\CueNote\\data",
+      "type": "local",
+      "github": null
+    },
+    {
+      "id": "bcc9fdef4aa1",
+      "name": "문서",
+      "path": "C:\\Users\\SSAFY\\Desktop\\문서",
+      "type": "local",
+      "github": null
     }
   ],
   "current_id": "cea4bd6c57c6"

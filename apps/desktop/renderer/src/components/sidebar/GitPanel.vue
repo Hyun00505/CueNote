@@ -123,7 +123,7 @@
                 </svg>
               </label>
               <span class="file-name">{{ getFileName(change.path) }}</span>
-              <span class="status-badge" :class="getStatusClass(change.status_text)">{{ change.status_text }}</span>
+              <span class="status-badge" :class="getStatusClass(change.status_text)">{{ getStatusLabel(change.status_text) }}</span>
             </div>
           </div>
         </div>
@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useGitHub } from '../../composables/useGitHub';
+import { useI18n } from '../../composables';
 
 const props = defineProps<{
   isGitHubMode: boolean;
@@ -186,6 +187,8 @@ const {
   unstageAll,
   isFileStaged
 } = useGitHub();
+
+const { t } = useI18n();
 
 const isExpanded = ref(true);
 const commitMessage = ref('');
@@ -247,6 +250,14 @@ function getStatusClass(status: string): string {
   return 'default';
 }
 
+function getStatusLabel(status: string): string {
+  const statusLower = status.toLowerCase();
+  if (statusLower.includes('삭제') || statusLower.includes('delete')) return t('git.status.deleted');
+  if (statusLower.includes('추가') || statusLower.includes('add') || statusLower.includes('new')) return t('git.status.added');
+  if (statusLower.includes('수정') || statusLower.includes('modif')) return t('git.status.modified');
+  return status;
+}
+
 async function handleClone() {
   const success = await cloneOrPull();
   if (success) {
@@ -297,7 +308,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .panel-header:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-hover);
 }
 
 .header-left {
@@ -334,7 +345,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .badge {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--bg-active);
   color: var(--text-primary);
   font-size: 10px;
   font-weight: 600;
@@ -359,7 +370,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .action-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -387,10 +398,10 @@ watch(() => props.isGitHubMode, async (isActive) => {
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: var(--warning-glow);
+  border: 1px solid var(--warning-glow);
   border-radius: 8px;
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .warning-message svg {
@@ -435,7 +446,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-hover);
   border: 1px solid var(--border-default);
   border-radius: 8px;
   color: var(--text-primary);
@@ -446,8 +457,8 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .clone-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--bg-active);
+  border-color: var(--border-strong);
 }
 
 .clone-btn:disabled {
@@ -462,7 +473,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
 
 .commit-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-hover);
   border: 1px solid var(--border-default);
   border-radius: 8px;
   padding: 10px 12px;
@@ -475,8 +486,8 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .commit-input:focus {
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .commit-input::placeholder {
@@ -499,8 +510,8 @@ watch(() => props.isGitHubMode, async (isActive) => {
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
@@ -510,8 +521,8 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .commit-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--bg-active);
+  border-color: var(--border-strong);
 }
 
 .commit-btn:disabled {
@@ -545,32 +556,33 @@ watch(() => props.isGitHubMode, async (isActive) => {
   justify-content: center;
   width: 16px;
   height: 16px;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid var(--border-default);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-hover);
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .custom-checkbox:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-strong);
+  background: var(--bg-active);
 }
 
 .custom-checkbox.checked {
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-  border-color: #22c55e;
+  background: var(--success);
+  border-color: var(--success);
 }
 
 .custom-checkbox.checked:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  border-color: #16a34a;
+  background: var(--success);
+  border-color: var(--success);
+  filter: brightness(1.1);
 }
 
 .custom-checkbox.indeterminate {
-  background: rgba(74, 222, 128, 0.3);
-  border-color: #4ade80;
+  background: var(--success-glow);
+  border-color: var(--success);
 }
 
 .custom-checkbox svg {
@@ -578,7 +590,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .custom-checkbox.indeterminate svg {
-  color: #4ade80;
+  color: var(--success);
 }
 
 .section-title {
@@ -592,15 +604,15 @@ watch(() => props.isGitHubMode, async (isActive) => {
   font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover);
   padding: 2px 8px;
   border-radius: 10px;
   transition: all 0.15s ease;
 }
 
 .changes-count.has-staged {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+  background: var(--success-glow);
 }
 
 .file-list {
@@ -620,15 +632,15 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .changed-file:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover);
 }
 
 .changed-file.staged {
-  background: rgba(74, 222, 128, 0.08);
+  background: var(--bg-active);
 }
 
 .changed-file.staged:hover {
-  background: rgba(74, 222, 128, 0.12);
+  background: var(--bg-active);
 }
 
 .changed-file .custom-checkbox {
@@ -646,23 +658,23 @@ watch(() => props.isGitHubMode, async (isActive) => {
 }
 
 .status-badge.deleted {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.15);
+  color: var(--error);
+  background: var(--error-glow);
 }
 
 .status-badge.added {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+  background: var(--success-glow);
 }
 
 .status-badge.modified {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.15);
+  color: var(--warning);
+  background: var(--warning-glow);
 }
 
 .status-badge.default {
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover);
 }
 
 .file-name {
@@ -706,10 +718,10 @@ watch(() => props.isGitHubMode, async (isActive) => {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--error-glow);
+  border: 1px solid var(--error-glow);
   border-radius: 6px;
-  color: #ef4444;
+  color: var(--error);
   font-size: 12px;
   margin-top: 12px;
 }

@@ -119,6 +119,7 @@ function getFolderPath(path: string): string | null {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   min-height: var(--header-height);
+  color: var(--text-primary);
 }
 
 .header-left {
@@ -207,7 +208,7 @@ function getFolderPath(path: string): string | null {
   display: flex;
   gap: 2px;
   padding: 3px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-hover);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
 }
@@ -229,12 +230,12 @@ function getFolderPath(path: string): string | null {
 
 .tab-btn:hover {
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-hover);
 }
 
 .tab-btn.active {
   color: var(--text-primary);
-  background: var(--bg-hover);
+  background: var(--bg-active);
 }
 
 .tab-btn svg {
@@ -261,8 +262,8 @@ function getFolderPath(path: string): string | null {
 }
 
 .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-hover);
+  border-color: var(--border-default);
   color: var(--text-secondary);
 }
 

@@ -151,7 +151,7 @@ function handleSave() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,7 +216,7 @@ function handleSave() {
 }
 
 .modal-close:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   color: var(--text-primary);
 }
 
@@ -273,7 +273,7 @@ function handleSave() {
 .time-row .input-field input {
   width: 100%;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text-primary);
@@ -286,7 +286,7 @@ function handleSave() {
 .time-row .input-field input:focus {
   outline: none;
   border-color: rgba(201, 167, 108, 0.5);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
 }
 
 .time-row {
@@ -310,7 +310,7 @@ function handleSave() {
 .memo-field textarea {
   width: 100%;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text-primary);
@@ -324,7 +324,7 @@ function handleSave() {
 .memo-field textarea:focus {
   outline: none;
   border-color: rgba(201, 167, 108, 0.5);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
 }
 
 .memo-field textarea::placeholder {
@@ -372,7 +372,7 @@ function handleSave() {
   gap: 10px;
   padding: 16px 20px;
   border-top: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--surface-1);
 }
 
 .btn-cancel,
@@ -393,7 +393,7 @@ function handleSave() {
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border-color: var(--border-default);
 }
 
@@ -412,42 +412,4 @@ function handleSave() {
   cursor: not-allowed;
 }
 
-/* Light theme */
-:global([data-theme="light"]) .schedule-modal {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-:global([data-theme="light"]) .title-field input {
-  color: #1f2937;
-  border-bottom-color: rgba(0, 0, 0, 0.1);
-}
-
-:global([data-theme="light"]) .title-field input:focus {
-  border-bottom-color: #3b82f6;
-}
-
-:global([data-theme="light"]) .date-field input,
-:global([data-theme="light"]) .time-row .input-field input,
-:global([data-theme="light"]) .memo-field textarea {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.1);
-  color: #1f2937;
-}
-
-:global([data-theme="light"]) .date-field input:focus,
-:global([data-theme="light"]) .time-row .input-field input:focus,
-:global([data-theme="light"]) .memo-field textarea:focus {
-  border-color: rgba(59, 130, 246, 0.5);
-  background: rgba(59, 130, 246, 0.02);
-}
-
-:global([data-theme="light"]) .btn-save {
-  background: #3b82f6;
-  color: #ffffff;
-}
-
-:global([data-theme="light"]) .btn-save:hover:not(:disabled) {
-  background: #2563eb;
-}
 </style>

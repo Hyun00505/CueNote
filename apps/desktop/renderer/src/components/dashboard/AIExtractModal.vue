@@ -272,7 +272,7 @@ async function selectFile(filePath: string) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -339,7 +339,7 @@ async function selectFile(filePath: string) {
 }
 
 .modal-close-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   color: var(--text-primary);
 }
 
@@ -363,7 +363,7 @@ async function selectFile(filePath: string) {
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text-secondary);
@@ -375,7 +375,7 @@ async function selectFile(filePath: string) {
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   border-color: var(--border-default);
 }
 
@@ -395,7 +395,7 @@ async function selectFile(filePath: string) {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   margin-bottom: 12px;
@@ -435,7 +435,7 @@ async function selectFile(filePath: string) {
   padding: 10px 14px;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--surface-2);
   color: var(--text-secondary);
   font-size: 13px;
   font-family: inherit;
@@ -449,7 +449,7 @@ async function selectFile(filePath: string) {
 }
 
 .file-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   color: var(--text-primary);
 }
 
@@ -485,7 +485,7 @@ async function selectFile(filePath: string) {
 .text-input-section textarea {
   width: 100%;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   color: var(--text-primary);
@@ -561,7 +561,7 @@ async function selectFile(filePath: string) {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-left: 3px solid var(--item-color, #c9a76c);
   border-radius: 8px;
@@ -569,7 +569,7 @@ async function selectFile(filePath: string) {
 }
 
 .extracted-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
 }
 
 .extracted-item input[type="checkbox"] {
@@ -627,7 +627,7 @@ async function selectFile(filePath: string) {
   gap: 10px;
   padding: 16px 22px;
   border-top: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--surface-1);
 }
 
 .cancel-btn,
@@ -649,7 +649,7 @@ async function selectFile(filePath: string) {
 }
 
 .cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border-color: var(--border-default);
 }
 
@@ -689,7 +689,7 @@ async function selectFile(filePath: string) {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-strong);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -699,29 +699,4 @@ async function selectFile(filePath: string) {
   to { transform: rotate(360deg); }
 }
 
-/* Light theme */
-:global([data-theme="light"]) .extract-modal {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-:global([data-theme="light"]) .tab-btn.active {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .file-item.selected {
-  background: rgba(59, 130, 246, 0.1);
-  color: #1d4ed8;
-}
-
-:global([data-theme="light"]) .save-btn {
-  background: #3b82f6;
-  color: #ffffff;
-}
-
-:global([data-theme="light"]) .save-btn:hover:not(:disabled) {
-  background: #2563eb;
-}
 </style>

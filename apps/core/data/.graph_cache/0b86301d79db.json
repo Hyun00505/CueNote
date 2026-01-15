@@ -1,0 +1,41 @@
+{
+  "cluster_labels": {
+    "4473d3642a6ccdea": {
+      "label": "없음",
+      "keywords": []
+    },
+    "b8e5459330802522": {
+      "label": "테스트",
+      "keywords": [
+        "테스트"
+      ]
+    }
+  },
+  "ai_cluster_assignments": {
+    "테스트으으으.md": 0
+  },
+  "ai_cluster_label_info": {
+    "0": {
+      "label": "테스트",
+      "keywords": [
+        "테스트"
+      ]
+    }
+  },
+  "last_updated": 1768448785.4796522,
+  "cluster_customizations": {
+    "0": {
+      "label": "테스트",
+      "color": "#fca5a5",
+      "keywords": [
+        "테스트"
+      ]
+    }
+  },
+  "locked_notes": [
+    "테스트으으으.md"
+  ],
+  "note_overrides": {
+    "테스트으으으.md": 0
+  }
+}

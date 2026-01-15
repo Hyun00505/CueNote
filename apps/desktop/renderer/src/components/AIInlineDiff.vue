@@ -301,8 +301,8 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 6px 12px;
   background: rgba(139, 92, 246, 0.1);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .conflict-divider .conflict-marker {
@@ -342,15 +342,15 @@ onBeforeUnmount(() => {
   font-size: 10px;
   color: var(--text-muted);
   padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   border-radius: 4px;
 }
 
 /* 하단 액션 바 */
 .conflict-action-bar {
   padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
   text-align: center;
 }
 
@@ -361,7 +361,7 @@ onBeforeUnmount(() => {
 
 .hint kbd {
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-highlight);
   border-radius: 3px;
   font-family: var(--font-mono);
   font-size: 10px;

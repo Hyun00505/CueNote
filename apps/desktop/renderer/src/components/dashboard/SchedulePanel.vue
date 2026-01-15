@@ -242,8 +242,8 @@ const progressPercent = computed(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, var(--surface-1) 0%, transparent 100%);
+  border-left: 1px solid var(--surface-3);
 }
 
 /* 배경 장식 */
@@ -358,8 +358,8 @@ const progressPercent = computed(() => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border: 1px solid var(--surface-4);
   border-radius: 10px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -367,8 +367,8 @@ const progressPercent = computed(() => {
 }
 
 .header-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--surface-4);
+  border-color: var(--glass-highlight);
   color: var(--text-primary);
   transform: translateY(-2px);
 }
@@ -414,8 +414,8 @@ const progressPercent = computed(() => {
   gap: 16px;
   padding: 14px 20px;
   margin: 0 16px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
   border-radius: 12px;
   z-index: 1;
 }
@@ -451,7 +451,7 @@ const progressPercent = computed(() => {
 .stat-divider {
   width: 1px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-4);
 }
 
 .progress-bar {
@@ -460,7 +460,7 @@ const progressPercent = computed(() => {
   left: 0;
   right: 0;
   height: 3px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   border-radius: 0 0 12px 12px;
   overflow: hidden;
 }
@@ -779,122 +779,4 @@ const progressPercent = computed(() => {
   transition: transform 0.3s ease;
 }
 
-/* ======== Light Theme ======== */
-:global([data-theme="light"]) .schedule-panel {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
-  border-left-color: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .deco-gradient {
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
-}
-
-:global([data-theme="light"]) .date-badge.is-today .date-day {
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-:global([data-theme="light"]) .today-indicator {
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .today-dot {
-  background: #2563eb;
-}
-
-:global([data-theme="light"]) .header-btn {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
-  color: #4b5563;
-}
-
-:global([data-theme="light"]) .header-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.12);
-  color: #1f2937;
-}
-
-:global([data-theme="light"]) .header-btn.ai-btn {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.2);
-  color: #059669;
-}
-
-:global([data-theme="light"]) .header-btn.today-btn-icon {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.2);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .header-btn.add-btn {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .schedule-stats {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .stat-divider {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-:global([data-theme="light"]) .progress-bar {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .schedule-card {
-  background: linear-gradient(
-    135deg, 
-    color-mix(in srgb, var(--card-color) 6%, rgba(255, 255, 255, 0.95) 94%) 0%, 
-    color-mix(in srgb, var(--card-color) 3%, rgba(250, 250, 252, 0.9) 97%) 100%
-  );
-  border-color: color-mix(in srgb, var(--card-color) 12%, rgba(0, 0, 0, 0.06) 88%);
-}
-
-:global([data-theme="light"]) .schedule-card:hover {
-  background: linear-gradient(
-    135deg, 
-    color-mix(in srgb, var(--card-color) 10%, rgba(255, 255, 255, 1) 90%) 0%, 
-    color-mix(in srgb, var(--card-color) 6%, rgba(255, 255, 255, 0.95) 94%) 100%
-  );
-  border-color: color-mix(in srgb, var(--card-color) 20%, transparent 80%);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--card-color) 12%, transparent 88%);
-}
-
-:global([data-theme="light"]) .check-button {
-  background: color-mix(in srgb, var(--card-color) 8%, transparent 92%);
-  border-color: color-mix(in srgb, var(--card-color) 25%, transparent 75%);
-}
-
-:global([data-theme="light"]) .card-title {
-  color: #1f2937;
-}
-
-:global([data-theme="light"]) .empty-add-btn {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .empty-add-btn:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
-  border-color: rgba(59, 130, 246, 0.35);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.12);
-}
-
-:global([data-theme="light"]) .spinner-ring:nth-child(1) {
-  border-top-color: #3b82f6;
-}
-
-:global([data-theme="light"]) .spinner-ring:nth-child(2) {
-  border-right-color: rgba(59, 130, 246, 0.5);
-}
-
-:global([data-theme="light"]) .spinner-ring:nth-child(3) {
-  border-bottom-color: rgba(59, 130, 246, 0.3);
-}
 </style>

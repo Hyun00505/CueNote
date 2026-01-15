@@ -842,7 +842,7 @@ defineExpose({ scrollToToday });
   padding: 12px 20px;
   margin: 0 -24px 16px;
   background: var(--bg-primary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .nav-controls {
@@ -857,8 +857,8 @@ defineExpose({ scrollToToday });
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border: 1px solid var(--surface-4);
   border-radius: 10px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -866,8 +866,8 @@ defineExpose({ scrollToToday });
 }
 
 .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--surface-4);
+  border-color: var(--glass-highlight);
   color: var(--text-primary);
 }
 
@@ -906,8 +906,8 @@ defineExpose({ scrollToToday });
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
   border-radius: 12px;
 }
 
@@ -928,7 +928,7 @@ defineExpose({ scrollToToday });
 }
 
 .view-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--text-secondary);
 }
 
@@ -941,8 +941,8 @@ defineExpose({ scrollToToday });
 .week-view {
   position: relative;
   z-index: 1;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
+  border: 1px solid var(--surface-3);
   border-radius: 20px;
   overflow: hidden;
 }
@@ -950,13 +950,13 @@ defineExpose({ scrollToToday });
 .week-header {
   display: grid;
   grid-template-columns: 60px repeat(7, 1fr);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-3);
 }
 
 .week-time-col {
   padding: 12px 8px;
-  background: rgba(255, 255, 255, 0.02);
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
+  border-right: 1px solid var(--surface-2);
 }
 
 .week-day-header {
@@ -971,7 +971,7 @@ defineExpose({ scrollToToday });
 }
 
 .week-day-header:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
 }
 
 .week-day-header.is-today {
@@ -1040,7 +1040,7 @@ defineExpose({ scrollToToday });
   font-weight: 500;
   color: var(--text-muted);
   text-align: right;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--surface-1);
 }
 
 .week-grid {
@@ -1050,7 +1050,7 @@ defineExpose({ scrollToToday });
 
 .week-day-column {
   position: relative;
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid var(--surface-2);
 }
 
 .week-day-column:last-child {
@@ -1072,7 +1072,7 @@ defineExpose({ scrollToToday });
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
 }
 
 /* 주간 뷰 스케줄 블록 */
@@ -1169,8 +1169,8 @@ defineExpose({ scrollToToday });
   width: 100%;
   padding: 14px 20px;
   margin-bottom: 24px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, var(--surface-1) 0%, var(--bg-primary) 100%);
+  border: 1px solid var(--surface-3);
   border-radius: 14px;
   color: var(--text-muted);
   font-size: 13px;
@@ -1197,14 +1197,14 @@ defineExpose({ scrollToToday });
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   border-radius: 8px;
 }
 
 /* 월 카드 */
 .month-card {
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
+  border: 1px solid var(--surface-3);
   border-radius: 20px;
   padding: 20px 24px 24px;
   margin-bottom: 24px;
@@ -1230,7 +1230,7 @@ defineExpose({ scrollToToday });
   justify-content: space-between;
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-3);
 }
 
 .month-title-group {
@@ -1312,7 +1312,7 @@ defineExpose({ scrollToToday });
   align-items: center;
   justify-content: center;
   padding: 8px 6px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
@@ -1323,8 +1323,8 @@ defineExpose({ scrollToToday });
 }
 
 .day-cell:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--surface-4);
+  border-color: var(--glass-highlight);
   transform: translateY(-1px);
 }
 
@@ -1344,7 +1344,7 @@ defineExpose({ scrollToToday });
 }
 .day-cell.is-selected .day-number { color: #e8d5b7; font-weight: 700; }
 .day-cell.has-events { 
-  background: rgba(255, 255, 255, 0.04); 
+  background: var(--surface-2); 
 }
 .day-cell.all-completed { 
   background: rgba(34, 197, 94, 0.1); 
@@ -1408,15 +1408,15 @@ defineExpose({ scrollToToday });
 }
 
 .year-month-card {
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
+  border: 1px solid var(--surface-3);
   border-radius: 16px;
   padding: 16px;
   transition: all 0.25s ease;
 }
 
 .year-month-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--glass-highlight);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
@@ -1432,7 +1432,7 @@ defineExpose({ scrollToToday });
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-3);
 }
 
 .year-month-name {
@@ -1494,7 +1494,7 @@ defineExpose({ scrollToToday });
 }
 
 .mini-day:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-4);
 }
 
 .mini-day.other-month { opacity: 0.3; }
@@ -1522,134 +1522,6 @@ defineExpose({ scrollToToday });
 }
 .mini-day.is-sunday { color: #f87171; }
 .mini-day.is-saturday { color: #60a5fa; }
-
-/* ===== Light Theme ===== */
-:global([data-theme="light"]) .view-control-header {
-  background: #f8fafc;
-  border-bottom-color: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .nav-btn {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
-  color: #4b5563;
-}
-
-:global([data-theme="light"]) .nav-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: #1f2937;
-}
-
-:global([data-theme="light"]) .today-nav-btn {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .view-mode-selector {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .view-mode-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-:global([data-theme="light"]) .view-mode-btn.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .week-view,
-:global([data-theme="light"]) .month-card,
-:global([data-theme="light"]) .year-month-card {
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
-  border-color: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .week-header,
-:global([data-theme="light"]) .month-card-header,
-:global([data-theme="light"]) .year-month-header {
-  border-bottom-color: rgba(0, 0, 0, 0.06);
-}
-
-:global([data-theme="light"]) .week-day-header.is-today,
-:global([data-theme="light"]) .day-cell.is-today {
-  background: rgba(59, 130, 246, 0.08);
-}
-
-:global([data-theme="light"]) .week-day-header.is-today .week-day-number,
-:global([data-theme="light"]) .day-cell.is-today .day-number {
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .week-event-badge {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  color: white;
-}
-
-:global([data-theme="light"]) .month-badge {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .pulse-dot {
-  background: #2563eb;
-}
-
-:global([data-theme="light"]) .day-number {
-  color: #374151;
-}
-
-:global([data-theme="light"]) .event-dot {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
-}
-
-:global([data-theme="light"]) .today-ring {
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-:global([data-theme="light"]) .selected-bg {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
-  border-color: rgba(59, 130, 246, 0.35);
-}
-
-:global([data-theme="light"]) .year-month-card.is-current-month {
-  border-color: rgba(59, 130, 246, 0.3);
-  background: linear-gradient(165deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
-}
-
-:global([data-theme="light"]) .year-month-events {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08));
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .mini-day.is-today {
-  background: rgba(59, 130, 246, 0.15);
-  color: #2563eb;
-}
-
-:global([data-theme="light"]) .mini-day.is-selected {
-  background: #3b82f6;
-  color: white;
-}
-
-:global([data-theme="light"]) .mini-day.has-events::after {
-  background: #3b82f6;
-}
-
-:global([data-theme="light"]) .load-more-btn {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%);
-  border-color: rgba(0, 0, 0, 0.08);
-  color: #6b7280;
-}
-
-:global([data-theme="light"]) .load-more-btn:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
-  border-color: rgba(59, 130, 246, 0.2);
-  color: #2563eb;
-}
 
 /* 반응형 */
 @media (max-width: 900px) {
