@@ -83,5 +83,11 @@
   "python.analysis.diagnosticMode": "workspace", // 분석 모드
   "jupyter.kernels.filter": [],
   "cursorpyright.analysis.diagnosticMode": "workspace",
-  "cursorpyright.analysis.extraPaths": [] // Jupyter 커널 필터 비활성화
+  "cursorpyright.analysis.extraPaths": [],
+  "[vue]": {
+    "editor.defaultFormatter": "Vue.volar"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  } // Jupyter 커널 필터 비활성화
 }
