@@ -1,21 +1,15 @@
 <template>
   <div v-if="localNoteClusterInfo?.hasCluster && showClusterBadge" class="cluster-badge-group">
-    <div 
-      class="cluster-badge"
-      :style="{ '--cluster-color': localNoteClusterInfo.cluster?.color || '#8b5cf6' }"
-      :title="`클러스터: ${localNoteClusterInfo.cluster?.label}`"
-    >
+    <div class="cluster-badge" :style="{ '--cluster-color': localNoteClusterInfo.cluster?.color || '#8b5cf6' }"
+      :title="`클러스터: ${localNoteClusterInfo.cluster?.label}`">
       <span class="cluster-dot" :style="{ background: localNoteClusterInfo.cluster?.color }"></span>
       <span class="cluster-label">{{ localNoteClusterInfo.cluster?.label }}</span>
       <!-- 잠금 상태 토글 버튼 -->
-      <button 
-        class="cluster-lock-btn" 
-        :class="{ locked: localNoteClusterInfo.isLocked }"
-        @click.stop="toggleNoteLock"
-        :title="localNoteClusterInfo.isLocked ? '클러스터 잠금 해제' : '클러스터 잠금'"
-      >
+      <button class="cluster-lock-btn" :class="{ locked: localNoteClusterInfo.isLocked }" @click.stop="toggleNoteLock"
+        :title="localNoteClusterInfo.isLocked ? '클러스터 잠금 해제' : '클러스터 잠금'">
         <!-- 잠긴 상태: 닫힌 자물쇠 -->
-        <svg v-if="localNoteClusterInfo.isLocked" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg v-if="localNoteClusterInfo.isLocked" width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
@@ -36,23 +30,15 @@
   </div>
 
   <!-- 클러스터 배지 숨겨진 상태 - 다시 보기 버튼 -->
-  <button 
-    v-else-if="localNoteClusterInfo?.hasCluster && !showClusterBadge" 
-    class="toolbar-btn cluster-show-btn"
-    :style="{ '--cluster-color': localNoteClusterInfo.cluster?.color || '#8b5cf6' }"
-    @click="showClusterBadge = true"
-    title="클러스터 정보 보기"
-  >
+  <button v-else-if="localNoteClusterInfo?.hasCluster && !showClusterBadge" class="toolbar-btn cluster-show-btn"
+    :style="{ '--cluster-color': localNoteClusterInfo.cluster?.color || '#8b5cf6' }" @click="showClusterBadge = true"
+    title="클러스터 정보 보기">
     <span class="cluster-dot-mini" :style="{ background: localNoteClusterInfo.cluster?.color }"></span>
   </button>
 
   <!-- 클러스터 정보 없음 (그래프 미생성) -->
-  <button 
-    v-else-if="localNoteClusterInfo && !localNoteClusterInfo.hasCluster && showClusterBadge" 
-    class="toolbar-btn cluster-hint-btn"
-    @click="showClusterBadge = false"
-    title="그래프 뷰에서 AI 분석을 실행하면 클러스터 정보가 표시됩니다"
-  >
+  <button v-else-if="localNoteClusterInfo && !localNoteClusterInfo.hasCluster && showClusterBadge"
+    class="toolbar-btn cluster-hint-btn" @click="showClusterBadge = false" title="그래프 뷰에서 AI 분석을 실행하면 클러스터 정보가 표시됩니다">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="3" />
       <circle cx="4" cy="8" r="2" opacity="0.5" />
@@ -92,11 +78,11 @@ const loadNoteClusterInfo = async () => {
     localNoteClusterInfo.value = null;
     return;
   }
-  
+
   try {
     const filePath = props.activeFile.replace(/\\/g, '/');
     const response = await fetch(`http://127.0.0.1:8787/graph/note-info/${encodeURIComponent(filePath)}`);
-    
+
     if (response.ok) {
       const data = await response.json();
       localNoteClusterInfo.value = data;
@@ -116,18 +102,18 @@ watch(() => props.activeFile, () => {
 // 노트 클러스터 잠금/해제 토글
 const toggleNoteLock = async () => {
   if (!props.activeFile || !localNoteClusterInfo.value) return;
-  
+
   try {
     const newLockState = !localNoteClusterInfo.value.isLocked;
     const response = await fetch(`http://127.0.0.1:8787/graph/lock-note`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        notePath: props.activeFile, 
-        locked: newLockState 
+      body: JSON.stringify({
+        notePath: props.activeFile,
+        locked: newLockState
       })
     });
-    
+
     if (response.ok) {
       // 로컬 상태 업데이트
       localNoteClusterInfo.value.isLocked = newLockState;
@@ -206,7 +192,7 @@ const toggleNoteLock = async () => {
 }
 
 .cluster-lock-btn.locked:hover {
-  color: #ef4444;
+  color: var(--error);
 }
 
 .cluster-close-btn {

@@ -3,7 +3,7 @@ import App from './App.vue';
 
 // 테마 초기화 (앱 로드 시 즉시 적용하여 깜빡임 방지)
 const savedTheme = localStorage.getItem('cuenote-theme');
-const validThemes = ['dark', 'dim', 'github-dark'];
+const validThemes = ['dark', 'dim', 'github-dark', 'light'];
 if (savedTheme && validThemes.includes(savedTheme)) {
   document.documentElement.setAttribute('data-theme', savedTheme);
 } else if (savedTheme) {

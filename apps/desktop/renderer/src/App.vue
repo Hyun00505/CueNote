@@ -191,10 +191,14 @@ function handleSelectFile(file: string) {
   currentView.value = 'editor';
 }
 
-// GitHub 파일 선택 핸들러
-function handleSelectGitHubFile(path: string, content: string) {
+// GitHub 파일 선택 핸들러 (로컬 파일과 동일하게 처리)
+// 백엔드의 /vault/file API가 GitHub 환경에서도 클론 경로를 사용
+function handleSelectGitHubFile(path: string) {
+  // 같은 파일이면 무시
+  if (path === activeFile.value && isGitHubFile.value) return;
+  
   isGitHubFile.value = true;
-  githubFileContent.value = content;
+  githubFileContent.value = null; // content는 EditorView에서 /vault/file로 로드
   activeFile.value = path;
   currentView.value = 'editor';
 }
@@ -395,7 +399,18 @@ watch(currentView, (newView, oldView) => {
   }
 });
 
+// 테마 초기화 함수
+function initTheme() {
+  const savedTheme = localStorage.getItem('cuenote-theme');
+  const validThemes = ['dark', 'dim', 'github-dark', 'light'];
+  const theme = validThemes.includes(savedTheme as string) ? savedTheme : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
 onMounted(async () => {
+  // 앱 시작 시 테마 초기화 (설정 페이지 방문 전에도 적용)
+  initTheme();
+  
   // 앱 시작 시 뷰를 에디터로 명시적 초기화 (중복 설정으로 확실하게)
   currentView.value = 'editor';
   previousView.value = 'editor';

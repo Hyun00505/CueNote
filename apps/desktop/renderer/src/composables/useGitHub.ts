@@ -258,6 +258,21 @@ export function useGitHub() {
     }
   }
 
+  // 환경 전환 시 GitHub 모드 활성화 (클론/풀 없이)
+  // 이미 클론된 환경을 전환할 때 사용
+  async function switchToGitHubEnv(repo: GitHubRepo): Promise<boolean> {
+    selectedRepo.value = repo;
+    saveSettings();
+    isGitHubActive.value = true;
+    
+    // 파일 목록 가져오기
+    await fetchRepoFiles();
+    // Git 상태 확인
+    await checkGitStatus();
+    
+    return true;
+  }
+
   // 파일 목록 가져오기 (로컬)
   async function fetchRepoFiles(): Promise<boolean> {
     if (!token.value || !selectedRepo.value) {
@@ -297,43 +312,6 @@ export function useGitHub() {
     }
   }
 
-  // 파일 내용 가져오기
-  async function fetchFileContent(filePath: string): Promise<string | null> {
-    if (!token.value || !selectedRepo.value) {
-      error.value = '리포지토리를 먼저 선택해주세요';
-      return null;
-    }
-
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const res = await fetch(`${CORE_BASE}/github/repo/file-content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: token.value,
-          owner: selectedRepo.value.owner,
-          repo: selectedRepo.value.name,
-          path: filePath
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error('파일 내용을 가져올 수 없습니다');
-      }
-
-      const data = await res.json();
-      return data.content;
-    } catch (e) {
-      console.error('Failed to fetch file content:', e);
-      error.value = '파일 내용을 가져오는데 실패했습니다';
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
   // 파일 저장 (로컬)
   async function saveFile(filePath: string, content: string): Promise<boolean> {
     if (!token.value || !selectedRepo.value) {
@@ -360,7 +338,7 @@ export function useGitHub() {
 
       // Git 상태 업데이트
       await checkGitStatus();
-      
+
       return true;
     } catch (e) {
       console.error('Failed to save file:', e);
@@ -1013,7 +991,7 @@ export function useGitHub() {
     error,
     isValidating,
     isLoggedIn,
-    
+
     // Git Clone State
     isCloned,
     isCloning,
@@ -1023,14 +1001,14 @@ export function useGitHub() {
     hasChanges,
     gitInstalled,
     isGitHubActive,
-    
+
     // Staging State
     stagedFiles,
     stagedCount,
-    
+
     // Trash State
     trashFiles,
-    
+
     // Actions
     initGitHub,
     setGitHubActive,
@@ -1038,9 +1016,9 @@ export function useGitHub() {
     validateToken,
     fetchRepos,
     selectRepo,
+    switchToGitHubEnv,
     cloneOrPull,
     fetchRepoFiles,
-    fetchFileContent,
     saveFile,
     createFile,
     createFolder,
@@ -1055,13 +1033,13 @@ export function useGitHub() {
     createRepo,
     uploadImage,
     getImageUrl,
-    
+
     // Staging Actions
     toggleStageFile,
     stageAll,
     unstageAll,
     isFileStaged,
-    
+
     // Trash Actions
     fetchTrashFiles,
     restoreFromTrash,

@@ -30,6 +30,23 @@ router = APIRouter(prefix="/vault", tags=["vault"])
 ENV_CONFIG_PATH = PROJECT_ROOT / "apps" / "core" / "data" / "environments.json"
 
 
+def get_git_repos_dir() -> Path:
+    """Git 리포지토리 저장 디렉토리 반환 (github.py와 동일)"""
+    import os
+    import sys
+    if os.name == 'nt':
+        base = Path(os.environ.get('APPDATA', '')) / 'cuenote'
+    elif os.name == 'posix':
+        if 'darwin' in sys.platform:
+            base = Path.home() / 'Library' / 'Application Support' / 'cuenote'
+        else:
+            base = Path.home() / '.local' / 'share' / 'cuenote'
+    else:
+        base = Path.home() / '.cuenote'
+    
+    return base / 'git-repos'
+
+
 def get_current_vault_path() -> Path:
     """현재 선택된 환경의 Vault 경로 반환"""
     if not ENV_CONFIG_PATH.exists():
@@ -43,6 +60,20 @@ def get_current_vault_path() -> Path:
         
         for env in data.get("environments", []):
             if env.get("id") == current_id:
+                env_type = env.get("type", "local")
+                
+                # GitHub 환경인 경우 실제 클론 경로 반환
+                if env_type == "github":
+                    github_info = env.get("github", {})
+                    owner = github_info.get("owner")
+                    repo = github_info.get("repo")
+                    if owner and repo:
+                        git_path = get_git_repos_dir() / f"{owner}_{repo}"
+                        if git_path.exists():
+                            return git_path
+                    return VAULT_PATH
+                
+                # 로컬 환경
                 env_path = Path(env.get("path", ""))
                 if env_path.exists():
                     return env_path

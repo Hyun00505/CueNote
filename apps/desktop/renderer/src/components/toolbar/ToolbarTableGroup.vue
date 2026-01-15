@@ -1,18 +1,13 @@
 <template>
   <div class="toolbar-group">
     <div class="dropdown-wrapper">
-      <button
-        ref="tableBtnRef"
-        class="toolbar-btn"
-        @click="showTablePicker = !showTablePicker"
-        title="표 삽입"
-      >
+      <button ref="tableBtnRef" class="toolbar-btn" @click="showTablePicker = !showTablePicker" title="표 삽입">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <line x1="3" y1="9" x2="21" y2="9"/>
-          <line x1="3" y1="15" x2="21" y2="15"/>
-          <line x1="9" y1="3" x2="9" y2="21"/>
-          <line x1="15" y1="3" x2="15" y2="21"/>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <line x1="3" y1="15" x2="21" y2="15" />
+          <line x1="9" y1="3" x2="9" y2="21" />
+          <line x1="15" y1="3" x2="15" y2="21" />
         </svg>
       </button>
       <!-- 표 크기 선택 드롭다운 -->
@@ -20,31 +15,18 @@
         <div v-if="showTablePicker" class="table-picker" @mouseleave="showTablePicker = false">
           <div class="table-picker-header">{{ tableRows }} × {{ tableCols }} 표</div>
           <div class="table-grid">
-            <div
-              v-for="row in 6"
-              :key="row"
-              class="table-row"
-            >
-              <div
-                v-for="col in 6"
-                :key="col"
-                class="table-cell"
+            <div v-for="row in 6" :key="row" class="table-row">
+              <div v-for="col in 6" :key="col" class="table-cell"
                 :class="{ selected: row <= tableRows && col <= tableCols }"
-                @mouseenter="tableRows = row; tableCols = col"
-                @click="insertTableWithSize(row, col)"
-              ></div>
+                @mouseenter="tableRows = row; tableCols = col" @click="insertTableWithSize(row, col)"></div>
             </div>
           </div>
         </div>
       </Transition>
     </div>
-    <button
-      class="toolbar-btn"
-      @click="editor?.chain().focus().setHorizontalRule().run()"
-      title="구분선"
-    >
+    <button class="toolbar-btn" @click="editor?.chain().focus().setHorizontalRule().run()" title="구분선">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="2" y1="12" x2="22" y2="12"/>
+        <line x1="2" y1="12" x2="22" y2="12" />
       </svg>
     </button>
   </div>
@@ -150,8 +132,9 @@ function insertTableWithSize(rows: number, cols: number) {
 }
 
 .table-cell.selected {
-  background: var(--accent-gold-glow, rgba(201, 167, 108, 0.3));
-  border-color: var(--accent-gold-dim, #c9a76c);
+  background: var(--accent);
+  border-color: var(--accent);
+  opacity: 0.3;
 }
 
 /* Dropdown Transition */

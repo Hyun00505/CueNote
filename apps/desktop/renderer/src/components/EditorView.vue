@@ -3,94 +3,45 @@
     <EditorEmptyState v-if="!activeFile" />
 
     <div v-else class="editor-container">
-      <EditorHeader 
-        :active-file="activeFile"
-        :is-github-file="isGithubFile"
-        :is-dirty="isDirty"
-        :staging-saving="stagingSaving"
-        :staging-saved="stagingSaved"
-        :saving="saving"
-        :saved="saved"
-        @save="handleSave"
-        @save-github="handleSaveGitHubFile"
-      />
-      
-      <EditorToolbar 
-        :editor="editor as Editor" 
-        :summarizing="summarizing"
-        :note-name="getFileName(activeFile)"
-        :active-file="activeFile"
-        @summarize="handleSummarize"
-        @extract-result="handleExtractResult"
-      />
+      <EditorHeader :active-file="activeFile" :is-github-file="isGithubFile" :is-dirty="isDirty"
+        :staging-saving="stagingSaving" :staging-saved="stagingSaved" :saving="saving" :saved="saved" @save="handleSave"
+        @save-github="handleSaveGitHubFile" />
+
+      <EditorToolbar :editor="editor as Editor" :summarizing="summarizing" :note-name="getFileName(activeFile)"
+        :active-file="activeFile" @summarize="handleSummarize" @extract-result="handleExtractResult" />
 
       <!-- AI 요약 결과 패널 -->
-      <EditorSummaryPanel 
-        :summary-result="summaryResult"
-        @close="summaryResult = null"
-        @copy="copySummary"
-        @insert="insertSummary"
-      />
+      <EditorSummaryPanel :summary-result="summaryResult" @close="summaryResult = null" @copy="copySummary"
+        @insert="insertSummary" />
 
-      <div 
-        ref="editorWrapperRef" 
-        class="editor-content-wrapper" 
-        :class="{ 'drag-over': isDraggingOver }"
-        @contextmenu="handleContextMenu"
-        @dragenter="handleDragEnter"
-        @dragover="handleDragOver"
-        @dragleave="handleDragLeave"
-        @drop="handleDrop"
-        @paste="handlePaste"
-      >
+      <div ref="editorWrapperRef" class="editor-content-wrapper" :class="{ 'drag-over': isDraggingOver }"
+        @contextmenu="handleContextMenu" @dragenter="handleDragEnter" @dragover="handleDragOver"
+        @dragleave="handleDragLeave" @drop="handleDrop" @paste="handlePaste">
         <EditorContent :editor="editor" class="editor-content" />
-        
+
         <!-- AI 스트리밍 프리뷰 및 액션 바 -->
-        <EditorAIPreview 
-          :is-a-i-streaming="isAIStreaming"
-          :ai-streaming-action="aiStreamingAction"
-          :stream-preview-html="streamPreviewHtml"
-          :show-a-i-action-bar="showAIActionBar"
-          @reject="handleAIReject"
-          @accept="handleAIAccept"
-        />
+        <EditorAIPreview :is-a-i-streaming="isAIStreaming" :ai-streaming-action="aiStreamingAction"
+          :stream-preview-html="streamPreviewHtml" :show-a-i-action-bar="showAIActionBar" @reject="handleAIReject"
+          @accept="handleAIAccept" />
       </div>
 
       <!-- AI 컨텍스트 메뉴 -->
-      <AIContextMenu
-        :visible="showAIMenu"
-        :position="aiMenuPosition"
-        :selected-text="selectedText"
-        @close="closeAIMenu"
-        @result="handleAIResult"
-        @stream-start="handleStreamStart"
-        @stream-chunk="handleStreamChunk"
-        @stream-end="handleStreamEnd"
-        @error="handleAIError"
-        @proofread="handleProofread"
-      />
+      <AIContextMenu :visible="showAIMenu" :position="aiMenuPosition" :selected-text="selectedText" @close="closeAIMenu"
+        @result="handleAIResult" @stream-start="handleStreamStart" @stream-chunk="handleStreamChunk"
+        @stream-end="handleStreamEnd" @error="handleAIError" @proofread="handleProofread" />
 
       <!-- 맞춤법 검사 패널 -->
-      <AIProofreadPanel
-        :visible="showProofreadPanel"
-        :loading="proofreadLoading"
-        :original-text="proofreadOriginalText"
-        :corrected-text="proofreadCorrectedText"
-        :items="proofreadItems"
-        :language-detected="proofreadLanguage"
-        @close="handleProofreadClose"
-        @apply-item="handleProofreadApplyItem"
-        @apply-all="handleProofreadApplyAll"
-        @skip-item="handleProofreadSkipItem"
-        @skip-all="handleProofreadSkipAll"
-        @focus-item="handleProofreadFocusItem"
-      />
+      <AIProofreadPanel :visible="showProofreadPanel" :loading="proofreadLoading" :original-text="proofreadOriginalText"
+        :corrected-text="proofreadCorrectedText" :items="proofreadItems" :language-detected="proofreadLanguage"
+        @close="handleProofreadClose" @apply-item="handleProofreadApplyItem" @apply-all="handleProofreadApplyAll"
+        @skip-item="handleProofreadSkipItem" @skip-all="handleProofreadSkipAll"
+        @focus-item="handleProofreadFocusItem" />
 
       <p v-if="editorError" class="error-msg">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
         {{ editorError }}
       </p>
@@ -254,25 +205,25 @@ const proofreadLanguage = ref('');
 
 // 에디터에서 텍스트의 모든 위치 찾기 (범위 지정 가능)
 function findTextPositions(
-  searchText: string, 
-  rangeStart?: number, 
+  searchText: string,
+  rangeStart?: number,
   rangeEnd?: number
 ): Array<{ from: number; to: number }> {
   if (!editor.value) return [];
-  
+
   const positions: Array<{ from: number; to: number }> = [];
   const doc = editor.value.state.doc;
-  
+
   doc.descendants((node, pos) => {
     if (node.isText && node.text) {
       let index = 0;
       while (true) {
         const foundIndex = node.text.indexOf(searchText, index);
         if (foundIndex === -1) break;
-        
+
         const from = pos + foundIndex;
         const to = pos + foundIndex + searchText.length;
-        
+
         // 범위가 지정되었으면 범위 내 위치만 추가
         if (rangeStart !== undefined && rangeEnd !== undefined) {
           if (from >= rangeStart && to <= rangeEnd) {
@@ -286,32 +237,32 @@ function findTextPositions(
     }
     return true;
   });
-  
+
   return positions;
 }
 
 // 맞춤법 오류 하이라이트 적용 (각 오류당 하나의 위치만)
 function applyProofreadHighlights() {
   if (!editor.value) return;
-  
+
   // 선택 범위 가져오기
   const rangeStart = savedSelection.value?.from;
   const rangeEnd = savedSelection.value?.to;
-  
+
   // 이미 매칭된 위치를 추적 (같은 단어의 다른 오류 구분)
   const usedPositions: Set<string> = new Set();
-  
+
   // 원본 텍스트에서 각 오류의 순서대로 위치를 찾음
   const originalText = proofreadOriginalText.value;
-  
+
   proofreadItems.value.forEach((item, index) => {
     if (!item.applied && !item.skipped) {
       // 선택 범위 내에서 위치 찾기
       const positions = findTextPositions(item.original, rangeStart, rangeEnd);
-      
+
       // 아직 사용되지 않은 첫 번째 위치 찾기
       let selectedPosition: { from: number; to: number } | null = null;
-      
+
       for (const pos of positions) {
         const posKey = `${pos.from}-${pos.to}`;
         if (!usedPositions.has(posKey)) {
@@ -320,7 +271,7 @@ function applyProofreadHighlights() {
           break;
         }
       }
-      
+
       // 범위 내에서 못 찾았으면 원본 텍스트에서 오프셋으로 계산
       if (!selectedPosition && rangeStart !== undefined) {
         let searchStart = 0;
@@ -328,11 +279,11 @@ function applyProofreadHighlights() {
         const sameItems = proofreadItems.value.slice(0, index).filter(
           i => i.original === item.original
         );
-        
+
         for (let i = 0; i <= sameItems.length; i++) {
           const offset = originalText.indexOf(item.original, searchStart);
           if (offset === -1) break;
-          
+
           if (i === sameItems.length) {
             const from = rangeStart + offset;
             const to = from + item.original.length;
@@ -346,11 +297,11 @@ function applyProofreadHighlights() {
           searchStart = offset + item.original.length;
         }
       }
-      
+
       // 위치를 찾았으면 하이라이트 적용
       if (selectedPosition) {
         proofreadItems.value[index].positions = [selectedPosition];
-        
+
         editor.value?.chain()
           .setTextSelection({ from: selectedPosition.from, to: selectedPosition.to })
           .setHighlight({ color: '#ef444480' })
@@ -360,7 +311,7 @@ function applyProofreadHighlights() {
       }
     }
   });
-  
+
   // 선택 해제
   editor.value.commands.blur();
 }
@@ -368,14 +319,14 @@ function applyProofreadHighlights() {
 // 특정 항목의 하이라이트 제거 (위치 기반)
 function removeItemHighlight(index: number) {
   if (!editor.value) return;
-  
+
   const item = proofreadItems.value[index];
   if (!item.positions || item.positions.length === 0) return;
-  
+
   // 해당 위치의 텍스트에서 하이라이트 제거
   const { from, to } = item.positions[0];
   const docSize = editor.value.state.doc.content.size;
-  
+
   if (from < docSize && to <= docSize) {
     editor.value.chain()
       .setTextSelection({ from, to })
@@ -388,11 +339,11 @@ function removeItemHighlight(index: number) {
 // 모든 맞춤법 하이라이트 제거 (전체 문서에서)
 function removeAllProofreadHighlights() {
   if (!editor.value) return;
-  
+
   // 전체 문서를 선택하고 모든 하이라이트 제거
   const { doc } = editor.value.state;
   const docSize = doc.content.size;
-  
+
   if (docSize > 0) {
     editor.value.chain()
       .setTextSelection({ from: 0, to: docSize })
@@ -477,7 +428,7 @@ async function openFile(filePath: string) {
 
   // 캐시에 저장된 내용이 있는지 확인
   const cachedContent = fileContentCache.get(filePath);
-  
+
   if (cachedContent) {
     // 캐시된 내용 사용
     if (editor.value) {
@@ -488,7 +439,8 @@ async function openFile(filePath: string) {
     return;
   }
 
-  // 캐시에 없으면 서버에서 로드
+  // 캐시에 없으면 서버에서 로드 (로컬 & GitHub 모두 /vault/file 사용)
+  // 백엔드의 get_current_vault_path()가 GitHub 환경에서도 클론 경로를 반환
   try {
     const url = `${CORE_BASE}/vault/file?path=${encodeURIComponent(filePath)}`;
     const res = await fetch(url);
@@ -507,7 +459,7 @@ async function openFile(filePath: string) {
       // emitUpdate: false로 히스토리에 추가되지 않도록 함
       editor.value.commands.setContent(htmlContent, { emitUpdate: false });
     }
-    
+
     // 새 파일을 열면 dirty 상태 초기화
     isDirty.value = false;
     emit('dirty-change', false);
@@ -536,15 +488,15 @@ async function handleSave() {
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
-    
+
     // 저장 성공 시 dirty 상태 초기화
     isDirty.value = false;
     emit('dirty-change', false);
-    
+
     // 저장 후 캐시에서 해당 파일 제거 (더 이상 저장되지 않은 변경사항 아님)
     fileContentCache.delete(props.activeFile);
     emitDirtyFiles();
-    
+
     // 저장 완료 표시 (2초간)
     saved.value = true;
     setTimeout(() => {
@@ -571,18 +523,18 @@ async function handleSaveGitHubFile() {
 
     // 클론된 로컬 파일에 저장
     const success = await saveGitHubFile(props.activeFile, content);
-    
+
     if (!success) {
       throw new Error('저장 실패');
     }
-    
+
     // 저장 성공 시 dirty 상태 초기화
     isDirty.value = false;
     emit('dirty-change', false);
-    
+
     // Git 상태 업데이트
     await checkGitStatus();
-    
+
     // 완료 표시 (2초간)
     stagingSaved.value = true;
     setTimeout(() => {
@@ -599,19 +551,19 @@ async function handleSaveGitHubFile() {
 // AI 요약 기능
 async function handleSummarize() {
   if (!editor.value) return;
-  
+
   summarizing.value = true;
   summaryResult.value = null;
-  
+
   try {
     const html = editor.value.getHTML();
     const content = htmlToMarkdown(html);
-    
+
     if (!content.trim()) {
       editorError.value = '요약할 내용이 없습니다.';
       return;
     }
-    
+
     // 스트리밍 API를 사용하여 요약 (LLM 설정 포함)
     // language: 'auto'로 설정하여 원문과 같은 언어로 응답
     const body = {
@@ -622,17 +574,17 @@ async function handleSummarize() {
       api_key: llmSettings.value.llm.apiKey,
       model: llmSettings.value.llm.model
     };
-    
+
     const res = await fetch(`${CORE_BASE}/ai/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    
+
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
-    
+
     const data = await res.json();
     summaryResult.value = {
       summary: data.summary,
@@ -651,7 +603,7 @@ async function handleSummarize() {
 // 요약 복사
 function copySummary() {
   if (!summaryResult.value) return;
-  
+
   const text = formatSummaryAsMarkdown();
   navigator.clipboard.writeText(text).then(() => {
     copied.value = true;
@@ -664,31 +616,31 @@ function copySummary() {
 // 요약을 마크다운 형식으로 포맷
 function formatSummaryAsMarkdown(): string {
   if (!summaryResult.value) return '';
-  
+
   let md = `## 📝 요약\n\n${summaryResult.value.summary}\n`;
-  
+
   if (summaryResult.value.keyPoints.length > 0) {
     md += `\n### 핵심 포인트\n\n`;
     summaryResult.value.keyPoints.forEach(point => {
       md += `- ${point}\n`;
     });
   }
-  
+
   return md;
 }
 
 // 요약을 노트 상단에 삽입
 function insertSummary() {
   if (!editor.value || !summaryResult.value) return;
-  
+
   const summaryHtml = formatSummaryAsHtml();
-  
+
   // 에디터의 시작 위치에 삽입
   editor.value.chain()
     .focus()
     .insertContentAt(0, summaryHtml + '<hr><p></p>')
     .run();
-  
+
   // 패널 닫기
   summaryResult.value = null;
 }
@@ -696,9 +648,9 @@ function insertSummary() {
 // 요약을 HTML 형식으로 포맷
 function formatSummaryAsHtml(): string {
   if (!summaryResult.value) return '';
-  
+
   let html = `<h2>📝 요약</h2><p>${summaryResult.value.summary}</p>`;
-  
+
   if (summaryResult.value.keyPoints.length > 0) {
     html += `<h3>핵심 포인트</h3><ul>`;
     summaryResult.value.keyPoints.forEach(point => {
@@ -706,7 +658,7 @@ function formatSummaryAsHtml(): string {
     });
     html += `</ul>`;
   }
-  
+
   return html;
 }
 
@@ -723,12 +675,12 @@ function handleKeydown(e: KeyboardEvent) {
     }
     return;
   }
-  
+
   // AI 메뉴 단축키 확인
   if (isAIMenuShortcut(e)) {
     // 에디터에 포커스가 있을 때만 동작
     if (!editor.value?.isFocused) return;
-    
+
     // / 키는 빈 줄에서만 동작 (텍스트 입력 중에는 / 입력 허용)
     if (e.key === '/') {
       const { state } = editor.value;
@@ -736,11 +688,11 @@ function handleKeydown(e: KeyboardEvent) {
       const $pos = state.doc.resolve(from);
       const lineStart = $pos.start();
       const lineText = state.doc.textBetween(lineStart, from, '', '');
-      
+
       // 현재 줄에 내용이 있으면 / 입력 허용
       if (lineText.trim()) return;
     }
-    
+
     e.preventDefault();
     openAIMenuAtCursor();
   }
@@ -749,10 +701,10 @@ function handleKeydown(e: KeyboardEvent) {
 // 커서 위치에서 AI 메뉴 열기
 function openAIMenuAtCursor() {
   if (!editor.value) return;
-  
+
   const { state } = editor.value;
   const { from, to } = state.selection;
-  
+
   // 선택된 텍스트가 있으면 저장
   if (from !== to) {
     const markdown = getSelectedMarkdown();
@@ -760,16 +712,16 @@ function openAIMenuAtCursor() {
   } else {
     selectedText.value = '';
   }
-  
+
   // 커서 위치 가져오기
   const coords = editor.value.view.coordsAtPos(from);
-  
+
   // 메뉴 위치 설정
   const menuWidth = 260;
   const menuHeight = 500;
   let x = coords.left;
   let y = coords.bottom + 8;  // 커서 아래에 약간 여백
-  
+
   if (x + menuWidth > window.innerWidth) {
     x = window.innerWidth - menuWidth - 10;
   }
@@ -779,7 +731,7 @@ function openAIMenuAtCursor() {
   if (y < 10) {
     y = 10;
   }
-  
+
   aiMenuPosition.value = { x, y };
   showAIMenu.value = true;
 }
@@ -787,16 +739,16 @@ function openAIMenuAtCursor() {
 // 문서 추출 결과 처리
 function handleExtractResult(markdown: string) {
   if (!editor.value) return;
-  
+
   // 마크다운을 HTML로 변환
   const html = markdownToHtml(markdown);
-  
+
   // 현재 커서 위치에 삽입
   editor.value.chain()
     .focus()
     .insertContent(html)
     .run();
-  
+
   // 자동 저장
   if (isGithubFile.value) {
     handleSaveGitHubFile();
@@ -808,35 +760,35 @@ function handleExtractResult(markdown: string) {
 // 선택된 영역의 텍스트를 마크다운으로 가져오기
 function getSelectedMarkdown(): string {
   if (!editor.value) return '';
-  
+
   const { from, to } = editor.value.state.selection;
   if (from === to) return '';
-  
+
   try {
     // 선택된 부분의 slice를 가져와서 HTML로 변환 후 마크다운으로 변환
     const { state } = editor.value;
     const slice = state.doc.slice(from, to);
-    
+
     // slice를 임시 fragment로 만들어서 HTML 생성
     const serializer = DOMSerializer.fromSchema(state.schema);
     const fragment = slice.content;
-    
+
     // DOM으로 변환
     const div = document.createElement('div');
     fragment.forEach(node => {
       const domNode = serializer.serializeNode(node);
       div.appendChild(domNode);
     });
-    
+
     // HTML을 마크다운으로 변환
     const html = div.innerHTML;
     const markdown = htmlToMarkdown(html);
-    
+
     // 결과가 비어있으면 plain text 사용
     if (!markdown.trim()) {
       return state.doc.textBetween(from, to, '\n');
     }
-    
+
     return markdown;
   } catch (e) {
     console.warn('Failed to get markdown, using plain text:', e);
@@ -847,12 +799,12 @@ function getSelectedMarkdown(): string {
 // 우클릭 컨텍스트 메뉴 처리
 function handleContextMenu(e: MouseEvent) {
   if (!editor.value) return;
-  
+
   e.preventDefault();
-  
+
   const { state } = editor.value;
   const { from, to } = state.selection;
-  
+
   // 텍스트가 선택되어 있으면 선택된 텍스트 저장
   if (from !== to) {
     const markdown = getSelectedMarkdown();
@@ -861,20 +813,20 @@ function handleContextMenu(e: MouseEvent) {
     // 선택된 텍스트 없음
     selectedText.value = '';
   }
-  
+
   // 메뉴 위치 설정 (화면 경계 고려)
   const menuWidth = 260;
   const menuHeight = 500;
   let x = e.clientX;
   let y = e.clientY;
-  
+
   if (x + menuWidth > window.innerWidth) {
     x = window.innerWidth - menuWidth - 10;
   }
   if (y + menuHeight > window.innerHeight) {
     y = window.innerHeight - menuHeight - 10;
   }
-  
+
   aiMenuPosition.value = { x, y };
   showAIMenu.value = true;
 }
@@ -895,26 +847,26 @@ interface AIResult {
 
 function handleAIResult(data: AIResult) {
   if (!editor.value) return;
-  
+
   // 현재 선택 영역 저장
   const { from, to } = editor.value.state.selection;
   savedSelection.value = { from, to };
-  
+
   // 선택 영역의 DOM 위치 계산
   const coords = editor.value.view.coordsAtPos(from);
   const wrapper = editorWrapperRef.value;
-  
+
   if (coords && wrapper) {
     const editorRect = wrapper.getBoundingClientRect();
     const scrollTop = wrapper.scrollTop;
-    
+
     // 선택 영역 시작 위치 기준으로 diff 뷰 위치 설정 (스크롤 고려)
     diffPosition.value = {
       x: 48, // 에디터 패딩과 일치
       y: coords.top - editorRect.top + scrollTop
     };
   }
-  
+
   // diff 데이터 설정
   diffData.value = {
     action: data.action,
@@ -922,10 +874,10 @@ function handleAIResult(data: AIResult) {
     result: data.result,
     meta: data.meta
   };
-  
+
   // diff 뷰 표시
   showDiffView.value = true;
-  
+
   // 선택 해제 (diff 뷰에서 원본을 보여주므로)
   editor.value.commands.setTextSelection(from);
 }
@@ -939,10 +891,10 @@ function handleStreamStart(data: { action: string; original: string; hasSelectio
     console.warn('Editor not available for AI streaming');
     return;
   }
-  
+
   // 전체 문서의 현재 HTML 저장 (되돌리기용)
   originalHtml.value = editor.value.getHTML();
-  
+
   // 현재 선택 영역 저장 (에디터 상태가 있을 때만)
   try {
     const { from, to } = editor.value.state.selection;
@@ -952,13 +904,13 @@ function handleStreamStart(data: { action: string; original: string; hasSelectio
     const docEnd = editor.value.state.doc.content.size;
     savedSelection.value = { from: docEnd, to: docEnd };
   }
-  
+
   // 원본 텍스트 저장 (선택 없으면 빈 문자열)
   originalText.value = data.original || '';
   aiStreamingAction.value = data.action;
   streamedContent.value = '';
   hasSelectionForAI.value = data.hasSelection !== false && !!data.original;
-  
+
   // 원본은 삭제하지 않음 - 스트리밍 완료 후 교체
   isAIStreaming.value = true;
   showAIActionBar.value = false;
@@ -967,10 +919,10 @@ function handleStreamStart(data: { action: string; original: string; hasSelectio
 // 스트리밍 청크 수신 처리 - 누적만 (에디터에 삽입하지 않음)
 function handleStreamChunk(chunk: string) {
   if (!isAIStreaming.value) return;
-  
+
   // \r (캐리지 리턴) 제거 - Ollama가 각 토큰마다 \r을 추가하는 문제 해결
   const cleanedChunk = chunk.replace(/\r/g, '');
-  
+
   // 청크 누적만 (에디터 삽입은 종료 시 한 번에)
   streamedContent.value += cleanedChunk;
 }
@@ -978,16 +930,16 @@ function handleStreamChunk(chunk: string) {
 // 스트리밍 종료 처리 - 선택 영역을 AI 결과로 교체
 function handleStreamEnd() {
   isAIStreaming.value = false;
-  
+
   if (!editor.value) {
     console.warn('Editor not available for AI result');
     return;
   }
-  
+
   // 스트리밍된 텍스트를 마크다운 HTML로 변환
   if (streamedContent.value.trim()) {
     const html = markdownToHtml(streamedContent.value);
-    
+
     try {
       if (savedSelection.value && hasSelectionForAI.value) {
         // 선택 영역이 있었으면 교체
@@ -1022,7 +974,7 @@ function handleStreamEnd() {
         .run();
     }
   }
-  
+
   showAIActionBar.value = true;
 }
 
@@ -1044,12 +996,12 @@ function handleAIAccept() {
 // AI 변경 취소 (원본 복원)
 function handleAIReject() {
   if (!editor.value) return;
-  
+
   // 저장해둔 원본 HTML로 전체 문서 복원
   if (originalHtml.value) {
     editor.value.commands.setContent(originalHtml.value);
   }
-  
+
   showAIActionBar.value = false;
   originalText.value = '';
   originalHtml.value = '';
@@ -1064,20 +1016,20 @@ function handleAIReject() {
 // 맞춤법 검사 시작
 async function handleProofread(text: string) {
   if (!text.trim()) return;
-  
+
   proofreadOriginalText.value = text;
   proofreadLoading.value = true;
   showProofreadPanel.value = true;
   proofreadItems.value = [];
   proofreadCorrectedText.value = '';
   proofreadLanguage.value = '';
-  
+
   // 현재 선택 영역 저장
   if (editor.value) {
     const { from, to } = editor.value.state.selection;
     savedSelection.value = { from, to };
   }
-  
+
   try {
     const body = {
       content: text,
@@ -1086,17 +1038,17 @@ async function handleProofread(text: string) {
       api_key: llmSettings.value.llm.apiKey,
       model: llmSettings.value.llm.model
     };
-    
+
     const res = await fetch(`${CORE_BASE}/ai/proofread`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    
+
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
-    
+
     const data = await res.json();
     proofreadCorrectedText.value = data.corrected || text;
     proofreadLanguage.value = data.language_detected || '';
@@ -1106,14 +1058,14 @@ async function handleProofread(text: string) {
       skipped: false,
       positions: []
     }));
-    
+
     // 오류 항목에 하이라이트 적용
     if (proofreadItems.value.length > 0) {
       setTimeout(() => {
         applyProofreadHighlights();
       }, 100);
     }
-    
+
   } catch (error) {
     console.error('Proofread failed:', error);
     const providerName = llmSettings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
@@ -1127,20 +1079,20 @@ async function handleProofread(text: string) {
 // 개별 맞춤법 수정 적용
 function handleProofreadApplyItem(data: { index: number; original: string; corrected: string }) {
   if (!editor.value) return;
-  
+
   const { index, original, corrected } = data;
   const item = proofreadItems.value[index];
-  
+
   // 저장된 위치가 있으면 해당 위치에서 교체
   if (item.positions && item.positions.length > 0) {
     // 첫 번째 위치만 교체 (같은 오류가 여러 번 있을 수 있음)
     const { from, to } = item.positions[0];
     const docSize = editor.value.state.doc.content.size;
-    
+
     if (from < docSize && to <= docSize) {
       // 해당 위치의 텍스트가 여전히 원본과 일치하는지 확인
       const currentText = editor.value.state.doc.textBetween(from, to);
-      
+
       if (currentText === original) {
         // 하이라이트 제거 후 텍스트 교체
         editor.value.chain()
@@ -1150,28 +1102,28 @@ function handleProofreadApplyItem(data: { index: number; original: string; corre
           .insertContent(corrected)
           .blur()
           .run();
-        
+
         proofreadItems.value[index].applied = true;
-        
+
         // 위치가 변경되었으므로 다른 항목들의 위치 업데이트 필요
         updateProofreadPositions(index, corrected.length - original.length);
         return;
       }
     }
   }
-  
+
   // 저장된 위치가 없거나 변경되었으면 텍스트로 직접 검색
   // 이미 적용된 항목들의 위치를 제외한 위치를 찾음
   const rangeStart = savedSelection.value?.from;
   const rangeEnd = savedSelection.value?.to;
-  
+
   // 현재 문서 전체에서 다시 검색
   const positions = findTextPositions(original, rangeStart, rangeEnd);
-  
+
   // 사용되지 않은 첫 번째 위치 찾기 (정확도가 떨어질 수 있음)
   if (positions.length > 0) {
     const { from, to } = positions[0];
-    
+
     editor.value.chain()
       .setTextSelection({ from, to })
       .unsetHighlight()
@@ -1179,7 +1131,7 @@ function handleProofreadApplyItem(data: { index: number; original: string; corre
       .insertContent(corrected)
       .blur()
       .run();
-      
+
     proofreadItems.value[index].applied = true;
     updateProofreadPositions(index, corrected.length - original.length);
   }
@@ -1188,7 +1140,7 @@ function handleProofreadApplyItem(data: { index: number; original: string; corre
 // 위치 업데이트 (수정 후 오프셋 조정)
 function updateProofreadPositions(appliedIndex: number, offsetDiff: number) {
   if (offsetDiff === 0) return;
-  
+
   // 적용된 항목 이후의 모든 항목에 대해 위치 조정
   // 주의: 이는 단순화된 로직으로, 복잡한 편집이 발생하면 위치가 틀어질 수 있음
   // 실무에서는 ProseMirror의 트랜잭션 매핑을 사용하는 것이 좋음
@@ -1203,13 +1155,13 @@ function handleProofreadSkipItem(index: number) {
 // 모든 맞춤법 수정 적용
 function handleProofreadApplyAll() {
   if (!editor.value) return;
-  
+
   // 뒤에서부터 적용하여 인덱스 밀림 방지
   const itemsToApply = proofreadItems.value
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => !item.applied && !item.skipped)
     .reverse();
-    
+
   for (const { item, index } of itemsToApply) {
     handleProofreadApplyItem({
       index,
@@ -1217,7 +1169,7 @@ function handleProofreadApplyAll() {
       corrected: item.corrected
     });
   }
-  
+
   removeAllProofreadHighlights();
   showProofreadPanel.value = false;
 }
@@ -1237,11 +1189,11 @@ function handleProofreadClose() {
 // 항목에 포커스 (하이라이트 및 스크롤)
 function handleProofreadFocusItem(index: number) {
   if (!editor.value) return;
-  
+
   const item = proofreadItems.value[index];
   if (item.positions && item.positions.length > 0) {
     const { from, to } = item.positions[0];
-    
+
     editor.value.chain()
       .setTextSelection({ from, to })
       .scrollIntoView()
@@ -1254,12 +1206,12 @@ function handleAIError(message: string) {
   editorError.value = message;
   isAIStreaming.value = false;
   showAIActionBar.value = false;
-  
+
   if (originalHtml.value) {
     // 에러 발생 시 원본 복원
     editor.value?.commands.setContent(originalHtml.value);
   }
-  
+
   // 3초 후 에러 메시지 초기화
   setTimeout(() => {
     editorError.value = '';
@@ -1328,12 +1280,12 @@ async function handleImageUpload(file: File) {
   const { state } = editor.value;
   const { from } = state.selection;
   const id = `uploading-${Date.now()}`;
-  
+
   editor.value.chain().insertContent('![Uploading image...](' + id + ')').run();
 
   try {
     let imageUrl = '';
-    
+
     if (isGithubFile.value) {
       // GitHub 파일인 경우 GitHub 저장소에 이미지 업로드
       // File 객체를 Base64로 변환
@@ -1350,7 +1302,7 @@ async function handleImageUpload(file: File) {
       });
 
       const result = await uploadGitHubImage(base64Data, getFileName(props.activeFile || ''));
-      
+
       if (result) {
         // result는 업로드된 이미지의 상대 경로 (img/filename.png)
         // 에디터에는 로컬 프록시 URL을 사용하여 표시
@@ -1366,14 +1318,14 @@ async function handleImageUpload(file: File) {
       // 로컬 파일인 경우 로컬 서버에 업로드
       const formData = new FormData();
       formData.append('image', file);
-      
+
       const res = await fetch(`${CORE_BASE}/vault/image`, {
         method: 'POST',
         body: formData
       });
-  
+
       if (!res.ok) throw new Error('Image upload failed');
-      
+
       const data = await res.json();
       imageUrl = `${CORE_BASE}/vault/image/${data.filename}`;
     }
@@ -1384,34 +1336,34 @@ async function handleImageUpload(file: File) {
     const currentHtml = editor.value.getHTML();
     // 이미지 마크다운을 HTML img 태그로 변환된 상태에서 src 치환은 아래와 같이 동작하지 않을 수 있음
     // Tiptap에서는 이미지를 node로 관리하므로, transaction을 사용하는 것이 가장 좋음
-    
+
     // 간단한 방법: 마크다운 텍스트 치환은 어려우므로, 이미지를 삽입하는 방식으로 변경
     // 업로드 중 텍스트를 찾아서 교체 (이전 커서 위치 근처일 가능성 높음)
-    
+
     // 에디터 내용을 다시 설정하는 것은 위험하므로 (커서 위치 등), 
     // undo/redo 스택을 사용하여 교체하거나, 
     // 가장 쉬운 방법: 업로드 완료 후 커서 위치에 이미지 삽입 (placeholder 없이)
-    
+
     // 여기서는 placeholder를 사용했으므로, 해당 텍스트를 찾아서 교체 시도
     let content = editor.value.getHTML();
     // ![Uploading image...](id) -> <img src="id" alt="Uploading image...">
     // Tiptap이 자동으로 변환했을 것임
-    
+
     // 이미지 태그의 src가 id인 것을 찾아서 실제 url로 변경
     // DOM 조작이 필요할 수 있음
-    
+
     // Tiptap chain 명령어로 교체 시도 (전체 문서 갱신이 안전)
     // 하지만 전체 갱신은 깜빡임이 있을 수 있음.
-    
+
     // 여기서는 간단히: 업로드 성공 시 해당 이미지 태그의 src를 수정
     // HTML string replace
     const newHtml = content.replace(`src="${id}"`, `src="${imageUrl}"`);
     editor.value.commands.setContent(newHtml, { emitUpdate: false });
-    
+
   } catch (error) {
     console.error('Image upload failed:', error);
     editorError.value = '이미지 업로드 실패';
-    
+
     // 실패 시 placeholder 제거
     const content = editor.value.getHTML();
     const newHtml = content.replace(new RegExp(`<img[^>]*src="${id}"[^>]*>`, 'g'), ''); // 이미지 태그 제거
@@ -1439,7 +1391,7 @@ watch(() => props.githubContent, (newContent) => {
     if (editor.value.isEmpty || !isDirty.value) {
       const html = markdownToHtml(newContent);
       editor.value.commands.setContent(html, { emitUpdate: false });
-      
+
       // 저장된 상태로 간주
       stagingSaved.value = true;
       setTimeout(() => {
@@ -1458,7 +1410,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown);
-  
+
   // 컴포넌트 해제 시 현재 변경사항 캐시
   if (currentFilePath.value && editor.value && isDirty.value) {
     fileContentCache.set(currentFilePath.value, {
@@ -1466,7 +1418,7 @@ onBeforeUnmount(() => {
       isDirty: true
     });
   }
-  
+
   editor.value?.destroy();
 });
 </script>
@@ -1493,7 +1445,8 @@ onBeforeUnmount(() => {
   padding: 0 10%;
   padding-bottom: 2rem;
   scrollbar-gutter: stable;
-  position: relative; /* 스트리밍 프리뷰 위치 기준 */
+  position: relative;
+  /* 스트리밍 프리뷰 위치 기준 */
 }
 
 /* 드래그 오버 스타일 */
@@ -1525,12 +1478,45 @@ onBeforeUnmount(() => {
 }
 
 /* Typography styles */
-:deep(h1) { font-size: 2.25em; margin-bottom: 0.5em; font-weight: 700; color: var(--text-primary); }
-:deep(h2) { font-size: 1.75em; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600; color: var(--text-primary); }
-:deep(h3) { font-size: 1.5em; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 600; color: var(--text-primary); }
-:deep(p) { margin-bottom: 1.2em; line-height: 1.7; color: var(--text-primary); }
-:deep(ul), :deep(ol) { margin-bottom: 1.2em; padding-left: 1.5em; color: var(--text-primary); }
-:deep(li) { margin-bottom: 0.5em; }
+:deep(h1) {
+  font-size: 2.25em;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+:deep(h2) {
+  font-size: 1.75em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+:deep(h3) {
+  font-size: 1.5em;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+:deep(p) {
+  margin-bottom: 1.2em;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+:deep(ul),
+:deep(ol) {
+  margin-bottom: 1.2em;
+  padding-left: 1.5em;
+  color: var(--text-primary);
+}
+
+:deep(li) {
+  margin-bottom: 0.5em;
+}
 
 :deep(pre) {
   background: var(--bg-secondary);
@@ -1586,7 +1572,8 @@ onBeforeUnmount(() => {
   margin: 1.5em 0;
 }
 
-:deep(td), :deep(th) {
+:deep(td),
+:deep(th) {
   border: 1px solid var(--border-default);
   box-sizing: border-box;
   min-width: 1em;
@@ -1646,8 +1633,15 @@ onBeforeUnmount(() => {
 }
 
 @keyframes slideUp {
-  from { transform: translate(-50%, 20px); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
+  from {
+    transform: translate(-50%, 20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }
 
 /* Transitions */
