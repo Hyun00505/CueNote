@@ -93,6 +93,7 @@
         </div>
       </nav>
 
+<<<<<<< HEAD
       <!-- Content -->
       <div class="settings-content" ref="settingsContentRef">
         <div class="settings-inner">
@@ -110,6 +111,241 @@
           
           <!-- OCR 설정 -->
           <OCRSettings />
+=======
+          <div class="ocr-status-card">
+            <div class="ocr-status-header">
+              <div class="ocr-status-icon" :class="{ ready: ocrStatus?.model_downloaded }">
+                <svg v-if="ocrStatus?.model_downloaded" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 16v-4"/>
+                  <path d="M12 8h.01"/>
+                </svg>
+              </div>
+              <div class="ocr-status-info">
+                <span class="ocr-status-title">EasyOCR 모델</span>
+                <span class="ocr-status-desc">
+                  {{ ocrStatus?.model_downloaded ? '다운로드 완료 - 사용 가능' : '다운로드 필요 (~100MB)' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="ocr-languages">
+              <span class="lang-label">지원 언어:</span>
+              <span class="lang-tag">한국어</span>
+              <span class="lang-tag">영어</span>
+            </div>
+
+            <div v-if="!ocrStatus?.model_downloaded" class="download-section">
+              <button 
+                class="btn-download-ocr"
+                :disabled="ocrDownloading"
+                @click="downloadOcrModel"
+              >
+                <span v-if="ocrDownloading" class="loading-spinner"></span>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {{ ocrDownloading ? '다운로드 중...' : '모델 다운로드' }}
+              </button>
+              
+              <!-- 진행률 바 -->
+              <div v-if="ocrDownloading" class="download-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: ocrDownloadProgress + '%' }"></div>
+                </div>
+                <div class="progress-info">
+                  <span class="progress-message">{{ ocrDownloadMessage }}</span>
+                  <span class="progress-percent">{{ ocrDownloadProgress }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="ocrStatus?.model_downloaded" class="ocr-ready-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              PDF/이미지 문서 변환 기능 사용 가능
+            </div>
+
+            <div v-if="ocrDownloadError" class="ocr-error">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {{ ocrDownloadError }}
+            </div>
+          </div>
+
+          <p class="ocr-hint">
+            PDF나 이미지에서 텍스트를 추출하는 OCR 모델입니다. 에디터 툴바의 "문서 변환" 버튼으로 사용할 수 있습니다.
+          </p>
+        </section>
+
+        <!-- Handwriting OCR Section -->
+        <section class="settings-section">
+          <h3 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              <path d="m15 5 4 4"/>
+            </svg>
+            손글씨 OCR 모델
+          </h3>
+
+          <div class="ocr-status-card handwriting-card">
+            <div class="ocr-status-header">
+              <div class="ocr-status-icon" :class="{ ready: handwritingStatus?.model_downloaded }">
+                <svg v-if="handwritingStatus?.model_downloaded" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 16v-4"/>
+                  <path d="M12 8h.01"/>
+                </svg>
+              </div>
+              <div class="ocr-status-info">
+                <span class="ocr-status-title">TrOCR (Microsoft)</span>
+                <span class="ocr-status-desc">
+                  {{ handwritingStatus?.model_downloaded ? '다운로드 완료 - 사용 가능' : '다운로드 필요 (~1GB)' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="ocr-languages">
+              <span class="lang-label">특징:</span>
+              <span class="lang-tag handwriting-tag">손글씨 인식</span>
+              <span class="lang-tag">영어 최적화</span>
+            </div>
+
+            <div v-if="!handwritingStatus?.model_downloaded" class="download-section">
+              <button 
+                class="btn-download-ocr btn-download-handwriting"
+                :disabled="handwritingDownloading"
+                @click="downloadHandwritingModel"
+              >
+                <span v-if="handwritingDownloading" class="loading-spinner"></span>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {{ handwritingDownloading ? '다운로드 중...' : '모델 다운로드' }}
+              </button>
+              
+              <!-- 진행률 바 -->
+              <div v-if="handwritingDownloading" class="download-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill handwriting" :style="{ width: handwritingDownloadProgress + '%' }"></div>
+                </div>
+                <div class="progress-info">
+                  <span class="progress-message">{{ handwritingDownloadMessage }}</span>
+                  <span class="progress-percent">{{ handwritingDownloadProgress }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="handwritingStatus?.model_downloaded" class="ocr-ready-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              손글씨 인식 기능 사용 가능
+            </div>
+
+            <div v-if="handwritingDownloadError" class="ocr-error">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {{ handwritingDownloadError }}
+            </div>
+          </div>
+
+          <p class="ocr-hint">
+            손글씨 텍스트를 인식하는 AI 모델입니다. 문서 변환 시 "손글씨 인식 모드"를 선택하면 사용됩니다. 깔끔한 필체일수록 인식률이 높습니다.
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <!-- 커스텀 폰트 추가 모달 -->
+    <Teleport to="body">
+      <div v-if="showAddFontModal" class="font-modal-overlay" @click.self="closeAddFontModal">
+        <div class="font-modal">
+          <div class="font-modal-header">
+            <h3>{{ t('fonts.addFont') }}</h3>
+            <button class="font-modal-close" @click="closeAddFontModal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="font-modal-body">
+            <div class="font-form-group">
+              <label>{{ t('fonts.fontFile') }}</label>
+              <div class="font-file-input">
+                <input 
+                  type="text" 
+                  :value="newFontFileName"
+                  readonly
+                  :placeholder="t('fonts.fontFilePlaceholder')"
+                />
+                <button class="font-browse-btn" @click="selectFontFile">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  {{ t('fonts.selectFile') }}
+                </button>
+              </div>
+            </div>
+            <div class="font-form-group">
+              <label>{{ t('fonts.fontName') }}</label>
+              <input 
+                v-model="newFontName" 
+                type="text" 
+                :placeholder="t('fonts.fontNamePlaceholder')"
+              />
+            </div>
+            <div class="font-form-group">
+              <label>{{ t('fonts.fontCategory') }}</label>
+              <div class="font-category-checkboxes">
+                <label class="category-checkbox" :class="{ checked: newFontCategories.includes('sans') }">
+                  <input type="checkbox" :checked="newFontCategories.includes('sans')" @change="toggleCategory('sans')" />
+                  <span class="checkbox-label">Sans-serif (UI)</span>
+                </label>
+                <label class="category-checkbox" :class="{ checked: newFontCategories.includes('serif') }">
+                  <input type="checkbox" :checked="newFontCategories.includes('serif')" @change="toggleCategory('serif')" />
+                  <span class="checkbox-label">Serif (에디터)</span>
+                </label>
+                <label class="category-checkbox" :class="{ checked: newFontCategories.includes('mono') }">
+                  <input type="checkbox" :checked="newFontCategories.includes('mono')" @change="toggleCategory('mono')" />
+                  <span class="checkbox-label">Monospace (코드)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="font-modal-footer">
+            <button class="font-modal-btn cancel" @click="closeAddFontModal">{{ t('common.cancel') }}</button>
+            <button 
+              class="font-modal-btn primary" 
+              @click="handleAddFont" 
+              :disabled="!newFontName || !newFontFilePath || newFontCategories.length === 0 || isAddingFont"
+            >
+              <span v-if="isAddingFont" class="loading-spinner small"></span>
+              {{ isAddingFont ? t('common.loading') : t('common.add') }}
+            </button>
+          </div>
+>>>>>>> ab9efc6809c9dc83a3671c0756822e5619584c8e
         </div>
       </div>
     </div>
@@ -173,12 +409,240 @@ function updateActiveSection() {
   }
 }
 
+<<<<<<< HEAD
 // 전체 초기화
 function handleResetAll() {
   resetSettings();
   resetFontSettings();
   if (generalSettingsRef.value) {
     generalSettingsRef.value.setTheme('dark');
+=======
+// 폰트 추가
+async function handleAddFont() {
+  if (!newFontName.value || !newFontFilePath.value) return;
+  if (!window.cuenote?.saveFont) {
+    alert('Electron 환경에서만 사용 가능합니다.');
+    return;
+  }
+  
+  isAddingFont.value = true;
+  
+  try {
+    // 파일을 앱 데이터 폴더로 복사
+    const result = await window.cuenote.saveFont(newFontFilePath.value, newFontName.value);
+    
+    if (result.success) {
+      // 폰트 정보 저장
+      addCustomFont({
+        name: newFontName.value,
+        filePath: result.path,
+        fileName: result.fileName,
+        categories: newFontCategories.value,
+      });
+      closeAddFontModal();
+    } else {
+      alert(`폰트 저장 실패: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Failed to add font:', error);
+    alert('폰트 추가 중 오류가 발생했습니다.');
+  } finally {
+    isAddingFont.value = false;
+  }
+}
+
+// 폰트 제거
+async function handleRemoveFont(id: string) {
+  const removed = await removeCustomFont(id);
+  if (removed && window.cuenote?.deleteFont) {
+    // 파일도 삭제
+    await window.cuenote.deleteFont(removed.filePath);
+  }
+}
+
+// 테마 설정
+type ThemeId = 'dark' | 'light' | 'dim' | 'github-dark' | 'sepia';
+
+const themes = computed(() => [
+  { id: 'dark' as ThemeId, name: t('theme.dark'), colors: { bg: '#0f0f12', sidebar: '#16161a', accent: '#6b7280' } },
+  { id: 'light' as ThemeId, name: t('theme.light'), colors: { bg: '#ffffff', sidebar: '#f5f5f5', accent: '#374151' } },
+  { id: 'dim' as ThemeId, name: t('theme.dim'), colors: { bg: '#1c1c1c', sidebar: '#252525', accent: '#8b949e' } },
+  { id: 'github-dark' as ThemeId, name: t('theme.github'), colors: { bg: '#0d1117', sidebar: '#161b22', accent: '#58a6ff' } },
+  { id: 'sepia' as ThemeId, name: t('theme.sepia'), colors: { bg: '#f4ecd8', sidebar: '#e8e0cc', accent: '#5c4b37' } },
+]);
+
+const currentTheme = ref<ThemeId>('dark');
+
+function setTheme(theme: ThemeId) {
+  currentTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('cuenote-theme', theme);
+}
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('cuenote-theme') as ThemeId | null;
+  if (savedTheme) {
+    currentTheme.value = savedTheme;
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+}
+
+// OCR 상태
+interface OCRStatus {
+  installed: boolean;
+  model_downloaded: boolean;
+  model_path: string;
+  languages: string[];
+  downloading: boolean;
+}
+const ocrStatus = ref<OCRStatus | null>(null);
+const ocrDownloading = ref(false);
+const ocrDownloadError = ref('');
+const ocrDownloadProgress = ref(0);
+const ocrDownloadMessage = ref('');
+
+// 손글씨 OCR 상태
+interface HandwritingStatus {
+  installed: boolean;
+  model_downloaded: boolean;
+  model_name: string;
+  model_path: string;
+  downloading: boolean;
+}
+const handwritingStatus = ref<HandwritingStatus | null>(null);
+const handwritingDownloading = ref(false);
+const handwritingDownloadError = ref('');
+const handwritingDownloadProgress = ref(0);
+const handwritingDownloadMessage = ref('');
+
+const CORE_BASE = 'http://127.0.0.1:8787';
+
+// OCR 상태 확인
+async function checkOcrStatus() {
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/status`);
+    if (res.ok) {
+      ocrStatus.value = await res.json();
+    }
+  } catch (error) {
+    console.error('Failed to check OCR status:', error);
+  }
+}
+
+// OCR 모델 다운로드 (SSE 스트리밍)
+async function downloadOcrModel() {
+  ocrDownloading.value = true;
+  ocrDownloadError.value = '';
+  ocrDownloadProgress.value = 0;
+  ocrDownloadMessage.value = '다운로드 준비 중...';
+  
+  try {
+    const eventSource = new EventSource(`${CORE_BASE}/ai/ocr/download/stream`);
+    
+    eventSource.addEventListener('progress', (event) => {
+      const data = JSON.parse(event.data);
+      ocrDownloadProgress.value = data.progress || 0;
+      ocrDownloadMessage.value = data.message || '다운로드 중...';
+    });
+    
+    eventSource.addEventListener('complete', async (event) => {
+      const data = JSON.parse(event.data);
+      ocrDownloadProgress.value = 100;
+      ocrDownloadMessage.value = data.message || '완료!';
+      eventSource.close();
+      await checkOcrStatus();
+      ocrDownloading.value = false;
+    });
+    
+    eventSource.addEventListener('error', (event) => {
+      // SSE 에러 이벤트 처리
+      if (event instanceof MessageEvent) {
+        const data = JSON.parse(event.data);
+        ocrDownloadError.value = data.message || '다운로드에 실패했습니다.';
+      } else {
+        ocrDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+      }
+      eventSource.close();
+      ocrDownloading.value = false;
+    });
+    
+    eventSource.onerror = () => {
+      // 연결 에러 처리
+      if (ocrDownloading.value) {
+        ocrDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+        eventSource.close();
+        ocrDownloading.value = false;
+      }
+    };
+  } catch (error) {
+    console.error('OCR model download failed:', error);
+    ocrDownloadError.value = '모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
+    ocrDownloading.value = false;
+  }
+}
+
+// 손글씨 OCR 상태 확인
+async function checkHandwritingStatus() {
+  try {
+    const res = await fetch(`${CORE_BASE}/ai/ocr/handwriting/status`);
+    if (res.ok) {
+      handwritingStatus.value = await res.json();
+    }
+  } catch (error) {
+    console.error('Failed to check handwriting status:', error);
+  }
+}
+
+// 손글씨 OCR 모델 다운로드 (SSE 스트리밍)
+async function downloadHandwritingModel() {
+  handwritingDownloading.value = true;
+  handwritingDownloadError.value = '';
+  handwritingDownloadProgress.value = 0;
+  handwritingDownloadMessage.value = '다운로드 준비 중...';
+  
+  try {
+    const eventSource = new EventSource(`${CORE_BASE}/ai/ocr/handwriting/download/stream`);
+    
+    eventSource.addEventListener('progress', (event) => {
+      const data = JSON.parse(event.data);
+      handwritingDownloadProgress.value = data.progress || 0;
+      handwritingDownloadMessage.value = data.message || '다운로드 중...';
+    });
+    
+    eventSource.addEventListener('complete', async (event) => {
+      const data = JSON.parse(event.data);
+      handwritingDownloadProgress.value = 100;
+      handwritingDownloadMessage.value = data.message || '완료!';
+      eventSource.close();
+      await checkHandwritingStatus();
+      handwritingDownloading.value = false;
+    });
+    
+    eventSource.addEventListener('error', (event) => {
+      // SSE 에러 이벤트 처리
+      if (event instanceof MessageEvent) {
+        const data = JSON.parse(event.data);
+        handwritingDownloadError.value = data.message || '다운로드에 실패했습니다.';
+      } else {
+        handwritingDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+      }
+      eventSource.close();
+      handwritingDownloading.value = false;
+    });
+    
+    eventSource.onerror = () => {
+      // 연결 에러 처리
+      if (handwritingDownloading.value) {
+        handwritingDownloadError.value = '연결이 끊어졌습니다. 다시 시도해주세요.';
+        eventSource.close();
+        handwritingDownloading.value = false;
+      }
+    };
+  } catch (error) {
+    console.error('Handwriting model download failed:', error);
+    handwritingDownloadError.value = '손글씨 모델 다운로드에 실패했습니다. 네트워크를 확인해주세요.';
+    handwritingDownloading.value = false;
+>>>>>>> ab9efc6809c9dc83a3671c0756822e5619584c8e
   }
 }
 
@@ -302,7 +766,89 @@ defineExpose({
   background: transparent;
   border: none;
   border-radius: 8px;
+<<<<<<< HEAD
   color: var(--text-secondary);
+=======
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download-ocr:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.btn-download-ocr:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Download Section */
+.download-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Download Progress */
+.download-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.handwriting {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-message {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: 12px;
+}
+
+.ocr-ready-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 8px;
+>>>>>>> ab9efc6809c9dc83a3671c0756822e5619584c8e
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;

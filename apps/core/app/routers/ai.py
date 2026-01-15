@@ -860,4 +860,3 @@ async def get_ocr_status(engine: str = "rapidocr"):
         "requires_api_key": info.get("requires_api_key", False),
     }
 
-
