@@ -22,6 +22,8 @@ class Environment(BaseModel):
     id: str
     name: str
     path: str
+    type: str = "local"  # 'local' | 'github'
+    github: Optional[dict] = None  # GitHub 정보 (owner, repo, private 등)
 
 
 class EnvironmentConfig(BaseModel):
@@ -34,6 +36,8 @@ class AddEnvironmentPayload(BaseModel):
     """환경 추가 요청"""
     name: str
     path: str
+    type: str = "local"
+    github: Optional[dict] = None
 
 
 class SetCurrentPayload(BaseModel):
@@ -84,10 +88,14 @@ async def list_environments():
     # 각 환경의 유효성 확인
     valid_envs = []
     for env in config.environments:
-        env_path = Path(env.path)
+        exists = True
+        if env.type == "local":
+            env_path = Path(env.path)
+            exists = env_path.exists()
+            
         valid_envs.append({
             **env.model_dump(),
-            "exists": env_path.exists(),
+            "exists": exists,
             "is_current": env.id == config.current_id
         })
     
@@ -102,25 +110,36 @@ async def add_environment(payload: AddEnvironmentPayload):
     """새 환경 추가"""
     env_path = Path(payload.path)
     
-    # 경로 유효성 검사
-    if not env_path.exists():
-        raise HTTPException(status_code=400, detail="경로가 존재하지 않습니다")
-    
-    if not env_path.is_dir():
-        raise HTTPException(status_code=400, detail="유효한 폴더가 아닙니다")
+    # 로컬 환경인 경우에만 경로 유효성 검사
+    if payload.type == "local":
+        if not env_path.exists():
+            raise HTTPException(status_code=400, detail="경로가 존재하지 않습니다")
+        
+        if not env_path.is_dir():
+            raise HTTPException(status_code=400, detail="유효한 폴더가 아닙니다")
     
     config = load_config()
     
-    # 중복 경로 확인
+    # 중복 확인
     for env in config.environments:
-        if Path(env.path).resolve() == env_path.resolve():
-            raise HTTPException(status_code=409, detail="이미 등록된 환경입니다")
+        # 로컬 환경: 경로 중복 확인
+        if payload.type == "local" and env.type == "local":
+             if Path(env.path).resolve() == env_path.resolve():
+                raise HTTPException(status_code=409, detail="이미 등록된 환경입니다")
+        # GitHub 환경: owner/repo 중복 확인
+        elif payload.type == "github" and env.type == "github":
+            if (env.github and payload.github and 
+                env.github.get("owner") == payload.github.get("owner") and 
+                env.github.get("repo") == payload.github.get("repo")):
+                raise HTTPException(status_code=409, detail="이미 등록된 리포지토리입니다")
     
     # 새 환경 추가
     new_env = Environment(
         id=generate_env_id(payload.name),
         name=payload.name,
-        path=str(env_path.resolve())
+        path=payload.path if payload.type == "local" else f"github://{payload.github['owner']}/{payload.github['repo']}" if payload.github else "",
+        type=payload.type,
+        github=payload.github
     )
     config.environments.append(new_env)
     
@@ -171,10 +190,14 @@ async def get_current_environment():
     if not env:
         return {"current": None}
     
+    exists = True
+    if env.type == "local":
+        exists = Path(env.path).exists()
+
     return {
         "current": {
             **env.model_dump(),
-            "exists": Path(env.path).exists()
+            "exists": exists
         }
     }
 

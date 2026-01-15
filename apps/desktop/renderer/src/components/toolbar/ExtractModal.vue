@@ -332,7 +332,7 @@ function handleInsert() {
 .extract-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,7 +381,7 @@ function handleInsert() {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   color: var(--text-primary);
 }
 
@@ -407,7 +407,7 @@ function handleInsert() {
   padding: 32px;
   border: 2px dashed var(--border-default);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 16px;
@@ -673,7 +673,7 @@ function handleInsert() {
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
 }
 
 .btn-extract {
@@ -707,7 +707,7 @@ function handleInsert() {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-strong);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;

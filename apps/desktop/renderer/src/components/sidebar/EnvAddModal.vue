@@ -203,9 +203,10 @@
             v-else-if="currentTab === 'github' && isGitHubLoggedIn"
             class="env-modal-btn primary" 
             @click="handleAddGitHubEnvironment" 
-            :disabled="!selectedRepoId"
+            :disabled="!selectedRepoId || isCloning"
           >
-            환경으로 추가
+            <span v-if="isCloning" class="loading-spinner-sm"></span>
+            <span v-else>{{ t('common.add') }}</span>
           </button>
         </div>
       </div>
@@ -227,6 +228,7 @@ const props = defineProps<{
   githubLoading: boolean;
   githubError: string | null;
   githubValidating: boolean;
+  isCloning?: boolean; // Add isCloning prop
 }>();
 
 const emit = defineEmits<{
@@ -308,7 +310,7 @@ function handleAddGitHubEnvironment() {
 .env-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -406,12 +408,12 @@ function handleAddGitHubEnvironment() {
 
 .env-tab:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-hover);
 }
 
 .env-tab.active {
-  color: #8b5cf6;
-  border-bottom-color: #8b5cf6;
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
 }
 
 .env-tab svg {
@@ -430,8 +432,8 @@ function handleAddGitHubEnvironment() {
 }
 
 .tab-badge.connected {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--success-glow);
+  color: var(--success);
 }
 
 .env-modal-body {
@@ -474,8 +476,8 @@ function handleAddGitHubEnvironment() {
 
 .env-form-group input:focus {
   outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .env-path-input {
@@ -501,17 +503,17 @@ function handleAddGitHubEnvironment() {
 
 .env-browse-btn:hover {
   background: var(--bg-hover);
-  border-color: #8b5cf6;
-  color: #8b5cf6;
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .env-error {
   margin-top: 12px;
   padding: 10px 12px;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: var(--error-glow);
+  border: 1px solid var(--error-glow);
   border-radius: 6px;
-  color: #dc2626;
+  color: var(--error);
   font-size: 13px;
 }
 
@@ -527,7 +529,7 @@ function handleAddGitHubEnvironment() {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
 }
@@ -556,8 +558,8 @@ function handleAddGitHubEnvironment() {
 }
 
 .github-logout-btn-sm:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: var(--error-glow);
+  color: var(--error);
 }
 
 .github-repos-section {
@@ -593,14 +595,14 @@ function handleAddGitHubEnvironment() {
 }
 
 .github-create-repo-btn:hover {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: #8b5cf6;
-  color: #8b5cf6;
+  background: var(--accent-glow);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .github-create-repo-btn.primary {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  border-color: #7c3aed;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: white;
   font-size: 12px;
   padding: 8px 12px;
@@ -608,8 +610,8 @@ function handleAddGitHubEnvironment() {
 }
 
 .github-create-repo-btn.primary:hover {
-  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .github-repos-loading {
@@ -649,7 +651,7 @@ function handleAddGitHubEnvironment() {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-hover);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   cursor: pointer;
@@ -658,13 +660,13 @@ function handleAddGitHubEnvironment() {
 }
 
 .github-repo-item-env:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
 }
 
 .github-repo-item-env.selected {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: #8b5cf6;
+  background: var(--bg-active);
+  border-color: var(--accent-primary);
 }
 
 .repo-item-icon-env {
@@ -673,7 +675,7 @@ function handleAddGitHubEnvironment() {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-primary);
   border-radius: 6px;
   color: var(--text-secondary);
   flex-shrink: 0;
@@ -699,7 +701,7 @@ function handleAddGitHubEnvironment() {
 .repo-private-badge-env {
   font-size: 10px;
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover);
   border-radius: 4px;
   color: var(--text-muted);
 }
@@ -713,7 +715,7 @@ function handleAddGitHubEnvironment() {
 }
 
 .repo-selected-check {
-  color: #8b5cf6;
+  color: var(--accent-primary);
 }
 
 /* GitHub 로그인 섹션 */
@@ -765,8 +767,8 @@ function handleAddGitHubEnvironment() {
 }
 
 .github-token-input:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .github-token-input::placeholder {
@@ -775,8 +777,8 @@ function handleAddGitHubEnvironment() {
 
 .github-login-btn {
   padding: 10px 16px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  border: 1px solid #7c3aed;
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
   border-radius: 8px;
   color: white;
   font-size: 13px;
@@ -791,28 +793,25 @@ function handleAddGitHubEnvironment() {
 }
 
 .github-login-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .github-login-btn:disabled {
-  background: #a5a5a5;
-  border-color: #a5a5a5;
+  background: var(--bg-disabled);
+  border-color: var(--bg-disabled);
+  color: white;
   opacity: 0.7;
   cursor: not-allowed;
 }
 
 .github-error {
+  margin-top: 12px;
+  color: var(--error);
+  font-size: 13px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: rgba(239, 68, 68, 0.1);
-  border-radius: 8px;
-  color: #ef4444;
-  font-size: 12px;
-  width: 100%;
-  max-width: 320px;
+  gap: 6px;
 }
 
 .github-token-link {
@@ -822,15 +821,15 @@ function handleAddGitHubEnvironment() {
   padding: 0;
   background: transparent;
   border: none;
-  color: #7c3aed;
+  color: var(--accent-primary);
   font-size: 12px;
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
 
 .github-token-link:hover {
-  color: #9333ea;
   text-decoration: underline;
+  color: var(--accent-hover);
 }
 
 .github-token-hint {
@@ -843,7 +842,7 @@ function handleAddGitHubEnvironment() {
 .loading-spinner-sm {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-default);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -883,22 +882,21 @@ function handleAddGitHubEnvironment() {
 }
 
 .env-modal-btn.primary {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  border: 1px solid #7c3aed;
+  background: var(--accent-primary);
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: none;
 }
 
 .env-modal-btn.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-  transform: translateY(-1px);
+  opacity: 0.9;
+  transform: none;
+  box-shadow: none;
 }
 
 .env-modal-btn.primary:disabled {
-  background: #a5a5a5;
-  border-color: #a5a5a5;
-  color: #ffffff;
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+  color: var(--bg-primary);
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;

@@ -262,7 +262,7 @@ function handleInsert() {
 .image-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -311,7 +311,7 @@ function handleInsert() {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   color: var(--text-primary);
 }
 
@@ -335,7 +335,7 @@ function handleInsert() {
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text-secondary);
@@ -347,7 +347,7 @@ function handleInsert() {
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
 }
 
 .tab-btn.active {
@@ -366,7 +366,7 @@ function handleInsert() {
   padding: 32px;
   border: 2px dashed var(--border-default);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--text-muted);
@@ -403,7 +403,7 @@ function handleInsert() {
 .input-group input {
   width: 100%;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text-primary);
@@ -421,7 +421,7 @@ function handleInsert() {
 .image-preview-container {
   margin-top: 16px;
   min-height: 150px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-tertiary);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -445,8 +445,8 @@ function handleInsert() {
 .image-loading .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #a78bfa;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -504,7 +504,7 @@ function handleInsert() {
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
 }
 
 .btn-insert {

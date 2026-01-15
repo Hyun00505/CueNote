@@ -171,7 +171,7 @@ const emit = defineEmits<{
 }
 
 .cluster-title svg {
-  color: var(--accent-primary, #8b5cf6);
+  color: var(--accent-primary);
 }
 
 .cluster-header-actions {
@@ -195,9 +195,9 @@ const emit = defineEmits<{
 }
 
 .add-cluster-btn:hover {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.2);
-  color: var(--accent-primary, #8b5cf6);
+  background: var(--accent-glow);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .refresh-graph-btn {
@@ -206,17 +206,17 @@ const emit = defineEmits<{
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  color: var(--accent-primary, #8b5cf6);
+  color: var(--accent-primary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .refresh-graph-btn:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: var(--accent-primary, #8b5cf6);
+  background: var(--accent-glow);
+  border-color: var(--accent-primary);
 }
 
 .refresh-graph-btn:disabled {
@@ -252,7 +252,7 @@ const emit = defineEmits<{
 .stat-item .stat-value {
   font-size: 18px;
   font-weight: 700;
-  color: var(--accent-primary, #8b5cf6);
+  color: var(--accent-primary);
 }
 
 .stat-item .stat-label {
@@ -290,8 +290,8 @@ const emit = defineEmits<{
 }
 
 .cluster-item.active {
-  background: rgba(139, 92, 246, 0.12);
-  border-color: rgba(139, 92, 246, 0.25);
+  background: var(--bg-active);
+  border-color: var(--accent-primary);
   color: var(--text-primary);
 }
 
@@ -303,7 +303,7 @@ const emit = defineEmits<{
 }
 
 .cluster-dot.all-gradient {
-  background: linear-gradient(135deg, #8b5cf6, #3b82f6, #22c55e);
+  background: linear-gradient(135deg, var(--accent-primary), var(--info), var(--success));
 }
 
 .cluster-dot.unclustered-dot {
@@ -366,8 +366,8 @@ const emit = defineEmits<{
 .cluster-count {
   font-size: 11px;
   font-weight: 600;
-  color: var(--accent-primary, #8b5cf6);
-  background: rgba(139, 92, 246, 0.12);
+  color: var(--accent-primary);
+  background: var(--bg-hover);
   padding: 2px 6px;
   border-radius: 8px;
   flex-shrink: 0;
@@ -405,9 +405,9 @@ const emit = defineEmits<{
 }
 
 .cluster-edit-btn:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.25);
-  color: var(--accent-primary, #8b5cf6);
+  background: var(--accent-glow);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 </style>

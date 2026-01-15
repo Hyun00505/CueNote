@@ -16,6 +16,12 @@
             <path d="M12 5v14M5 12h14"/>
           </svg>
         </button>
+        <button class="collapse-btn" @click="triggerGitHubCollapse" title="모두 접기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 14 12 6 20 14" />
+            <line x1="12" y1="18" x2="12" y2="6" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -67,6 +73,7 @@
           :active-file="activeFile"
           :depth="0"
           :is-github="true"
+          :collapse-trigger="githubCollapseTrigger"
           :editing-file="githubEditingFile"
           :editing-name="githubEditingName"
           :editing-folder="githubEditingFolder"
@@ -108,6 +115,12 @@
         <button class="new-file-btn" @click="startCreateFile()" title="새 노트" :disabled="isCreating || isInputMode">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+        <button class="collapse-btn" @click="triggerLocalCollapse" title="모두 접기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 14 12 6 20 14" />
+            <line x1="12" y1="18" x2="12" y2="6" />
           </svg>
         </button>
       </div>
@@ -163,7 +176,9 @@
           :active-file="activeFile"
           :dirty-files="dirtyFiles"
           :depth="0"
+
           :editing-file="editingFile"
+          :collapse-trigger="localCollapseTrigger"
           :editing-name="editingName"
           :editing-folder="editingFolder"
           :editing-folder-name="editingFolderName"
@@ -275,6 +290,18 @@ const githubEditingFolderName = ref('');
 // 드래그 앤 드롭 상태
 const isRootDragOver = ref(false);
 
+// Collapse Triggers
+const githubCollapseTrigger = ref(0);
+const localCollapseTrigger = ref(0);
+
+function triggerGitHubCollapse() {
+  githubCollapseTrigger.value++;
+}
+
+function triggerLocalCollapse() {
+  localCollapseTrigger.value++;
+}
+
 // 로컬 파일 트리 구조 생성
 const localFileTree = computed<TreeNode[]>(() => {
   return buildFileTree(props.vaultFiles, props.vaultFolders);
@@ -291,7 +318,7 @@ function convertGitHubFilesToTree(files: GitHubFile[]): TreeNode[] {
   return files.map(file => ({
     name: file.name,
     path: file.path,
-    type: file.type === 'dir' ? 'folder' : 'file',
+    type: (file.type === 'dir' ? 'folder' : 'file') as 'file' | 'folder',
     children: file.children ? convertGitHubFilesToTree(file.children) : undefined
   })).sort((a, b) => {
     // 폴더 먼저, 그 다음 파일 (이름순)
@@ -806,30 +833,31 @@ function onRootDrop(event: DragEvent) {
 }
 
 .new-file-btn,
-.new-folder-btn {
+.new-folder-btn,
+.collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 4px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .new-file-btn:hover {
-  background: rgba(232, 213, 183, 0.1);
-  border-color: rgba(232, 213, 183, 0.2);
-  color: #e8d5b7;
+  background: var(--bg-active);
+  border-color: var(--border-default);
+  color: var(--text-primary);
 }
 
 .new-folder-btn:hover {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
+  background: var(--bg-active);
+  border-color: var(--border-default);
+  color: var(--text-primary);
 }
 
 .empty-files {
@@ -848,10 +876,10 @@ function onRootDrop(event: DragEvent) {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: rgba(232, 213, 183, 0.08);
-  border: 1px solid rgba(232, 213, 183, 0.15);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  color: #e8d5b7;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -859,8 +887,8 @@ function onRootDrop(event: DragEvent) {
 }
 
 .create-first-btn:hover {
-  background: rgba(232, 213, 183, 0.12);
-  border-color: rgba(232, 213, 183, 0.25);
+  background: var(--bg-active);
+  border-color: var(--text-secondary);
 }
 
 .file-tree {
@@ -872,8 +900,8 @@ function onRootDrop(event: DragEvent) {
 }
 
 .file-tree.root-drag-over {
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px dashed rgba(139, 92, 246, 0.3);
+  background: var(--accent-glow);
+  border: 1px dashed var(--accent-primary);
 }
 
 /* New File/Folder Input */
@@ -883,14 +911,14 @@ function onRootDrop(event: DragEvent) {
   gap: 10px;
   padding: 6px 10px;
   margin-bottom: 2px;
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: var(--bg-active);
+  border: 1px solid var(--accent-primary);
   border-radius: 6px;
 }
 
 .new-file-input-wrapper.folder-input {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: var(--bg-active);
+  border-color: var(--warning);
 }
 
 .file-name-input {
@@ -910,12 +938,12 @@ function onRootDrop(event: DragEvent) {
 }
 
 .new-file-input-wrapper .file-icon {
-  color: #a78bfa;
+  color: var(--accent-primary);
   opacity: 0.8;
 }
 
 .new-file-input-wrapper.folder-input .file-icon {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 /* GitHub File Styles */

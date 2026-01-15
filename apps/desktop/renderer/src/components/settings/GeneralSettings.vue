@@ -78,14 +78,12 @@ import { useI18n } from '../../composables';
 const { t, currentLanguage, setLanguage, languageNames } = useI18n();
 
 // 테마 설정
-type ThemeId = 'dark' | 'light' | 'dim' | 'github-dark' | 'sepia';
+type ThemeId = 'dark' | 'dim' | 'github-dark';
 
 const themes = computed(() => [
   { id: 'dark' as ThemeId, name: t('theme.dark'), colors: { bg: '#0f0f12', sidebar: '#16161a', accent: '#6b7280' } },
-  { id: 'light' as ThemeId, name: t('theme.light'), colors: { bg: '#ffffff', sidebar: '#f5f5f5', accent: '#374151' } },
   { id: 'dim' as ThemeId, name: t('theme.dim'), colors: { bg: '#1c1c1c', sidebar: '#252525', accent: '#8b949e' } },
   { id: 'github-dark' as ThemeId, name: t('theme.github'), colors: { bg: '#0d1117', sidebar: '#161b22', accent: '#58a6ff' } },
-  { id: 'sepia' as ThemeId, name: t('theme.sepia'), colors: { bg: '#f4ecd8', sidebar: '#e8e0cc', accent: '#5c4b37' } },
 ]);
 
 const currentTheme = ref<ThemeId>('dark');
@@ -97,10 +95,14 @@ function setTheme(theme: ThemeId) {
 }
 
 function initTheme() {
-  const savedTheme = localStorage.getItem('cuenote-theme') as ThemeId | null;
-  if (savedTheme) {
-    currentTheme.value = savedTheme;
-    document.documentElement.setAttribute('data-theme', savedTheme);
+  const savedTheme = localStorage.getItem('cuenote-theme');
+  const validThemes: ThemeId[] = ['dark', 'dim', 'github-dark'];
+  const theme = validThemes.includes(savedTheme as ThemeId) ? savedTheme as ThemeId : 'dark';
+  
+  currentTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  if (savedTheme !== theme) {
+    localStorage.setItem('cuenote-theme', theme);
   }
 }
 
@@ -120,6 +122,7 @@ defineExpose({
   margin-bottom: 48px;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .settings-category:last-child {
@@ -186,7 +189,7 @@ defineExpose({
   gap: 10px;
   flex: 1;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   cursor: pointer;
@@ -195,7 +198,7 @@ defineExpose({
 }
 
 .language-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border-color: var(--border-default);
 }
 
@@ -222,7 +225,7 @@ defineExpose({
 /* Theme Grid */
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 

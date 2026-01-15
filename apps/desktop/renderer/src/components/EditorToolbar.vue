@@ -1282,12 +1282,12 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .toolbar-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--text-primary);
 }
 
 .toolbar-btn:active:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-4);
 }
 
 .toolbar-btn.active {
@@ -1376,7 +1376,7 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .cluster-badge .cluster-lock-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-highlight);
   color: var(--text-primary);
 }
 
@@ -1410,7 +1410,7 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .cluster-badge .cluster-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-highlight);
   color: var(--text-primary);
 }
 
@@ -1446,7 +1446,7 @@ watch(showExtractModal, (isOpen) => {
   width: 28px !important;
   height: 28px !important;
   padding: 0 !important;
-  background: rgba(255, 255, 255, 0.03) !important;
+  background: var(--surface-1) !important;
   border: 1px dashed var(--border-subtle) !important;
   color: var(--text-muted) !important;
   opacity: 0.6;
@@ -1550,7 +1550,7 @@ watch(showExtractModal, (isOpen) => {
 .table-cell {
   width: 20px;
   height: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: 3px;
   cursor: pointer;
@@ -1558,12 +1558,12 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .table-cell:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-4);
 }
 
 .table-cell.selected {
-  background: rgba(201, 167, 108, 0.3);
-  border-color: rgba(201, 167, 108, 0.5);
+  background: var(--accent-gold-glow);
+  border-color: var(--accent-gold-dim);
 }
 
 /* Dropdown Transition */
@@ -1585,7 +1585,7 @@ watch(showExtractModal, (isOpen) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1633,7 +1633,7 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .image-modal-header .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-highlight);
   color: var(--text-primary);
 }
 
@@ -1655,7 +1655,7 @@ watch(showExtractModal, (isOpen) => {
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   font-size: 13px;
@@ -1665,14 +1665,14 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--text-secondary);
 }
 
 .tab-btn.active {
-  background: rgba(201, 167, 108, 0.1);
-  border-color: rgba(201, 167, 108, 0.3);
-  color: #e8d5b7;
+  background: var(--accent-gold-glow);
+  border-color: var(--accent-gold-dim);
+  color: var(--accent-gold);
 }
 
 /* 업로드 섹션 */
@@ -1687,7 +1687,7 @@ watch(showExtractModal, (isOpen) => {
   justify-content: center;
   gap: 12px;
   padding: 32px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 2px dashed var(--border-subtle);
   border-radius: 12px;
   cursor: pointer;
@@ -1695,13 +1695,13 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .upload-dropzone:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(201, 167, 108, 0.3);
+  background: var(--surface-2);
+  border-color: var(--accent-gold-dim);
 }
 
 .upload-dropzone.drag-over {
-  background: rgba(201, 167, 108, 0.1);
-  border-color: rgba(201, 167, 108, 0.5);
+  background: var(--accent-gold-glow);
+  border-color: var(--accent-gold-dim);
 }
 
 .upload-dropzone svg {
@@ -1734,7 +1734,7 @@ watch(showExtractModal, (isOpen) => {
 .input-group input {
   width: 100%;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   font-size: 14px;
@@ -1744,8 +1744,8 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .input-group input:focus {
-  border-color: rgba(201, 167, 108, 0.5);
-  box-shadow: 0 0 0 3px rgba(201, 167, 108, 0.1);
+  border-color: var(--accent-gold-dim);
+  box-shadow: 0 0 0 3px var(--accent-gold-glow);
 }
 
 .input-group input::placeholder {
@@ -1754,7 +1754,7 @@ watch(showExtractModal, (isOpen) => {
 
 .image-preview-container {
   height: 200px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-tertiary);
   border: 1px dashed var(--border-subtle);
   border-radius: 10px;
   display: flex;
@@ -1802,8 +1802,8 @@ watch(showExtractModal, (isOpen) => {
 .image-loading .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid rgba(201, 167, 108, 0.2);
-  border-top-color: #e8d5b7;
+  border: 2px solid var(--accent-gold-glow);
+  border-top-color: var(--accent-gold);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -1814,10 +1814,10 @@ watch(showExtractModal, (isOpen) => {
   gap: 8px;
   margin-top: 12px;
   padding: 10px 12px;
-  background: rgba(201, 167, 108, 0.1);
+  background: var(--accent-gold-glow);
   border-radius: 8px;
   font-size: 12px;
-  color: #e8d5b7;
+  color: var(--accent-gold);
 }
 
 .image-modal-footer {
@@ -1845,18 +1845,18 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   border-color: var(--text-muted);
 }
 
 .btn-insert {
-  background: linear-gradient(135deg, #c9a76c, #a68b4d);
+  background: var(--gradient-gold);
   border: none;
   color: #1a1a1a;
 }
 
 .btn-insert:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d4b87d, #b8995e);
+  filter: brightness(1.1);
 }
 
 .btn-insert:disabled {
@@ -1899,7 +1899,7 @@ watch(showExtractModal, (isOpen) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1953,7 +1953,7 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .extract-modal-header .close-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-4);
   color: var(--text-primary);
 }
 
@@ -1977,7 +1977,7 @@ watch(showExtractModal, (isOpen) => {
   justify-content: center;
   min-height: 140px;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 2px dashed var(--border-subtle);
   border-radius: 12px;
   cursor: pointer;
@@ -1985,7 +1985,7 @@ watch(showExtractModal, (isOpen) => {
 }
 
 .extract-dropzone:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border-color: rgba(16, 185, 129, 0.3);
 }
 
@@ -2156,8 +2156,8 @@ watch(showExtractModal, (isOpen) => {
 .btn-download-model .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--border-strong);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -2337,8 +2337,8 @@ watch(showExtractModal, (isOpen) => {
 .btn-download-handwriting .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--border-strong);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -2442,8 +2442,8 @@ watch(showExtractModal, (isOpen) => {
 .btn-extract .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid var(--border-strong);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

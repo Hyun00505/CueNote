@@ -235,6 +235,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
@@ -301,27 +302,6 @@ defineExpose({
   min-height: 0;
   overflow: hidden;
   z-index: 1;
-}
-
-/* ======== Light Theme ======== */
-:global([data-theme="light"]) .calendar-view {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-}
-
-:global([data-theme="light"]) .bg-gradient {
-  opacity: 0.06;
-}
-
-:global([data-theme="light"]) .bg-gradient-1 {
-  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
-}
-
-:global([data-theme="light"]) .bg-gradient-2 {
-  background: linear-gradient(225deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
-}
-
-:global([data-theme="light"]) .bg-noise {
-  opacity: 0.02;
 }
 
 /* 반응형 */

@@ -212,6 +212,7 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Header */

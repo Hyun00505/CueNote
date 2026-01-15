@@ -30,8 +30,8 @@ let mainWindow;
 let viteServer;
 let coreProcess;
 
-// 다크 모드 강제 적용 (Windows 타이틀바 색상)
-nativeTheme.themeSource = 'dark';
+// 시스템 테마 설정 따르기 (앱 내부에서 data-theme으로 별도 관리)
+nativeTheme.themeSource = 'system';
 
 // Python 백엔드 경로 찾기
 function getCorePath() {
@@ -161,7 +161,6 @@ async function createWindow() {
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
-      backgroundColor: '#0f0f12',
       show: false,
       autoHideMenuBar: true,
       icon: iconPath,

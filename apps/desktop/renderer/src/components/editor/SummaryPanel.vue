@@ -118,7 +118,7 @@ function handleCopy() {
   font-size: 11px;
   font-weight: 500;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -146,7 +146,7 @@ function handleCopy() {
 
 .action-btn:hover,
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-3);
   color: var(--text-primary);
 }
 

@@ -502,7 +502,7 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   box-shadow: 
     0 4px 24px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 0 1px var(--surface-2),
     0 0 40px rgba(139, 92, 246, 0.15);
   backdrop-filter: blur(12px);
   overflow: hidden;
@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
 
 .menu-section {
   padding: 8px 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-3);
 }
 
 .menu-section:last-child {
@@ -720,8 +720,8 @@ onBeforeUnmount(() => {
   gap: 6px;
   margin: 0 8px 10px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: var(--surface-1);
+  border: 1px dashed var(--glass-highlight);
   border-radius: 6px;
   font-size: 11px;
   color: var(--text-muted);

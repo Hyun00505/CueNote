@@ -39,12 +39,8 @@
         :environments="environments"
         :current-id="currentId"
         :current-environment="currentEnvironment"
-        :is-git-hub-mode="isGitHubMode"
-        :github-selected-repo="githubSelectedRepo"
         @open-add-modal="showEnvModal = true"
         @select-environment="handleSelectEnvironment"
-        @select-github="handleSelectGitHubEnv"
-        @disconnect-github="handleDisconnectGitHub"
         @remove-environment="handleRemoveEnvironment"
       />
 
@@ -148,6 +144,7 @@
     :github-loading="githubLoading"
     :github-error="githubError"
     :github-validating="githubValidating"
+    :is-cloning="isCloning"
     @close="closeEnvModal"
     @add-local="handleAddLocalEnvironment"
     @add-github="handleAddGitHubEnvironment"
@@ -174,13 +171,7 @@
     @confirm="confirmDeleteEnvironment"
   />
 
-  <!-- GitHub 연결 해제 확인 모달 -->
-  <DisconnectGitHubModal
-    :visible="showDisconnectGitHubModal"
-    :repo-name="githubSelectedRepo?.name || ''"
-    @close="closeDisconnectGitHubModal"
-    @confirm="confirmDisconnectGitHub"
-  />
+
 
   <!-- 클러스터 편집 모달 -->
   <ClusterEditModal
@@ -323,6 +314,7 @@ const {
   isValidating: githubValidating,
   isLoggedIn: isGitHubLoggedIn,
   isGitHubActive,
+  isCloning, // Destructure isCloning
   trashFiles: githubTrashFiles,
   initGitHub,
   setGitHubActive,
@@ -349,7 +341,7 @@ const envSelectorRef = ref<InstanceType<typeof EnvironmentSelector> | null>(null
 const showEnvModal = ref(false);
 const showDeleteEnvModal = ref(false);
 const envToDelete = ref<{ id: string; name: string; path: string } | null>(null);
-const showDisconnectGitHubModal = ref(false);
+// showDisconnectGitHubModal removed
 const showCreateRepoModal = ref(false);
 const creatingRepo = ref(false);
 const createRepoError = ref<string | null>(null);
@@ -378,53 +370,49 @@ onUnmounted(() => {
 async function handleSelectEnvironment(id: string) {
   envSelectorRef.value?.closeDropdown();
   
-  // 이미 같은 로컬 환경이고 GitHub 모드가 아니면 무시
-  if (id === currentId.value && !isGitHubMode.value) return;
-  
-  // GitHub 모드에서 로컬 환경으로 전환 시 모드만 비활성화 (연결은 유지)
-  if (isGitHubMode.value) {
-    setGitHubActive(false);
-  }
+  if (id === currentId.value) return;
   
   const success = await selectEnvironment(id);
+  
   if (success) {
-    await refreshFiles();
+    // 선택된 환경이 GitHub 타입이면 GitHub 활성화
+    const env = environments.value.find(e => e.id === id);
+    if (env?.type === 'github' && env.github) {
+        // 이미 연결된 리포지토리라면 활성화
+        const repo = githubRepos.value.find(r => 
+            r.owner === env.github?.owner && r.name === env.github?.repo
+        );
+        
+        if (repo) {
+            // useGitHub의 selectedRepo 업데이트 (동기화)
+            await selectGitHubRepo(repo); 
+        } else {
+            // 리포지토리 목록에 없더라도 환경 정보를 기반으로 GitHub 모드 활성화
+            const partialRepo: any = {
+                id: -1,
+                name: env.github.repo,
+                full_name: `${env.github.owner}/${env.github.repo}`,
+                owner: env.github.owner,
+                private: env.github.private || false,
+                html_url: `https://github.com/${env.github.owner}/${env.github.repo}`,
+                description: '',
+                default_branch: 'main'
+            };
+            await selectGitHubRepo(partialRepo);
+        }
+    } else {
+        // 로컬 환경이면 GitHub 비활성화
+        setGitHubActive(false);
+        await refreshFiles();
+    }
+    
     emit('environment-changed');
   }
 }
-
-async function handleSelectGitHubEnv() {
-  envSelectorRef.value?.closeDropdown();
-  
-  // 이미 GitHub 모드이면 무시
-  if (isGitHubMode.value) return;
-  
-  // GitHub 연결이 있으면 모드 활성화
-  if (githubSelectedRepo.value) {
-    setGitHubActive(true);
-    // 휴지통 파일 목록 로드
-    await fetchGitHubTrashFiles();
-  }
-  
-  emit('environment-changed');
-}
-
-function handleDisconnectGitHub() {
-  showDisconnectGitHubModal.value = true;
-  envSelectorRef.value?.closeDropdown();
-}
-
-function closeDisconnectGitHubModal() {
-  showDisconnectGitHubModal.value = false;
-}
-
-async function confirmDisconnectGitHub() {
-  const success = await disconnectRepo();
-  showDisconnectGitHubModal.value = false;
-  if (success) {
-    emit('environment-changed');
-  }
-}
+// handleSelectGitHubEnv removed
+// handleDisconnectGitHub removed
+// closeDisconnectGitHubModal removed
+// confirmDisconnectGitHub removed
 
 function handleRemoveEnvironment(id: string) {
   const env = environments.value.find(e => e.id === id);
@@ -451,6 +439,8 @@ async function handleAddLocalEnvironment(name: string, path: string) {
 async function handleAddGitHubEnvironment(repoId: number) {
   const repo = githubRepos.value.find(r => r.id === repoId);
   if (!repo) return;
+  
+  // GitHub 리포지토리를 선택하면 자동으로 환경으로 추가됨 (modify selectRepo in useGitHub)
   await selectGitHubRepo(repo);
   closeEnvModal();
   emit('environment-changed');
@@ -474,6 +464,10 @@ function closeDeleteEnvModal() {
 
 async function confirmDeleteEnvironment() {
   if (!envToDelete.value) return;
+  
+  // GitHub 환경인 경우 연결 해제 로직도 수행 가능하나, 
+  // 여기서는 단순히 환경 목록에서 제거하고 필요한 경우 useGitHub 상태도 클리어
+  
   const success = await removeEnvironment(envToDelete.value.id);
   if (success) {
     await refreshFiles();
@@ -714,6 +708,7 @@ function handleClusterDelete(clusterId: number) {
   z-index: 10;
   overflow: hidden;
   flex-shrink: 0;
+  color: var(--text-primary);
 }
 
 .sidebar.collapsed {
@@ -842,7 +837,7 @@ function handleClusterDelete(clusterId: number) {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -873,10 +868,10 @@ function handleClusterDelete(clusterId: number) {
 
 .error-msg {
   padding: 10px 12px;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: var(--error-glow);
+  border: 1px solid var(--error-glow);
   border-radius: 6px;
-  color: #dc2626;
+  color: var(--error);
   font-size: 12px;
   margin-top: 12px;
 }
@@ -906,11 +901,11 @@ function handleClusterDelete(clusterId: number) {
 }
 
 .status-indicator.online .status-dot {
-  background: #22c55e;
+  background: var(--success);
 }
 
 .status-indicator.offline .status-dot {
-  background: #dc2626;
+  background: var(--error);
 }
 
 .status-text {

@@ -228,7 +228,7 @@
           <button 
             class="reset-btn" 
             @click="handleResetNoteCluster"
-            :disabled="contextMenuNode && isNoteLocked(contextMenuNode.id)"
+            :disabled="!!(contextMenuNode && isNoteLocked(contextMenuNode.id))"
             :title="contextMenuNode && isNoteLocked(contextMenuNode.id) ? '잠금 해제 후 사용 가능' : ''"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -944,19 +944,19 @@ const initDrag = () => {
 const zoomIn = () => {
   if (!svgRef.value || !zoomBehavior) return;
   const svg = d3Selection.select(svgRef.value);
-  svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.3);
+  (svg as any).transition().duration(300).call(zoomBehavior.scaleBy, 1.3);
 };
 
 const zoomOut = () => {
   if (!svgRef.value || !zoomBehavior) return;
   const svg = d3Selection.select(svgRef.value);
-  svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.7);
+  (svg as any).transition().duration(300).call(zoomBehavior.scaleBy, 0.7);
 };
 
 const resetZoom = () => {
   if (!svgRef.value || !zoomBehavior) return;
   const svg = d3Selection.select(svgRef.value);
-  svg.transition().duration(500).call(
+  (svg as any).transition().duration(500).call(
     zoomBehavior.transform,
     d3Zoom.zoomIdentity
   );

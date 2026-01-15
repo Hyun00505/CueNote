@@ -29,6 +29,11 @@ type TranslationKeys = {
   'header.selectNote': string;
   'header.clickToRename': string;
 
+  // Editor Empty State
+  'editor.emptyTitle': string;
+  'editor.emptySubtitle': string;
+  'editor.emptyHint': string;
+
   // Settings
   'settings.title': string;
   'settings.language': string;
@@ -220,6 +225,11 @@ type TranslationKeys = {
   'github.disconnectWarning': string;
   'github.disconnectBtn': string;
 
+  // Git Status
+  'git.status.modified': string;
+  'git.status.added': string;
+  'git.status.deleted': string;
+
   // File Delete
   'file.deleteQuestion': string;
   'file.deleteFolder': string;
@@ -288,6 +298,11 @@ const ko: TranslationKeys = {
   'header.graph': '그래프',
   'header.selectNote': '노트를 선택하세요',
   'header.clickToRename': '클릭하여 이름 변경',
+
+  // Editor Empty State
+  'editor.emptyTitle': '문서를 선택하세요',
+  'editor.emptySubtitle': '사이드바에서 마크다운 파일을 선택하여 편집을 시작하세요',
+  'editor.emptyHint': '왼쪽의 볼트에서 파일을 선택하세요',
 
   // Settings
   'settings.title': '설정',
@@ -480,6 +495,11 @@ const ko: TranslationKeys = {
   'github.disconnectWarning': '로컬에 저장된 파일이 모두 삭제됩니다',
   'github.disconnectBtn': '연결 해제',
 
+  // Git Status
+  'git.status.modified': '수정됨',
+  'git.status.added': '추가됨',
+  'git.status.deleted': '삭제됨',
+
   // File Delete
   'file.deleteQuestion': '삭제할까요?',
   'file.deleteFolder': '폴더를 삭제할까요?',
@@ -548,6 +568,11 @@ const en: TranslationKeys = {
   'header.graph': 'Graph',
   'header.selectNote': 'Select a note to begin',
   'header.clickToRename': 'Click to rename',
+
+  // Editor Empty State
+  'editor.emptyTitle': 'Select a document',
+  'editor.emptySubtitle': 'Choose a markdown file from the sidebar to start editing',
+  'editor.emptyHint': 'Select a file from the vault on the left',
 
   // Settings
   'settings.title': 'Settings',
@@ -739,6 +764,11 @@ const en: TranslationKeys = {
   'github.disconnectQuestion': 'Disconnect this repository?',
   'github.disconnectWarning': 'All locally stored files will be deleted',
   'github.disconnectBtn': 'Disconnect',
+
+  // Git Status
+  'git.status.modified': 'Modified',
+  'git.status.added': 'Added',
+  'git.status.deleted': 'Deleted',
 
   // File Delete
   'file.deleteQuestion': 'Delete?',

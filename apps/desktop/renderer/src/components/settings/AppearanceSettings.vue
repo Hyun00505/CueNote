@@ -327,6 +327,7 @@ async function handleRemoveFont(id: string) {
   margin-bottom: 48px;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .category-title {
@@ -384,7 +385,7 @@ async function handleRemoveFont(id: string) {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
 }
@@ -430,7 +431,7 @@ async function handleRemoveFont(id: string) {
 /* UI Scale Settings */
 .ui-scale-settings {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   margin-bottom: 20px;
@@ -487,7 +488,7 @@ async function handleRemoveFont(id: string) {
 /* Custom Fonts */
 .custom-fonts-section {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
 }
@@ -607,7 +608,7 @@ async function handleRemoveFont(id: string) {
 .font-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -800,8 +801,8 @@ async function handleRemoveFont(id: string) {
 .loading-spinner-sm {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
+  border: 2px solid var(--border-strong);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

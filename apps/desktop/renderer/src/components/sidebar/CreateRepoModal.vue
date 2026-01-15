@@ -104,7 +104,7 @@ function handleCreate() {
 .env-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,8 +203,8 @@ function handleCreate() {
 
 .env-form-group input[type="text"]:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .checkbox-label {
@@ -219,17 +219,17 @@ function handleCreate() {
 .checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--accent-primary);
   cursor: pointer;
 }
 
 .env-error {
   margin-top: 12px;
   padding: 10px 12px;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: var(--error-glow);
+  border: 1px solid var(--error);
   border-radius: 6px;
-  color: #dc2626;
+  color: var(--error);
   font-size: 13px;
 }
 
@@ -261,8 +261,8 @@ function handleCreate() {
 }
 
 .env-modal-btn.primary {
-  background: var(--accent);
-  border: 1px solid var(--accent);
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
   color: white;
   display: flex;
   align-items: center;
@@ -283,7 +283,7 @@ function handleCreate() {
 .loading-spinner-sm {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-default);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
