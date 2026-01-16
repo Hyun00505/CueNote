@@ -43,120 +43,160 @@
 
     <!-- ===== 일간 뷰 ===== -->
     <div v-if="viewMode === 'day'" class="day-view">
-      <!-- 날짜 정보 헤더 -->
-      <div class="day-header-card">
-        <div class="day-date-info">
-          <div class="day-date-main">
-            <span class="day-date-number">{{ currentDate.getDate() }}</span>
-            <div class="day-date-details">
-              <span class="day-date-weekday" :class="{
+      <!-- 메인 레이아웃: 좌측 사이드바 + 우측 타임라인 -->
+      <div class="day-layout">
+        <!-- 좌측: 날짜 정보 + 일정 요약 -->
+        <div class="day-sidebar">
+          <!-- 날짜 카드 -->
+          <div class="day-date-card" :class="{ 'is-today': isSameDay(currentDate, new Date()) }">
+            <div class="date-card-bg"></div>
+            <div class="date-card-content">
+              <span class="date-weekday" :class="{
                 'is-sunday': currentDate.getDay() === 0,
                 'is-saturday': currentDate.getDay() === 6
-              }">
-                {{ weekdays[currentDate.getDay()] }}
-              </span>
-              <span class="day-date-month">
-                {{ currentLanguage === 'ko'
-                  ? `${currentDate.getFullYear()}년 ${monthNames[currentDate.getMonth() + 1]}`
-                  : `${monthNames[currentDate.getMonth() + 1]} ${currentDate.getFullYear()}`
-                }}
-              </span>
-            </div>
-          </div>
-          <div v-if="isSameDay(currentDate, new Date())" class="day-today-badge">
-            <span class="pulse-dot"></span>
-            {{ t('common.today') }}
-          </div>
-        </div>
-        <div class="day-schedule-summary">
-          <div class="summary-stat">
-            <span class="stat-number">{{ todaySchedules.length }}</span>
-            <span class="stat-label">{{ t('calendar.schedulesCount') }}</span>
-          </div>
-          <div class="summary-stat completed">
-            <span class="stat-number">{{ todaySchedules.filter(s => s.completed).length }}</span>
-            <span class="stat-label">{{ t('calendar.completed') }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 일정 리스트 (시간순) -->
-      <div class="day-schedule-list" v-if="todaySchedules.length > 0">
-        <div v-for="schedule in todaySchedules" :key="schedule.id"
-          class="day-schedule-item"
-          :class="{ 'is-completed': schedule.completed }"
-          :style="{ '--schedule-color': schedule.color || '#c9a76c' }"
-          @click="emit('select-date', currentDateStr)">
-          <div class="schedule-time-block">
-            <span class="schedule-time-text" v-if="schedule.startTime">
-              {{ schedule.startTime }}
-            </span>
-            <span class="schedule-time-text all-day" v-else>
-              {{ t('calendar.allDay') }}
-            </span>
-            <span class="schedule-end-time" v-if="schedule.endTime">
-              ~ {{ schedule.endTime }}
-            </span>
-          </div>
-          <div class="schedule-content-block">
-            <div class="schedule-color-indicator"></div>
-            <div class="schedule-details">
-              <span class="schedule-title-text">{{ schedule.title }}</span>
-              <span class="schedule-desc-text" v-if="schedule.description">
-                {{ schedule.description }}
-              </span>
-            </div>
-            <div class="schedule-status" v-if="schedule.completed">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 빈 상태 -->
-      <div class="day-empty-state" v-else>
-        <div class="empty-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-            <circle cx="12" cy="15" r="1" />
-          </svg>
-        </div>
-        <p class="empty-text">{{ t('calendar.noSchedulesToday') }}</p>
-        <p class="empty-hint">{{ t('calendar.addScheduleHint') }}</p>
-      </div>
-
-      <!-- 시간별 타임라인 -->
-      <div class="day-timeline">
-        <div class="timeline-header">
-          <span class="timeline-title">{{ currentLanguage === 'ko' ? '시간별 보기' : 'Timeline' }}</span>
-        </div>
-        <div class="timeline-body">
-          <div v-for="hour in hours" :key="hour" class="timeline-hour-row">
-            <div class="timeline-hour-label">{{ formatHour(hour) }}</div>
-            <div class="timeline-hour-content">
-              <div class="timeline-hour-line"></div>
-              <!-- 해당 시간의 일정들 -->
-              <div v-for="schedule in getSchedulesForHour(hour)" :key="schedule.id"
-                class="timeline-schedule-block"
-                :class="{ 'is-completed': schedule.completed }"
-                :style="{ '--schedule-color': schedule.color || '#c9a76c' }">
-                <span class="timeline-schedule-title">{{ schedule.title }}</span>
-                <span class="timeline-schedule-time" v-if="schedule.startTime">
-                  {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
-                </span>
+              }">{{ weekdays[currentDate.getDay()] }}</span>
+              <span class="date-number">{{ currentDate.getDate() }}</span>
+              <span class="date-month">{{ monthNames[currentDate.getMonth() + 1] }} {{ currentDate.getFullYear() }}</span>
+              <div v-if="isSameDay(currentDate, new Date())" class="today-badge">
+                <span class="today-pulse"></span>
+                {{ t('common.today') }}
               </div>
             </div>
-            <!-- 현재 시간 인디케이터 -->
-            <div v-if="isCurrentHour(hour) && isSameDay(currentDate, new Date())"
-              class="timeline-current-indicator"
-              :style="{ top: currentMinutePosition }">
-              <div class="current-dot"></div>
-              <div class="current-line"></div>
+          </div>
+
+          <!-- 일정 통계 -->
+          <div class="day-stats-card">
+            <div class="stats-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              <span>{{ currentLanguage === 'ko' ? '오늘의 일정' : "Today's Schedule" }}</span>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-box total">
+                <span class="stat-value">{{ todaySchedules.length }}</span>
+                <span class="stat-name">{{ t('calendar.total') || '전체' }}</span>
+              </div>
+              <div class="stat-box completed">
+                <span class="stat-value">{{ todaySchedules.filter(s => s.completed).length }}</span>
+                <span class="stat-name">{{ t('calendar.completed') || '완료' }}</span>
+              </div>
+              <div class="stat-box remaining">
+                <span class="stat-value">{{ todaySchedules.filter(s => !s.completed).length }}</span>
+                <span class="stat-name">{{ t('calendar.remaining') || '남음' }}</span>
+              </div>
+            </div>
+            <!-- 진행률 바 -->
+            <div class="stats-progress" v-if="todaySchedules.length > 0">
+              <div class="progress-track">
+                <div class="progress-fill" :style="{ width: `${Math.round((todaySchedules.filter(s => s.completed).length / todaySchedules.length) * 100)}%` }"></div>
+              </div>
+              <span class="progress-text">{{ Math.round((todaySchedules.filter(s => s.completed).length / todaySchedules.length) * 100) }}%</span>
+            </div>
+          </div>
+
+          <!-- 빠른 일정 목록 -->
+          <div class="day-quick-list" v-if="todaySchedules.length > 0">
+            <div class="quick-list-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              <span>{{ currentLanguage === 'ko' ? '일정 목록' : 'Schedule List' }}</span>
+            </div>
+            <div class="quick-list-items">
+              <div v-for="schedule in todaySchedules" :key="schedule.id" 
+                class="quick-item" 
+                :class="{ 'is-completed': schedule.completed }"
+                :style="{ '--item-color': schedule.color || '#c9a76c' }"
+                @click="emit('select-date', currentDateStr)">
+                <div class="quick-item-indicator"></div>
+                <div class="quick-item-content">
+                  <span class="quick-item-title">{{ schedule.title }}</span>
+                  <span class="quick-item-time" v-if="schedule.startTime">
+                    {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
+                  </span>
+                  <span class="quick-item-time all-day" v-else>{{ t('calendar.allDay') }}</span>
+                </div>
+                <div class="quick-item-check" v-if="schedule.completed">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 빈 상태 -->
+          <div class="day-empty-card" v-else>
+            <div class="empty-illustration">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <rect x="3" y="4" width="18" height="18" rx="2" opacity="0.3"/>
+                <path d="M8 2v4M16 2v4M3 10h18" opacity="0.3"/>
+                <circle cx="12" cy="15" r="3" stroke-dasharray="2 2"/>
+              </svg>
+            </div>
+            <p class="empty-title">{{ t('calendar.noSchedulesToday') }}</p>
+            <p class="empty-desc">{{ t('calendar.addScheduleHint') }}</p>
+          </div>
+        </div>
+
+        <!-- 우측: 타임라인 뷰 -->
+        <div class="day-timeline-area">
+          <div class="timeline-container" ref="dayTimelineRef">
+            <!-- 현재 시간 표시 (상단 고정) -->
+            <div class="current-time-badge" v-if="isSameDay(currentDate, new Date())">
+              <span class="time-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </span>
+              <span class="time-text">{{ formatCurrentTime() }}</span>
+            </div>
+
+            <!-- 타임라인 그리드 -->
+            <div class="timeline-grid">
+              <div v-for="hour in hours" :key="hour" class="timeline-row" 
+                :class="{ 'is-current-hour': isCurrentHour(hour) && isSameDay(currentDate, new Date()), 'is-past': isPastHour(hour) }">
+                <!-- 시간 라벨 -->
+                <div class="timeline-hour">
+                  <span class="hour-text">{{ formatHour(hour) }}</span>
+                </div>
+                
+                <!-- 시간 슬롯 -->
+                <div class="timeline-slot">
+                  <div class="slot-line"></div>
+                  
+                  <!-- 현재 시간 인디케이터 -->
+                  <div v-if="isCurrentHour(hour) && isSameDay(currentDate, new Date())" 
+                    class="now-indicator" 
+                    :style="{ top: `${(new Date().getMinutes() / 60) * 100}%` }">
+                    <div class="now-dot"></div>
+                    <div class="now-line"></div>
+                  </div>
+                  
+                  <!-- 해당 시간의 일정 -->
+                  <div v-for="schedule in getSchedulesForHour(hour)" :key="schedule.id" 
+                    class="timeline-event"
+                    :class="{ 'is-completed': schedule.completed }"
+                    :style="{ '--event-color': schedule.color || '#c9a76c' }"
+                    @click="emit('select-date', currentDateStr)">
+                    <div class="event-accent"></div>
+                    <div class="event-content">
+                      <span class="event-title">{{ schedule.title }}</span>
+                      <span class="event-time" v-if="schedule.startTime">
+                        {{ schedule.startTime }}{{ schedule.endTime ? ` ~ ${schedule.endTime}` : '' }}
+                      </span>
+                      <span class="event-desc" v-if="schedule.description">{{ schedule.description }}</span>
+                    </div>
+                    <div class="event-status" v-if="schedule.completed">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -172,7 +212,7 @@
           'is-selected': day.isSelected,
           'is-sunday': index === 0,
           'is-saturday': index === 6
-        }" @click="emit('select-date', day.dateStr)">
+        }" @click="selectDateAndSwitchToDay(day.dateStr)">
           <span class="week-day-name">{{ weekdaysShort[index] }}</span>
           <span class="week-day-number">{{ day.day }}</span>
           <div v-if="day.scheduleCount > 0" class="week-event-badge">{{ day.scheduleCount }}</div>
@@ -189,7 +229,7 @@
           <div v-for="(day, dayIndex) in currentWeekDays" :key="day.dateStr" class="week-day-column" :class="{
             'is-today': day.isToday,
             'is-selected': day.isSelected
-          }" @click="emit('select-date', day.dateStr)">
+          }" @click="selectDateAndSwitchToDay(day.dateStr)">
             <div v-for="hour in hours" :key="hour" class="time-slot">
               <div class="slot-line"></div>
             </div>
@@ -198,7 +238,7 @@
               :class="{ 'is-completed': schedule.completed }" :style="{
                 ...getScheduleStyle(schedule),
                 '--schedule-color': schedule.color || '#c9a76c'
-              }" @click.stop="emit('select-date', day.dateStr)">
+              }" @click.stop="selectDateAndSwitchToDay(day.dateStr)">
               <span class="schedule-title">{{ schedule.title }}</span>
               <span class="schedule-time" v-if="schedule.startTime">
                 {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
@@ -257,12 +297,11 @@
           <button v-for="day in monthData.days" :key="day.dateStr" class="day-cell" :class="{
             'other-month': !day.isCurrentMonth,
             'is-today': day.isToday,
-            'is-selected': day.isSelected,
             'has-events': day.scheduleCount > 0,
             'is-sunday': day.date.getDay() === 0,
             'is-saturday': day.date.getDay() === 6,
             'all-completed': day.scheduleCount > 0 && day.completedCount === day.scheduleCount,
-          }" @click="selectDateAndSwitchToWeek(day.dateStr)">
+          }" @click="selectDateAndSwitchToDay(day.dateStr)">
             <span class="day-number">{{ day.day }}</span>
 
             <!-- 일정 인디케이터 -->
@@ -276,9 +315,6 @@
 
             <!-- 오늘 표시 링 -->
             <div v-if="day.isToday" class="today-ring"></div>
-
-            <!-- 선택 배경 -->
-            <div v-if="day.isSelected" class="selected-bg"></div>
           </button>
         </div>
       </div>
@@ -312,11 +348,10 @@
               <button v-for="day in month.days" :key="day.dateStr" class="mini-day" :class="{
                 'other-month': !day.isCurrentMonth,
                 'is-today': day.isToday,
-                'is-selected': day.isSelected,
                 'has-events': day.scheduleCount > 0,
                 'is-sunday': day.date.getDay() === 0,
                 'is-saturday': day.date.getDay() === 6,
-              }" @click.stop="selectDateAndSwitchToWeek(day.dateStr)">
+              }" @click.stop="selectDateAndSwitchToDay(day.dateStr)">
                 {{ day.day }}
               </button>
             </div>
@@ -832,7 +867,12 @@ function scrollToMonth(year: number, month: number) {
 function switchToMonth(year: number, month: number) {
   viewMode.value = 'month';
   currentDate.value = new Date(year, month - 1, 1);
-  scrollToMonth(year, month);
+  // 뷰 모드 변경 후 DOM이 완전히 렌더링될 때까지 기다림
+  nextTick(() => {
+    nextTick(() => {
+      scrollToMonth(year, month);
+    });
+  });
 }
 
 function selectDateAndSwitchToMonth(dateStr: string) {
@@ -842,9 +882,9 @@ function selectDateAndSwitchToMonth(dateStr: string) {
   currentDate.value = new Date(year, month - 1, 1);
 }
 
-function selectDateAndSwitchToWeek(dateStr: string) {
+function selectDateAndSwitchToDay(dateStr: string) {
   emit('select-date', dateStr);
-  viewMode.value = 'week';
+  viewMode.value = 'day';
   const [year, month, day] = dateStr.split('-').map(Number);
   currentDate.value = new Date(year, month - 1, day);
 }
@@ -895,6 +935,31 @@ function getSchedulesForHour(hour: number): ScheduleItem[] {
 // 현재 시간인지 확인
 function isCurrentHour(hour: number): boolean {
   return new Date().getHours() === hour;
+}
+
+// 과거 시간인지 확인
+function isPastHour(hour: number): boolean {
+  const now = new Date();
+  if (!isSameDay(currentDate.value, now)) return false;
+  return hour < now.getHours();
+}
+
+// 현재 시간 포맷
+function formatCurrentTime(): string {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const isKo = currentLanguage.value === 'ko';
+  
+  if (isKo) {
+    const period = hours < 12 ? '오전' : '오후';
+    const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${period} ${displayHour}:${String(minutes).padStart(2, '0')}`;
+  } else {
+    const period = hours < 12 ? 'AM' : 'PM';
+    const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHour}:${String(minutes).padStart(2, '0')} ${period}`;
+  }
 }
 
 // 현재 분 위치 (퍼센트)
@@ -1227,9 +1292,9 @@ defineExpose({ scrollToToday });
   right: 2px;
   padding: 6px 10px;
   background: linear-gradient(135deg,
-      color-mix(in srgb, var(--schedule-color) 18%, rgba(30, 30, 35, 0.95) 82%) 0%,
-      color-mix(in srgb, var(--schedule-color) 10%, rgba(25, 25, 30, 0.9) 90%) 100%);
-  border: 1px solid color-mix(in srgb, var(--schedule-color) 20%, transparent 80%);
+      color-mix(in srgb, var(--schedule-color) 18%, var(--surface-2) 82%) 0%,
+      color-mix(in srgb, var(--schedule-color) 10%, var(--surface-1) 90%) 100%);
+  border: 1px solid color-mix(in srgb, var(--schedule-color) 20%, var(--surface-4) 80%);
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
@@ -1240,9 +1305,9 @@ defineExpose({ scrollToToday });
 
 .week-schedule-block:hover {
   background: linear-gradient(135deg,
-      color-mix(in srgb, var(--schedule-color) 25%, rgba(35, 35, 40, 0.98) 75%) 0%,
-      color-mix(in srgb, var(--schedule-color) 15%, rgba(30, 30, 35, 0.95) 85%) 100%);
-  border-color: color-mix(in srgb, var(--schedule-color) 35%, transparent 65%);
+      color-mix(in srgb, var(--schedule-color) 25%, var(--surface-3) 75%) 0%,
+      color-mix(in srgb, var(--schedule-color) 15%, var(--surface-2) 85%) 100%);
+  border-color: color-mix(in srgb, var(--schedule-color) 35%, var(--surface-4) 65%);
   transform: scale(1.02);
   z-index: 4;
   box-shadow: 0 4px 16px color-mix(in srgb, var(--schedule-color) 20%, transparent 80%);
@@ -1766,375 +1831,593 @@ defineExpose({ scrollToToday });
   color: #60a5fa;
 }
 
-/* ===== 일간 뷰 ===== */
+/* ===== 일간 뷰 (새 디자인) ===== */
 .day-view {
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
-.day-header-card {
+.day-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 좌측 사이드바 */
+.day-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 날짜 카드 */
+.day-date-card {
+  position: relative;
+  padding: 28px 24px;
   background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
   border: 1px solid var(--surface-3);
   border-radius: 20px;
-  padding: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  overflow: hidden;
+  text-align: center;
 }
 
-.day-date-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.day-date-card.is-today {
+  border-color: rgba(201, 167, 108, 0.4);
+  background: linear-gradient(165deg, 
+    color-mix(in srgb, #c9a76c 8%, var(--surface-2) 92%) 0%, 
+    color-mix(in srgb, #c9a76c 4%, var(--surface-1) 96%) 100%);
 }
 
-.day-date-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.date-card-bg {
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(201, 167, 108, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.day-date-number {
-  font-size: 56px;
+.date-card-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.date-weekday {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.date-weekday.is-sunday { color: #f87171; }
+.date-weekday.is-saturday { color: #60a5fa; }
+
+.date-number {
+  font-size: 72px;
   font-weight: 800;
   color: var(--text-primary);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
 }
 
-.day-date-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.day-date-card.is-today .date-number {
+  background: linear-gradient(135deg, #c9a76c 0%, #e8d5b7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.day-date-weekday {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.day-date-weekday.is-sunday {
-  color: #f87171;
-}
-
-.day-date-weekday.is-saturday {
-  color: #60a5fa;
-}
-
-.day-date-month {
-  font-size: 14px;
+.date-month {
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
+  margin-top: 4px;
 }
 
-.day-today-badge {
-  display: flex;
+.today-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 6px 14px;
   background: linear-gradient(135deg, rgba(201, 167, 108, 0.2) 0%, rgba(201, 167, 108, 0.1) 100%);
   border: 1px solid rgba(201, 167, 108, 0.3);
-  border-radius: 24px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #c9a76c;
-}
-
-.day-schedule-summary {
-  display: flex;
-  gap: 24px;
-}
-
-.summary-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 20px;
-  background: var(--surface-1);
-  border-radius: 12px;
-}
-
-.summary-stat .stat-number {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.summary-stat .stat-label {
+  border-radius: 20px;
   font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: #c9a76c;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.summary-stat.completed .stat-number {
-  color: #34d399;
+.today-pulse {
+  width: 6px;
+  height: 6px;
+  background: #c9a76c;
+  border-radius: 50%;
+  animation: pulse-animation 2s ease-in-out infinite;
 }
 
-/* 일정 리스트 */
-.day-schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+@keyframes pulse-animation {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
 }
 
-.day-schedule-item {
-  display: flex;
-  gap: 16px;
-  padding: 16px 20px;
+/* 통계 카드 */
+.day-stats-card {
+  padding: 20px;
   background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
   border: 1px solid var(--surface-3);
   border-radius: 16px;
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stats-header svg { opacity: 0.6; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--surface-1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.stat-box:hover {
+  background: var(--surface-3);
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.stat-box.completed .stat-value { color: #34d399; }
+.stat-box.remaining .stat-value { color: #fbbf24; }
+
+.stat-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stats-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #34d399);
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #34d399;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* 빠른 일정 목록 */
+.day-quick-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
+  border: 1px solid var(--surface-3);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.quick-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--surface-3);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quick-list-header svg { opacity: 0.6; }
+
+.quick-list-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  background: var(--surface-1);
+  border: 1px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.day-schedule-item:hover {
-  border-color: var(--glass-highlight);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+.quick-item:last-child { margin-bottom: 0; }
+
+.quick-item:hover {
+  background: var(--surface-3);
+  border-color: color-mix(in srgb, var(--item-color) 30%, transparent 70%);
+  transform: translateX(4px);
 }
 
-.day-schedule-item.is-completed {
-  opacity: 0.6;
+.quick-item.is-completed { opacity: 0.5; }
+
+.quick-item-indicator {
+  width: 4px;
+  height: 32px;
+  background: var(--item-color);
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
-.schedule-time-block {
-  min-width: 80px;
+.quick-item-content {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 2px;
 }
 
-.schedule-time-text {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.schedule-time-text.all-day {
-  font-size: 14px;
-  color: #c9a76c;
-}
-
-.schedule-end-time {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.schedule-content-block {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.schedule-color-indicator {
-  width: 4px;
-  height: 100%;
-  min-height: 40px;
-  background: var(--schedule-color);
-  border-radius: 2px;
-}
-
-.schedule-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.schedule-title-text {
-  font-size: 15px;
+.quick-item-title {
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.day-schedule-item.is-completed .schedule-title-text {
+.quick-item.is-completed .quick-item-title {
   text-decoration: line-through;
   color: var(--text-muted);
 }
 
-.schedule-desc-text {
-  font-size: 13px;
+.quick-item-time {
+  font-size: 11px;
+  font-weight: 500;
   color: var(--text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-.schedule-status {
+.quick-item-time.all-day {
+  color: #c9a76c;
+  font-weight: 600;
+}
+
+.quick-item-check {
   color: #34d399;
+  flex-shrink: 0;
 }
 
-/* 빈 상태 */
-.day-empty-state {
+/* 빈 상태 카드 */
+.day-empty-card {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 32px 20px;
   background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
   border: 1px dashed var(--surface-4);
-  border-radius: 20px;
+  border-radius: 16px;
+  text-align: center;
 }
 
-.day-empty-state .empty-icon {
+.empty-illustration {
   color: var(--text-muted);
-  opacity: 0.5;
+  opacity: 0.4;
   margin-bottom: 16px;
 }
 
-.day-empty-state .empty-text {
-  font-size: 16px;
+.empty-title {
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin: 0 0 8px 0;
+  margin: 0 0 6px;
 }
 
-.day-empty-state .empty-hint {
-  font-size: 13px;
+.empty-desc {
+  font-size: 12px;
   color: var(--text-muted);
   margin: 0;
 }
 
-/* 타임라인 */
-.day-timeline {
+/* 우측 타임라인 영역 */
+.day-timeline-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
   border: 1px solid var(--surface-3);
   border-radius: 20px;
   overflow: hidden;
 }
 
-.timeline-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--surface-3);
-}
-
-.timeline-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.timeline-body {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.timeline-hour-row {
-  position: relative;
-  display: flex;
-  min-height: 60px;
-  border-bottom: 1px solid var(--surface-2);
-}
-
-.timeline-hour-row:last-child {
-  border-bottom: none;
-}
-
-.timeline-hour-label {
-  width: 80px;
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-align: right;
-  flex-shrink: 0;
-  background: var(--surface-1);
-  border-right: 1px solid var(--surface-2);
-}
-
-.timeline-hour-content {
+.timeline-container {
   flex: 1;
-  padding: 8px 12px;
+  overflow-y: auto;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
-.timeline-hour-line {
+/* 현재 시간 배지 */
+.current-time-badge {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.08) 100%);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.time-icon {
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+}
+
+.time-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ef4444;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 타임라인 그리드 */
+.timeline-grid {
+  padding: 0 0 20px;
+}
+
+.timeline-row {
+  display: flex;
+  min-height: 72px;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.timeline-row:hover {
+  background: var(--surface-1);
+}
+
+.timeline-row.is-current-hour {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.timeline-row.is-past {
+  opacity: 0.6;
+}
+
+.timeline-hour {
+  width: 72px;
+  padding: 12px 16px 12px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.hour-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.timeline-row.is-current-hour .hour-text {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.timeline-slot {
+  flex: 1;
+  position: relative;
+  padding: 8px 16px 8px 0;
+  min-height: 72px;
+}
+
+.slot-line {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
+  right: 16px;
   height: 1px;
-  background: var(--surface-2);
+  background: var(--surface-3);
 }
 
-.timeline-schedule-block {
-  padding: 8px 12px;
-  background: linear-gradient(135deg,
-      color-mix(in srgb, var(--schedule-color) 18%, rgba(30, 30, 35, 0.95) 82%) 0%,
-      color-mix(in srgb, var(--schedule-color) 10%, rgba(25, 25, 30, 0.9) 90%) 100%);
-  border: 1px solid color-mix(in srgb, var(--schedule-color) 20%, transparent 80%);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.timeline-schedule-block:hover {
-  background: linear-gradient(135deg,
-      color-mix(in srgb, var(--schedule-color) 25%, rgba(35, 35, 40, 0.98) 75%) 0%,
-      color-mix(in srgb, var(--schedule-color) 15%, rgba(30, 30, 35, 0.95) 85%) 100%);
-  border-color: color-mix(in srgb, var(--schedule-color) 35%, transparent 65%);
-}
-
-.timeline-schedule-block.is-completed {
-  opacity: 0.5;
-}
-
-.timeline-schedule-title {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.timeline-schedule-time {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.timeline-current-indicator {
+/* 현재 시간 인디케이터 */
+.now-indicator {
   position: absolute;
-  left: 80px;
-  right: 0;
+  left: 0;
+  right: 16px;
   display: flex;
   align-items: center;
   z-index: 5;
   pointer-events: none;
 }
 
-.timeline-current-indicator .current-dot {
+.now-dot {
   width: 10px;
   height: 10px;
   background: #ef4444;
   border-radius: 50%;
   margin-left: -5px;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2), 0 0 12px rgba(239, 68, 68, 0.4);
+  animation: now-pulse 2s ease-in-out infinite;
 }
 
-.timeline-current-indicator .current-line {
+@keyframes now-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2), 0 0 12px rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.1), 0 0 20px rgba(239, 68, 68, 0.3); }
+}
+
+.now-line {
   flex: 1;
   height: 2px;
-  background: #ef4444;
+  background: linear-gradient(90deg, #ef4444, transparent);
+}
+
+/* 타임라인 이벤트 */
+.timeline-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--event-color) 12%, var(--surface-2) 88%) 0%,
+    color-mix(in srgb, var(--event-color) 6%, var(--surface-1) 94%) 100%);
+  border: 1px solid color-mix(in srgb, var(--event-color) 20%, var(--surface-4) 80%);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timeline-event:last-child { margin-bottom: 0; }
+
+.timeline-event:hover {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--event-color) 18%, var(--surface-3) 82%) 0%,
+    color-mix(in srgb, var(--event-color) 10%, var(--surface-2) 90%) 100%);
+  border-color: color-mix(in srgb, var(--event-color) 35%, var(--surface-4) 65%);
+  transform: translateX(6px);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--event-color) 15%, transparent 85%);
+}
+
+.timeline-event.is-completed {
+  opacity: 0.5;
+}
+
+.event-accent {
+  width: 4px;
+  min-height: 36px;
+  background: var(--event-color);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.event-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.timeline-event.is-completed .event-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.event-time {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.event-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.event-status {
+  color: #34d399;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* 반응형 */
+@media (max-width: 1100px) {
+  .day-layout {
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+  }
+  
+  .date-number {
+    font-size: 60px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+}
+
 @media (max-width: 900px) {
   .year-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -2151,14 +2434,42 @@ defineExpose({ scrollToToday });
     text-align: left;
   }
 
-  .day-header-card {
-    flex-direction: column;
-    align-items: flex-start;
+  .day-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
-
-  .day-schedule-summary {
-    width: 100%;
-    justify-content: center;
+  
+  .day-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+  
+  .day-date-card {
+    flex: 1;
+    min-width: 200px;
+    padding: 20px;
+  }
+  
+  .date-number {
+    font-size: 48px;
+  }
+  
+  .day-stats-card {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .day-quick-list {
+    flex-basis: 100%;
+    max-height: 200px;
+  }
+  
+  .day-empty-card {
+    flex-basis: 100%;
+    padding: 24px;
   }
 }
 
@@ -2171,28 +2482,42 @@ defineExpose({ scrollToToday });
     display: none;
   }
 
-  .day-date-number {
+  .day-sidebar {
+    flex-direction: column;
+  }
+  
+  .day-date-card,
+  .day-stats-card {
+    min-width: unset;
+  }
+  
+  .date-number {
     font-size: 40px;
   }
-
-  .day-date-weekday {
-    font-size: 16px;
-  }
-
-  .day-schedule-item {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .schedule-time-block {
-    flex-direction: row;
+  
+  .stats-grid {
     gap: 8px;
-    align-items: center;
   }
-
-  .timeline-hour-label {
-    width: 60px;
+  
+  .stat-value {
+    font-size: 20px;
+  }
+  
+  .timeline-hour {
+    width: 56px;
+    padding: 8px 12px 8px 8px;
+  }
+  
+  .hour-text {
     font-size: 10px;
+  }
+  
+  .timeline-event {
+    padding: 10px 12px;
+  }
+  
+  .event-title {
+    font-size: 13px;
   }
 }
 </style>

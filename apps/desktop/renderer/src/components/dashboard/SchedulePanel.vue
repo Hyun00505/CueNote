@@ -490,10 +490,10 @@ const progressPercent = computed(() => {
   margin-bottom: 10px;
   background: linear-gradient(
     135deg, 
-    color-mix(in srgb, var(--card-color) 8%, rgba(30, 30, 35, 0.9) 92%) 0%, 
-    color-mix(in srgb, var(--card-color) 4%, rgba(25, 25, 30, 0.85) 96%) 100%
+    color-mix(in srgb, var(--card-color) 8%, var(--surface-2) 92%) 0%, 
+    color-mix(in srgb, var(--card-color) 4%, var(--surface-1) 96%) 100%
   );
-  border: 1px solid color-mix(in srgb, var(--card-color) 15%, transparent 85%);
+  border: 1px solid color-mix(in srgb, var(--card-color) 15%, var(--surface-4) 85%);
   border-radius: 14px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   animation: cardSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards;
@@ -514,10 +514,10 @@ const progressPercent = computed(() => {
 .schedule-card:hover {
   background: linear-gradient(
     135deg, 
-    color-mix(in srgb, var(--card-color) 14%, rgba(35, 35, 40, 0.95) 86%) 0%, 
-    color-mix(in srgb, var(--card-color) 8%, rgba(30, 30, 35, 0.9) 92%) 100%
+    color-mix(in srgb, var(--card-color) 14%, var(--surface-3) 86%) 0%, 
+    color-mix(in srgb, var(--card-color) 8%, var(--surface-2) 92%) 100%
   );
-  border-color: color-mix(in srgb, var(--card-color) 25%, transparent 75%);
+  border-color: color-mix(in srgb, var(--card-color) 25%, var(--surface-4) 75%);
   transform: translateX(4px);
   box-shadow: 0 4px 20px color-mix(in srgb, var(--card-color) 15%, transparent 85%);
 }
