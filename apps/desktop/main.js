@@ -54,8 +54,9 @@ async function startCoreServer() {
     return true;
   }
   
-  // 프로덕션 모드: 번들된 exe 실행
-  const coreExe = path.join(corePath, 'cuenote-core.exe');
+  // 프로덕션 모드: 번들된 바이너리 실행 (Windows: .exe, macOS: 확장자 없음)
+  const coreExeName = process.platform === 'win32' ? 'cuenote-core.exe' : 'cuenote-core';
+  const coreExe = path.join(corePath, coreExeName);
   
   if (!fs.existsSync(coreExe)) {
     console.error('Core executable not found:', coreExe);
@@ -68,7 +69,7 @@ async function startCoreServer() {
     coreProcess = spawn(coreExe, [], {
       cwd: corePath,
       stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true
+      windowsHide: process.platform === 'win32'
     });
     
     coreProcess.stdout.on('data', (data) => {

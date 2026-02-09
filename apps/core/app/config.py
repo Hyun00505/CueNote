@@ -15,6 +15,13 @@ logging.basicConfig(level=logging.INFO)
 IS_FROZEN = getattr(sys, 'frozen', False)
 
 if IS_FROZEN:
+    # macOS/Windows 번들 앱에서 SSL 인증서 경로 설정
+    # PyInstaller로 번들된 certifi CA 인증서를 사용
+    _bundle_dir = Path(getattr(sys, '_MEIPASS', Path(sys.executable).parent))
+    _cert_file = _bundle_dir / 'certifi' / 'cacert.pem'
+    if _cert_file.exists():
+        os.environ.setdefault('SSL_CERT_FILE', str(_cert_file))
+        os.environ.setdefault('REQUESTS_CA_BUNDLE', str(_cert_file))
     # 프로덕션 모드: %APPDATA%/cuenote 사용
     if os.name == 'nt':
         _app_data_base = Path(os.environ.get('APPDATA', '')) / 'cuenote'

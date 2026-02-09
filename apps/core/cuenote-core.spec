@@ -12,10 +12,20 @@ block_cipher = None
 # 현재 디렉토리
 CORE_DIR = Path(SPECPATH)
 
-# 데이터 파일 (프로덕션에서는 AppData에서 동적 생성)
+# certifi CA 번들 + 패키지 데이터 파일 수집
+import certifi
+from PyInstaller.utils.hooks import collect_data_files
+
+# 데이터 파일
 datas = [
-    # data 폴더는 빌드에 포함하지 않음 (테스트용 데이터)
+    # certifi CA 번들
+    (certifi.where(), 'certifi'),
 ]
+# trafilatura/tld/justext/dateparser 패키지 데이터 수집
+datas += collect_data_files('trafilatura')
+datas += collect_data_files('tld')
+datas += collect_data_files('justext')
+datas += collect_data_files('dateparser')
 
 # 숨겨진 imports (동적으로 임포트되는 모듈들)
 hiddenimports = [
@@ -151,13 +161,46 @@ hiddenimports = [
     'email.mime.base',
     'typing_extensions',
     'annotated_types',
+
+    # Web Extraction (URL 추출)
+    'trafilatura',
+    'trafilatura.settings',
+    'trafilatura.core',
+    'trafilatura.utils',
+    'trafilatura.metadata',
+    'trafilatura.external',
+    'courlan',
+    'htmldate',
+    'justext',
+    'lxml',
+    'lxml.html',
+    'lxml.etree',
+    'tld',
+    'charset_normalizer',
+    'certifi',
+    'urllib3',
+
+    # Graph / Clustering (그래프 페이지)
+    'sklearn',
+    'sklearn.feature_extraction',
+    'sklearn.feature_extraction.text',
+    'sklearn.metrics',
+    'sklearn.metrics.pairwise',
+    'sklearn.cluster',
+    'sklearn.utils',
+    'sklearn.utils._cython_blas',
+    'sklearn.neighbors',
+    'sklearn.neighbors._typedefs',
+    'sklearn.neighbors._partition_nodes',
+    'sklearn.tree',
+    'sklearn.tree._utils',
+    'threadpoolctl',
 ]
 
 # 제외할 모듈 (용량 줄이기)
 excludes = [
     'tkinter',
     'matplotlib',
-    'scipy',
     'numpy.distutils',
     'test',
     'tests',
@@ -173,8 +216,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=excludes,
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )

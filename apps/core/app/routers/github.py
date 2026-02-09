@@ -15,11 +15,31 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from ..config import logger
+from ..config import logger, IS_FROZEN
 
 router = APIRouter(prefix="/github", tags=["github"])
 
 GITHUB_API_BASE = "https://api.github.com"
+
+
+def _get_augmented_env() -> dict:
+    """macOS 번들 앱에서 git을 찾을 수 있도록 PATH를 보강한 환경 반환"""
+    env = os.environ.copy()
+    if sys.platform == "darwin" and IS_FROZEN:
+        extra_paths = [
+            "/usr/local/bin",
+            "/opt/homebrew/bin",
+            str(Path.home() / ".nvm" / "current" / "bin"),
+            str(Path.home() / ".volta" / "bin"),
+            "/opt/local/bin",
+        ]
+        current_path = env.get("PATH", "")
+        for p in extra_paths:
+            if p not in current_path and Path(p).exists():
+                current_path = p + ":" + current_path
+        env["PATH"] = current_path
+    return env
+
 
 # Git 클론 저장 경로 (앱 데이터 폴더)
 def get_git_repos_dir() -> Path:
@@ -48,13 +68,15 @@ def get_repo_local_path(owner: str, repo: str) -> Path:
 
 
 def check_git_installed() -> bool:
-    """Git 설치 여부 확인"""
+    """Git 설치 여부 확인 (macOS 번들 앱에서도 작동)"""
     try:
+        env = _get_augmented_env()
         result = subprocess.run(
             ['git', '--version'],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -62,9 +84,9 @@ def check_git_installed() -> bool:
 
 
 def run_git_command(args: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[bool, str, str]:
-    """Git 명령 실행"""
+    """Git 명령 실행 (macOS 번들 앱에서도 작동)"""
     try:
-        full_env = os.environ.copy()
+        full_env = _get_augmented_env()
         if env:
             full_env.update(env)
         
@@ -320,26 +342,16 @@ async def clone_repo(payload: CloneRepoPayload):
             args.extend(['--branch', payload.branch])
         args.extend([clone_url, str(repo_path)])
         
+        # run_git_command는 이미 augmented PATH를 사용
         success, stdout, stderr = run_git_command(
-            args[1:],  # 'clone' is added by run_git_command
+            args,
             cwd=get_git_repos_dir(),
             env={'GIT_TERMINAL_PROMPT': '0'}
         )
         
-        # clone은 git 명령어에 이미 포함되어야 함
-        result = subprocess.run(
-            ['git'] + args,
-            cwd=str(get_git_repos_dir()),
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=300,  # 5분 타임아웃
-            env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
-        )
-        
-        if result.returncode != 0:
-            logger.error("Clone failed: %s", result.stderr)
-            raise HTTPException(status_code=500, detail=f"클론 실패: {result.stderr}")
+        if not success:
+            logger.error("Clone failed: %s", stderr)
+            raise HTTPException(status_code=500, detail=f"클론 실패: {stderr}")
         
         # 파일 목록 가져오기
         files = get_local_md_files(repo_path)

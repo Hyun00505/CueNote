@@ -11,6 +11,7 @@
     "build:renderer": "vite build",
     "build:electron": "pnpm build:renderer && electron-builder --win",
     "build:all": "pnpm build:renderer && electron-builder --win",
+    "build:mac": "pnpm build:renderer && electron-builder --mac",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
@@ -113,6 +114,20 @@
       "uninstallDisplayName": "CueNote",
       "artifactName": "CueNote-Setup-${version}.${ext}",
       "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "icon": "../../assets/icon.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "CueNote",
+      "artifactName": "CueNote-Setup-${version}.${ext}"
     }
   }
 }

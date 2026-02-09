@@ -566,6 +566,10 @@ async function handleCreateRepo(payload: { name: string; description: string; is
     const repo = await createGitHubRepo(payload.name, payload.description, payload.isPrivate, payload.initReadme);
     if (repo) {
       showCreateRepoModal.value = false;
+      // 생성된 리포지토리를 자동으로 선택 → 클론 + 환경 추가
+      await selectGitHubRepo(repo);
+      closeEnvModal();
+      emit('environment-changed');
     } else {
       createRepoError.value = githubError.value || '리포지토리 생성에 실패했습니다';
     }
