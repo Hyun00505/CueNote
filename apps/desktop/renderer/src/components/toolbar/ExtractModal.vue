@@ -1,14 +1,38 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="visible" class="extract-modal-overlay" @click.self="emit('close')">
+      <div
+        v-if="visible"
+        class="extract-modal-overlay"
+        @click.self="emit('close')"
+      >
         <div class="extract-modal">
           <div class="extract-modal-header">
             <h3>📄 PDF/이미지 → 마크다운 변환</h3>
-            <button class="close-btn" @click="emit('close')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+            <button
+              class="close-btn"
+              @click="emit('close')"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="6"
+                  y2="18"
+                />
+                <line
+                  x1="6"
+                  y1="6"
+                  x2="18"
+                  y2="18"
+                />
               </svg>
             </button>
           </div>
@@ -16,9 +40,9 @@
             <p class="extract-description">
               PDF 파일이나 이미지(스크린샷, 사진)를 업로드하면 AI가 내용을 분석하여 마크다운 문서로 변환합니다.
             </p>
-            
+
             <!-- 파일 업로드 영역 -->
-            <div 
+            <div
               class="extract-dropzone"
               :class="{ 'drag-over': isDragging, 'has-file': file }"
               @dragenter="isDragging = true"
@@ -27,56 +51,135 @@
               @drop.prevent="handleFileDrop"
               @click="triggerFileInput"
             >
-              <input 
+              <input
                 ref="fileInputRef"
-                type="file" 
-                accept=".pdf,image/*" 
+                type="file"
+                accept=".pdf,image/*"
                 style="display: none"
                 @change="handleFileSelect"
-              />
-              <div v-if="!file" class="dropzone-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
+              >
+              <div
+                v-if="!file"
+                class="dropzone-empty"
+              >
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line
+                    x1="12"
+                    y1="3"
+                    x2="12"
+                    y2="15"
+                  />
                 </svg>
                 <span>클릭하거나 파일을 드래그하세요</span>
                 <span class="upload-hint">PDF, PNG, JPG, GIF, WebP 지원</span>
               </div>
-              <div v-else class="dropzone-file">
+              <div
+                v-else
+                class="dropzone-file"
+              >
                 <div class="file-icon">
-                  <svg v-if="fileType === 'pdf'" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <path d="M10 12h4"/>
-                    <path d="M10 16h4"/>
+                  <svg
+                    v-if="fileType === 'pdf'"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <path d="M10 12h4" />
+                    <path d="M10 16h4" />
                   </svg>
-                  <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <path d="M21 15l-5-5L5 21"/>
+                  <svg
+                    v-else
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <rect
+                      x="3"
+                      y="3"
+                      width="18"
+                      height="18"
+                      rx="2"
+                    />
+                    <circle
+                      cx="8.5"
+                      cy="8.5"
+                      r="1.5"
+                    />
+                    <path d="M21 15l-5-5L5 21" />
                   </svg>
                 </div>
                 <div class="file-info">
                   <span class="file-name">{{ file?.name }}</span>
                   <span class="file-size">{{ formatFileSize(file?.size || 0) }}</span>
                 </div>
-                <button class="remove-file-btn" @click.stop="clearFile" title="파일 제거">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                <button
+                  class="remove-file-btn"
+                  title="파일 제거"
+                  @click.stop="clearFile"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <line
+                      x1="18"
+                      y1="6"
+                      x2="6"
+                      y2="18"
+                    />
+                    <line
+                      x1="6"
+                      y1="6"
+                      x2="18"
+                      y2="18"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
 
             <!-- OCR 엔진 상태 (사용 불가) -->
-            <div v-if="ocrStatus && !ocrStatus.model_downloaded" class="ocr-model-status">
+            <div
+              v-if="ocrStatus && !ocrStatus.model_downloaded"
+              class="ocr-model-status"
+            >
               <div class="model-status-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 8v4"/>
-                  <path d="M12 16h.01"/>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                  <path d="M12 8v4" />
+                  <path d="M12 16h.01" />
                 </svg>
                 <div class="model-status-text">
                   <span class="model-title">{{ ocrStatus?.engine_name || 'OCR' }} 사용 불가</span>
@@ -88,40 +191,70 @@
             </div>
 
             <!-- OCR 안내 (모델 준비됨) -->
-            <div v-else-if="file" class="ocr-info ocr-ready">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+            <div
+              v-else-if="file"
+              class="ocr-info ocr-ready"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
               <span>OCR 준비됨 - {{ ocrEngineName }}로 텍스트를 추출합니다.</span>
             </div>
 
             <!-- 텍스트만 가져오기 옵션 -->
-            <div v-if="file" class="extract-options">
+            <div
+              v-if="file"
+              class="extract-options"
+            >
               <label class="checkbox-wrapper">
-                <input 
-                  type="checkbox" 
+                <input
                   v-model="rawTextOnly"
-                />
-                <span class="checkbox-custom"></span>
+                  type="checkbox"
+                >
+                <span class="checkbox-custom" />
                 <span class="checkbox-label">
                   📄 텍스트만 가져오기
                   <span class="option-hint">(AI 없이 빠르게)</span>
                 </span>
               </label>
-              
-              <div v-if="rawTextOnly" class="raw-text-info">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 16v-4"/>
-                  <path d="M12 8h.01"/>
+
+              <div
+                v-if="rawTextOnly"
+                class="raw-text-info"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
                 </svg>
                 <span>AI를 거치지 않고 OCR 결과를 그대로 가져옵니다. 마크다운 형식화가 필요하면 체크를 해제하세요.</span>
               </div>
             </div>
 
             <!-- 추출 결과 미리보기 -->
-            <div v-if="result" class="extract-result">
+            <div
+              v-if="result"
+              class="extract-result"
+            >
               <div class="result-header">
                 <span class="result-title">✨ 변환 완료</span>
                 <div class="result-meta">
@@ -135,29 +268,69 @@
             </div>
 
             <!-- 에러 메시지 -->
-            <div v-if="error" class="extract-error">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            <div
+              v-if="error"
+              class="extract-error"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+                <line
+                  x1="12"
+                  y1="8"
+                  x2="12"
+                  y2="12"
+                />
+                <line
+                  x1="12"
+                  y1="16"
+                  x2="12.01"
+                  y2="16"
+                />
               </svg>
               <span>{{ error }}</span>
             </div>
           </div>
           <div class="extract-modal-footer">
-            <button class="btn-cancel" @click="emit('close')">취소</button>
+            <button
+              class="btn-cancel"
+              @click="emit('close')"
+            >
+              취소
+            </button>
             <button
               v-if="!result"
               class="btn-extract"
               :disabled="!file || loading"
               @click="handleExtract"
             >
-              <span v-if="loading" class="spinner"></span>
-              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <path d="M12 18v-6"/>
-                <path d="m9 15 3 3 3-3"/>
+              <span
+                v-if="loading"
+                class="spinner"
+              />
+              <svg
+                v-else
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+                <path d="M12 18v-6" />
+                <path d="m9 15 3 3 3-3" />
               </svg>
               {{ loading ? '변환 중...' : '변환하기' }}
             </button>
@@ -177,9 +350,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useSettings } from '../../composables';
-
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS } from '../../config/api';
+import { useSettings } from '../../composables/useSettings';
 
 interface ExtractResult {
   markdown: string;
@@ -219,7 +391,7 @@ const fileType = computed(() => {
 });
 
 const ocrEngineName = computed(() => {
-  const engine = settings.value?.ocrEngine || 'gemini';
+  const engine = settings.value?.ocr?.engine || 'gemini';
   const names: Record<string, string> = {
     'gemini': 'Gemini Vision',
     'easyocr': 'EasyOCR',
@@ -228,21 +400,9 @@ const ocrEngineName = computed(() => {
   return names[engine] || engine;
 });
 
-watch(() => props.visible, async (val) => {
-  if (val) {
-    file.value = null;
-    result.value = null;
-    error.value = '';
-    loading.value = false;
-    rawTextOnly.value = false;
-    isDragging.value = false;
-    await checkOcrStatus();
-  }
-});
-
 async function checkOcrStatus() {
   try {
-    const res = await fetch(`${CORE_BASE}/ocr/status`);
+    const res = await fetch(`${API_ENDPOINTS.OCR.STATUS}`);
     if (res.ok) {
       ocrStatus.value = await res.json();
     }
@@ -303,15 +463,15 @@ async function handleExtract() {
     formData.append('file', file.value);
     formData.append('raw_text_only', String(rawTextOnly.value));
 
-    const res = await fetch(`${CORE_BASE}/ocr/extract`, {
+    const response = await fetch(API_ENDPOINTS.AI.EXTRACT, {
       method: 'POST',
       body: formData,
     });
 
-    if (res.ok) {
-      result.value = await res.json();
+    if (response.ok) {
+      result.value = await response.json();
     } else {
-      const data = await res.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
       error.value = data.detail || '문서 변환에 실패했습니다.';
     }
   } catch (e: any) {
@@ -714,7 +874,9 @@ function handleInsert() {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Transitions */

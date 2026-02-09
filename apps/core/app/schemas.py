@@ -225,6 +225,25 @@ class DocumentExtractResponse(BaseModel):
     has_images: bool = Field(default=False, description="이미지 포함 여부")
 
 
+class URLExtractPayload(BaseModel):
+    """URL에서 마크다운 추출 요청"""
+    url: str = Field(..., description="추출할 URL")
+    language: str = Field(default="ko", description="출력 언어")
+    raw_text_only: bool = Field(default=False, description="AI 없이 텍스트만 추출")
+    # LLM 제공자 설정
+    provider: str = Field(default="ollama", description="LLM 제공자 (ollama, gemini)")
+    api_key: str = Field(default="", description="API 키")
+    model: str = Field(default="", description="사용할 모델명")
+
+
+class URLExtractResponse(BaseModel):
+    """URL 추출 결과"""
+    markdown: str = Field(..., description="정리된 마크다운 텍스트")
+    title: str = Field(default="", description="페이지 제목")
+    images: list[str] = Field(default_factory=list, description="추출된 이미지 URL 목록")
+    source_url: str = Field(default="", description="원본 URL")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # OCR 모델 스키마
 # ─────────────────────────────────────────────────────────────────────────────

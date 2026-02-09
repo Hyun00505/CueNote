@@ -13,10 +13,21 @@
     "dev:all": "concurrently \"pnpm dev:core\" \"pnpm dev:desktop\"",
     "build:core": "cd apps/core && pyinstaller cuenote-core.spec --noconfirm && xcopy /E /I /Y dist\\cuenote-core ..\\core-dist",
     "build:desktop": "pnpm --filter cuenote build:all",
-    "build:all": "powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1"
+    "build:all": "powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^9.24.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.2.5",
+    "prettier-plugin-tailwindcss": "^0.5.12",
+    "typescript": "^5.4.3",
+    "typescript-eslint": "^7.5.0",
+    "vue-eslint-parser": "^9.4.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

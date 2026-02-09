@@ -1,50 +1,108 @@
 <template>
   <Teleport to="body">
     <Transition name="panel-slide">
-      <div v-if="visible" class="proofread-panel" @click.stop>
+      <div
+        v-if="visible"
+        class="proofread-panel"
+        @click.stop
+      >
         <!-- 헤더 -->
         <div class="panel-header">
           <div class="header-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
             <span>{{ t('proofread.title') }}</span>
-            <span class="lang-badge" v-if="languageDetected">
+            <span
+              v-if="languageDetected"
+              class="lang-badge"
+            >
               {{ getLanguageLabel(languageDetected) }}
             </span>
           </div>
           <div class="header-actions">
-            <span class="item-count" v-if="items.length > 0">
+            <span
+              v-if="items.length > 0"
+              class="item-count"
+            >
               {{ appliedCount }}/{{ items.length }} {{ t('proofread.modified') }}
             </span>
-            <button class="close-btn" @click="handleClose" :title="t('common.close')">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+            <button
+              class="close-btn"
+              :title="t('common.close')"
+              @click="handleClose"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="6"
+                  y2="18"
+                />
+                <line
+                  x1="6"
+                  y1="6"
+                  x2="18"
+                  y2="18"
+                />
               </svg>
             </button>
           </div>
         </div>
 
         <!-- 로딩 상태 -->
-        <div v-if="loading" class="loading-state">
-          <div class="loading-spinner"></div>
+        <div
+          v-if="loading"
+          class="loading-state"
+        >
+          <div class="loading-spinner" />
           <span>{{ t('proofread.checking') }}</span>
         </div>
 
         <!-- 오류 없음 -->
-        <div v-else-if="items.length === 0 && !loading" class="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M9 12l2 2 4-4"/>
-            <circle cx="12" cy="12" r="10"/>
+        <div
+          v-else-if="items.length === 0 && !loading"
+          class="empty-state"
+        >
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path d="M9 12l2 2 4-4" />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
           </svg>
           <span>{{ t('proofread.noErrors') }}</span>
           <p>{{ t('proofread.noErrorsDesc') }}</p>
         </div>
 
         <!-- 수정 항목 목록 -->
-        <div v-else class="items-container">
+        <div
+          v-else
+          class="items-container"
+        >
           <div 
             v-for="(item, index) in items" 
             :key="index"
@@ -61,56 +119,107 @@
             <div class="item-content">
               <div class="correction-row">
                 <span class="original">{{ item.original }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
                 <span class="corrected">{{ item.corrected }}</span>
               </div>
-              <p class="reason" v-if="item.reason">{{ item.reason }}</p>
+              <p
+                v-if="item.reason"
+                class="reason"
+              >
+                {{ item.reason }}
+              </p>
             </div>
 
-            <div class="item-actions" v-if="!item.applied && !item.skipped">
+            <div
+              v-if="!item.applied && !item.skipped"
+              class="item-actions"
+            >
               <button 
                 class="action-btn skip" 
-                @click="skipItem(index)"
                 :title="t('proofread.ignoreAll').split(' ')[1]"
+                @click="skipItem(index)"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <line
+                    x1="18"
+                    y1="6"
+                    x2="6"
+                    y2="18"
+                  />
+                  <line
+                    x1="6"
+                    y1="6"
+                    x2="18"
+                    y2="18"
+                  />
                 </svg>
               </button>
               <button 
                 class="action-btn apply" 
-                @click="applyItem(index)"
                 :title="t('proofread.applyAll').split(' ')[1]"
+                @click="applyItem(index)"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 6L9 17l-5-5"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M20 6L9 17l-5-5" />
                 </svg>
               </button>
             </div>
 
-            <div class="item-status" v-else>
-              <span v-if="item.applied" class="status applied">✓ {{ t('proofread.applied') }}</span>
-              <span v-else-if="item.skipped" class="status skipped">— {{ t('proofread.skipped') }}</span>
+            <div
+              v-else
+              class="item-status"
+            >
+              <span
+                v-if="item.applied"
+                class="status applied"
+              >✓ {{ t('proofread.applied') }}</span>
+              <span
+                v-else-if="item.skipped"
+                class="status skipped"
+              >— {{ t('proofread.skipped') }}</span>
             </div>
           </div>
         </div>
 
         <!-- 하단 액션 바 -->
-        <div class="panel-footer" v-if="items.length > 0 && !loading">
+        <div
+          v-if="items.length > 0 && !loading"
+          class="panel-footer"
+        >
           <button 
             class="footer-btn secondary" 
-            @click="skipAll"
             :disabled="remainingCount === 0"
+            @click="skipAll"
           >
             {{ t('proofread.ignoreAll') }}
           </button>
           <button 
             class="footer-btn primary" 
-            @click="applyAll"
             :disabled="remainingCount === 0"
+            @click="applyAll"
           >
             {{ t('proofread.applyAll') }} ({{ remainingCount }})
           </button>

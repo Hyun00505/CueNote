@@ -1,47 +1,83 @@
 <template>
-  <div class="ai-preview-container">
-    <!-- AI 스트리밍 프리뷰 (실시간으로 생성 중인 텍스트 표시) -->
-    <div v-if="isAIStreaming" class="ai-streaming-preview">
-      <div class="streaming-header">
-        <div class="streaming-dots">
-          <span class="streaming-dot"></span>
-          <span class="streaming-dot"></span>
-          <span class="streaming-dot"></span>
+  <Teleport to="body">
+    <Transition name="panel-slide">
+      <div
+        v-if="isAIStreaming || showAIActionBar"
+        class="ai-preview-panel"
+      >
+        <!-- 헤더 -->
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div
+              v-if="isAIStreaming"
+              class="streaming-dots"
+            >
+              <span class="streaming-dot" />
+              <span class="streaming-dot" />
+              <span class="streaming-dot" />
+            </div>
+            <div
+              v-else
+              class="done-indicator"
+            />
+            <span class="panel-label">
+              AI {{ getActionLabel(aiStreamingAction) }}{{ isAIStreaming ? '...' : ' 완료' }}
+            </span>
+          </div>
+          <div
+            v-if="showAIActionBar"
+            class="panel-actions"
+          >
+            <button
+              class="action-btn reject"
+              @click="handleReject"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              되돌리기
+            </button>
+            <button
+              class="action-btn accept"
+              @click="handleAccept"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              적용하기
+            </button>
+          </div>
         </div>
-        <span class="streaming-label">AI {{ getActionLabel(aiStreamingAction) }}...</span>
-      </div>
-      <div class="streaming-content" v-html="streamPreviewHtml"></div>
-    </div>
-    
-    <!-- AI 완료 후 액션 바 -->
-    <Transition name="action-bar-slide">
-      <div v-if="showAIActionBar" class="ai-action-bar">
-        <div class="action-bar-indicator"></div>
-        <span class="action-bar-label">AI {{ getActionLabel(aiStreamingAction) }} {{ t('ai.completed') }}</span>
-        <div class="action-bar-buttons">
-          <button class="action-btn reject" @click="handleReject">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-            </svg>
-            {{ t('ai.revert') }}
-          </button>
-          <button class="action-btn accept" @click="handleAccept">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 6L9 17l-5-5"/>
-            </svg>
-            {{ t('ai.keep') }}
-          </button>
-        </div>
+
+        <!-- 프리뷰 콘텐츠 -->
+        <div
+          v-if="streamPreviewHtml"
+          ref="contentRef"
+          class="panel-content"
+          v-html="streamPreviewHtml"
+        />
       </div>
     </Transition>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { useI18n } from '../../composables';
-
-const { t } = useI18n();
+import { ref, watch, nextTick } from 'vue';
 
 const props = defineProps<{
   isAIStreaming: boolean;
@@ -55,6 +91,8 @@ const emit = defineEmits<{
   (e: 'accept'): void;
 }>();
 
+const contentRef = ref<HTMLElement | null>(null);
+
 function getActionLabel(action: string): string {
   if (!action) return '';
   const labels: Record<string, string> = {
@@ -67,6 +105,14 @@ function getActionLabel(action: string): string {
   return labels[action] || action;
 }
 
+// 스트리밍 중 자동 스크롤
+watch(() => props.streamPreviewHtml, async () => {
+  if (props.isAIStreaming && contentRef.value) {
+    await nextTick();
+    contentRef.value.scrollTop = contentRef.value.scrollHeight;
+  }
+});
+
 function handleReject() {
   emit('reject');
 }
@@ -77,27 +123,33 @@ function handleAccept() {
 </script>
 
 <style scoped>
-.ai-preview-container {
-  position: relative;
-  z-index: 10;
+.ai-preview-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--bg-elevated, var(--bg-secondary));
+  border-top: 1px solid var(--border-default);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
 }
 
-.ai-streaming-preview {
-  margin: 16px 0;
-  border: 1px solid var(--primary-glow);
-  border-radius: 8px;
-  background: rgba(var(--primary-rgb), 0.03);
-  overflow: hidden;
-  animation: fadeIn 0.3s ease;
-}
-
-.streaming-header {
+.panel-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(var(--primary-rgb), 0.08);
-  border-bottom: 1px solid rgba(var(--primary-rgb), 0.1);
+  justify-content: space-between;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .streaming-dots {
@@ -116,70 +168,37 @@ function handleAccept() {
 .streaming-dot:nth-child(2) { animation-delay: 0.2s; }
 .streaming-dot:nth-child(3) { animation-delay: 0.4s; }
 
-.streaming-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.streaming-content {
-  padding: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-primary);
-  min-height: 40px;
-}
-
-.ai-action-bar {
-  position: absolute;
-  bottom: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 16px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 100px;
-  box-shadow: var(--shadow-lg);
-  z-index: 100;
-  white-space: nowrap;
-}
-
-.action-bar-indicator {
+.done-indicator {
   width: 8px;
   height: 8px;
   background: var(--success);
   border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--success-glow);
+  box-shadow: 0 0 0 3px var(--success-glow);
 }
 
-.action-bar-label {
-  font-size: 14px;
-  font-weight: 500;
+.panel-label {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
-.action-bar-buttons {
+.panel-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border-subtle);
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: none;
-  border-radius: 100px;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
 .action-btn.reject {
@@ -201,24 +220,63 @@ function handleAccept() {
   background: rgba(34, 197, 94, 0.3);
 }
 
+.panel-content {
+  padding: 16px 24px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.panel-content :deep(p) {
+  margin-bottom: 0.8em;
+}
+
+.panel-content :deep(h1),
+.panel-content :deep(h2),
+.panel-content :deep(h3) {
+  margin-top: 0.5em;
+  margin-bottom: 0.3em;
+}
+
+.panel-content :deep(pre) {
+  background: var(--bg-primary);
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+  border: 1px solid var(--border-default);
+}
+
+.panel-content :deep(code) {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+}
+
+.panel-content :deep(ul),
+.panel-content :deep(ol) {
+  padding-left: 1.5em;
+  margin-bottom: 0.8em;
+}
+
 @keyframes pulse {
   from { opacity: 0.4; transform: scale(0.8); }
   to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.action-bar-slide-enter-active,
-.action-bar-slide-leave-active {
+/* 패널 슬라이드 트랜지션 */
+.panel-slide-enter-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.action-bar-slide-enter-from,
-.action-bar-slide-leave-to {
+.panel-slide-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.panel-slide-enter-from,
+.panel-slide-leave-to {
+  transform: translateY(100%);
   opacity: 0;
-  transform: translate(-50%, 10px);
 }
 </style>

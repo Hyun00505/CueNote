@@ -1,44 +1,121 @@
 <template>
   <Transition name="slide">
-    <div v-if="summaryResult" class="summary-panel">
+    <div
+      v-if="summaryResult"
+      class="summary-panel"
+    >
       <div class="summary-header">
         <div class="summary-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z" />
           </svg>
           <span>AI 요약</span>
           <span class="word-count">{{ summaryResult.wordCount }}자</span>
         </div>
         <div class="summary-actions">
-          <button class="action-btn" @click="handleCopy" :title="copied ? '복사됨!' : '요약 복사'">
-            <svg v-if="!copied" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          <button
+            class="action-btn"
+            :title="copied ? '복사됨!' : '요약 복사'"
+            @click="handleCopy"
+          >
+            <svg
+              v-if="!copied"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect
+                x="9"
+                y="9"
+                width="13"
+                height="13"
+                rx="2"
+                ry="2"
+              />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
-            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
+            <svg
+              v-else
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="20 6 9 17 4 12" />
             </svg>
           </button>
-          <button class="action-btn insert-btn" @click="handleInsert" title="노트 상단에 삽입">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
+          <button
+            class="action-btn insert-btn"
+            title="노트 상단에 삽입"
+            @click="handleInsert"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 5v14M5 12h14" />
             </svg>
             <span>삽입</span>
           </button>
-          <button class="close-btn" @click="handleClose" title="닫기">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+          <button
+            class="close-btn"
+            title="닫기"
+            @click="handleClose"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line
+                x1="18"
+                y1="6"
+                x2="6"
+                y2="18"
+              />
+              <line
+                x1="6"
+                y1="6"
+                x2="18"
+                y2="18"
+              />
             </svg>
           </button>
         </div>
       </div>
       <div class="summary-content">
-        <p class="summary-text">{{ summaryResult.summary }}</p>
-        <div v-if="summaryResult.keyPoints.length > 0" class="key-points">
+        <p class="summary-text">
+          {{ summaryResult.summary }}
+        </p>
+        <div
+          v-if="summaryResult.keyPoints.length > 0"
+          class="key-points"
+        >
           <h4>핵심 포인트</h4>
           <ul>
-            <li v-for="(point, index) in summaryResult.keyPoints" :key="index">
+            <li
+              v-for="(point, index) in summaryResult.keyPoints"
+              :key="index"
+            >
               {{ point }}
             </li>
           </ul>

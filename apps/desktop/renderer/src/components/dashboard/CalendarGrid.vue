@@ -1,40 +1,75 @@
 <template>
-  <div class="calendar-container" ref="scrollRef">
+  <div
+    ref="scrollRef"
+    class="calendar-container"
+  >
     <!-- 배경 장식 -->
     <div class="calendar-bg-decoration">
-      <div class="bg-circle bg-circle-1"></div>
-      <div class="bg-circle bg-circle-2"></div>
-      <div class="bg-circle bg-circle-3"></div>
+      <div class="bg-circle bg-circle-1" />
+      <div class="bg-circle bg-circle-2" />
+      <div class="bg-circle bg-circle-3" />
     </div>
 
     <!-- 뷰 모드 컨트롤 헤더 -->
     <div class="view-control-header">
       <!-- 네비게이션 -->
       <div class="nav-controls">
-        <button class="nav-btn" @click="navigatePrev" :title="t('calendar.previous')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+          class="nav-btn"
+          :title="t('calendar.previous')"
+          @click="navigatePrev"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <button class="nav-btn" @click="navigateNext" :title="t('calendar.next')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+          class="nav-btn"
+          :title="t('calendar.next')"
+          @click="navigateNext"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <button class="today-nav-btn" @click="navigateToday">
+        <button
+          class="today-nav-btn"
+          @click="navigateToday"
+        >
           {{ t('common.today') }}
         </button>
       </div>
 
       <!-- 현재 날짜 표시 -->
       <div class="current-period">
-        <h2 class="period-title">{{ currentPeriodLabel }}</h2>
+        <h2 class="period-title">
+          {{ currentPeriodLabel }}
+        </h2>
       </div>
 
       <!-- 뷰 모드 선택 -->
       <div class="view-mode-selector">
-        <button v-for="mode in viewModes" :key="mode.value" class="view-mode-btn"
-          :class="{ active: viewMode === mode.value }" @click="setViewMode(mode.value)">
+        <button
+          v-for="mode in viewModes"
+          :key="mode.value"
+          class="view-mode-btn"
+          :class="{ active: viewMode === mode.value }"
+          @click="setViewMode(mode.value)"
+        >
           <component :is="mode.icon" />
           <span>{{ mode.label }}</span>
         </button>
@@ -42,23 +77,35 @@
     </div>
 
     <!-- ===== 일간 뷰 ===== -->
-    <div v-if="viewMode === 'day'" class="day-view">
+    <div
+      v-if="viewMode === 'day'"
+      class="day-view"
+    >
       <!-- 메인 레이아웃: 좌측 사이드바 + 우측 타임라인 -->
       <div class="day-layout">
         <!-- 좌측: 날짜 정보 + 일정 요약 -->
         <div class="day-sidebar">
           <!-- 날짜 카드 -->
-          <div class="day-date-card" :class="{ 'is-today': isSameDay(currentDate, new Date()) }">
-            <div class="date-card-bg"></div>
+          <div
+            class="day-date-card"
+            :class="{ 'is-today': isSameDay(currentDate, new Date()) }"
+          >
+            <div class="date-card-bg" />
             <div class="date-card-content">
-              <span class="date-weekday" :class="{
-                'is-sunday': currentDate.getDay() === 0,
-                'is-saturday': currentDate.getDay() === 6
-              }">{{ weekdays[currentDate.getDay()] }}</span>
+              <span
+                class="date-weekday"
+                :class="{
+                  'is-sunday': currentDate.getDay() === 0,
+                  'is-saturday': currentDate.getDay() === 6
+                }"
+              >{{ weekdays[currentDate.getDay()] }}</span>
               <span class="date-number">{{ currentDate.getDate() }}</span>
               <span class="date-month">{{ monthNames[currentDate.getMonth() + 1] }} {{ currentDate.getFullYear() }}</span>
-              <div v-if="isSameDay(currentDate, new Date())" class="today-badge">
-                <span class="today-pulse"></span>
+              <div
+                v-if="isSameDay(currentDate, new Date())"
+                class="today-badge"
+              >
+                <span class="today-pulse" />
                 {{ t('common.today') }}
               </div>
             </div>
@@ -67,8 +114,15 @@
           <!-- 일정 통계 -->
           <div class="day-stats-card">
             <div class="stats-header">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
               <span>{{ currentLanguage === 'ko' ? '오늘의 일정' : "Today's Schedule" }}</span>
             </div>
@@ -87,40 +141,105 @@
               </div>
             </div>
             <!-- 진행률 바 -->
-            <div class="stats-progress" v-if="todaySchedules.length > 0">
+            <div
+              v-if="todaySchedules.length > 0"
+              class="stats-progress"
+            >
               <div class="progress-track">
-                <div class="progress-fill" :style="{ width: `${Math.round((todaySchedules.filter(s => s.completed).length / todaySchedules.length) * 100)}%` }"></div>
+                <div
+                  class="progress-fill"
+                  :style="{ width: `${Math.round((todaySchedules.filter(s => s.completed).length / todaySchedules.length) * 100)}%` }"
+                />
               </div>
               <span class="progress-text">{{ Math.round((todaySchedules.filter(s => s.completed).length / todaySchedules.length) * 100) }}%</span>
             </div>
           </div>
 
           <!-- 빠른 일정 목록 -->
-          <div class="day-quick-list" v-if="todaySchedules.length > 0">
+          <div
+            v-if="todaySchedules.length > 0"
+            class="day-quick-list"
+          >
             <div class="quick-list-header">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="8"
+                  y1="6"
+                  x2="21"
+                  y2="6"
+                /><line
+                  x1="8"
+                  y1="12"
+                  x2="21"
+                  y2="12"
+                /><line
+                  x1="8"
+                  y1="18"
+                  x2="21"
+                  y2="18"
+                />
+                <line
+                  x1="3"
+                  y1="6"
+                  x2="3.01"
+                  y2="6"
+                /><line
+                  x1="3"
+                  y1="12"
+                  x2="3.01"
+                  y2="12"
+                /><line
+                  x1="3"
+                  y1="18"
+                  x2="3.01"
+                  y2="18"
+                />
               </svg>
               <span>{{ currentLanguage === 'ko' ? '일정 목록' : 'Schedule List' }}</span>
             </div>
             <div class="quick-list-items">
-              <div v-for="schedule in todaySchedules" :key="schedule.id" 
+              <div
+                v-for="schedule in todaySchedules"
+                :key="schedule.id" 
                 class="quick-item" 
                 :class="{ 'is-completed': schedule.completed }"
                 :style="{ '--item-color': schedule.color || '#c9a76c' }"
-                @click="emit('select-date', currentDateStr)">
-                <div class="quick-item-indicator"></div>
+                @click="emit('select-date', currentDateStr)"
+              >
+                <div class="quick-item-indicator" />
                 <div class="quick-item-content">
                   <span class="quick-item-title">{{ schedule.title }}</span>
-                  <span class="quick-item-time" v-if="schedule.startTime">
+                  <span
+                    v-if="schedule.startTime"
+                    class="quick-item-time"
+                  >
                     {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
                   </span>
-                  <span class="quick-item-time all-day" v-else>{{ t('calendar.allDay') }}</span>
+                  <span
+                    v-else
+                    class="quick-item-time all-day"
+                  >{{ t('calendar.allDay') }}</span>
                 </div>
-                <div class="quick-item-check" v-if="schedule.completed">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="20 6 9 17 4 12"/>
+                <div
+                  v-if="schedule.completed"
+                  class="quick-item-check"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
               </div>
@@ -128,27 +247,133 @@
           </div>
 
           <!-- 빈 상태 -->
-          <div class="day-empty-card" v-else>
+          <div
+            v-else
+            class="day-empty-card"
+          >
             <div class="empty-illustration">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                <rect x="3" y="4" width="18" height="18" rx="2" opacity="0.3"/>
-                <path d="M8 2v4M16 2v4M3 10h18" opacity="0.3"/>
-                <circle cx="12" cy="15" r="3" stroke-dasharray="2 2"/>
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1"
+              >
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="18"
+                  rx="2"
+                  opacity="0.3"
+                />
+                <path
+                  d="M8 2v4M16 2v4M3 10h18"
+                  opacity="0.3"
+                />
+                <circle
+                  cx="12"
+                  cy="15"
+                  r="3"
+                  stroke-dasharray="2 2"
+                />
               </svg>
             </div>
-            <p class="empty-title">{{ t('calendar.noSchedulesToday') }}</p>
-            <p class="empty-desc">{{ t('calendar.addScheduleHint') }}</p>
+            <p class="empty-title">
+              {{ t('calendar.noSchedulesToday') }}
+            </p>
+            <p class="empty-desc">
+              {{ t('calendar.addScheduleHint') }}
+            </p>
           </div>
         </div>
 
         <!-- 우측: 타임라인 뷰 -->
         <div class="day-timeline-area">
-          <div class="timeline-container" ref="dayTimelineRef">
+          <!-- 종일 일정 섹션 -->
+          <div
+            v-if="allDaySchedules.length > 0"
+            class="day-allday-section"
+          >
+            <div class="allday-header">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="18"
+                  rx="2"
+                />
+                <line
+                  x1="3"
+                  y1="10"
+                  x2="21"
+                  y2="10"
+                />
+              </svg>
+              <span>{{ t('calendar.allDay') }}</span>
+            </div>
+            <div class="allday-items">
+              <div
+                v-for="schedule in allDaySchedules"
+                :key="schedule.id"
+                class="allday-schedule-item"
+                :class="{ 'is-completed': schedule.completed }"
+                :style="{ '--item-color': schedule.color || '#c9a76c' }"
+                @click="emit('select-date', currentDateStr)"
+              >
+                <div class="allday-item-indicator" />
+                <span class="allday-item-title">{{ schedule.title }}</span>
+                <div
+                  v-if="schedule.completed"
+                  class="allday-item-check"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            ref="dayTimelineRef"
+            class="timeline-container"
+          >
             <!-- 현재 시간 표시 (상단 고정) -->
-            <div class="current-time-badge" v-if="isSameDay(currentDate, new Date())">
+            <div
+              v-if="isSameDay(currentDate, new Date())"
+              class="current-time-badge"
+            >
               <span class="time-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  /><polyline points="12 6 12 12 16 14" />
                 </svg>
               </span>
               <span class="time-text">{{ formatCurrentTime() }}</span>
@@ -156,8 +381,12 @@
 
             <!-- 타임라인 그리드 -->
             <div class="timeline-grid">
-              <div v-for="hour in hours" :key="hour" class="timeline-row" 
-                :class="{ 'is-current-hour': isCurrentHour(hour) && isSameDay(currentDate, new Date()), 'is-past': isPastHour(hour) }">
+              <div
+                v-for="hour in hours"
+                :key="hour"
+                class="timeline-row" 
+                :class="{ 'is-current-hour': isCurrentHour(hour) && isSameDay(currentDate, new Date()), 'is-past': isPastHour(hour) }"
+              >
                 <!-- 시간 라벨 -->
                 <div class="timeline-hour">
                   <span class="hour-text">{{ formatHour(hour) }}</span>
@@ -165,33 +394,54 @@
                 
                 <!-- 시간 슬롯 -->
                 <div class="timeline-slot">
-                  <div class="slot-line"></div>
+                  <div class="slot-line" />
                   
                   <!-- 현재 시간 인디케이터 -->
-                  <div v-if="isCurrentHour(hour) && isSameDay(currentDate, new Date())" 
+                  <div
+                    v-if="isCurrentHour(hour) && isSameDay(currentDate, new Date())" 
                     class="now-indicator" 
-                    :style="{ top: `${(new Date().getMinutes() / 60) * 100}%` }">
-                    <div class="now-dot"></div>
-                    <div class="now-line"></div>
+                    :style="{ top: `${(new Date().getMinutes() / 60) * 100}%` }"
+                  >
+                    <div class="now-dot" />
+                    <div class="now-line" />
                   </div>
                   
                   <!-- 해당 시간의 일정 -->
-                  <div v-for="schedule in getSchedulesForHour(hour)" :key="schedule.id" 
+                  <div
+                    v-for="schedule in getSchedulesForHour(hour)"
+                    :key="schedule.id" 
                     class="timeline-event"
                     :class="{ 'is-completed': schedule.completed }"
                     :style="{ '--event-color': schedule.color || '#c9a76c' }"
-                    @click="emit('select-date', currentDateStr)">
-                    <div class="event-accent"></div>
+                    @click="emit('select-date', currentDateStr)"
+                  >
+                    <div class="event-accent" />
                     <div class="event-content">
                       <span class="event-title">{{ schedule.title }}</span>
-                      <span class="event-time" v-if="schedule.startTime">
+                      <span
+                        v-if="schedule.startTime"
+                        class="event-time"
+                      >
                         {{ schedule.startTime }}{{ schedule.endTime ? ` ~ ${schedule.endTime}` : '' }}
                       </span>
-                      <span class="event-desc" v-if="schedule.description">{{ schedule.description }}</span>
+                      <span
+                        v-if="schedule.description"
+                        class="event-desc"
+                      >{{ schedule.description }}</span>
                     </div>
-                    <div class="event-status" v-if="schedule.completed">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polyline points="20 6 9 17 4 12"/>
+                    <div
+                      v-if="schedule.completed"
+                      class="event-status"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>
                   </div>
@@ -204,50 +454,120 @@
     </div>
 
     <!-- ===== 주간 뷰 ===== -->
-    <div v-else-if="viewMode === 'week'" class="week-view">
+    <div
+      v-else-if="viewMode === 'week'"
+      class="week-view"
+    >
       <div class="week-header">
-        <div class="week-time-col"></div>
-        <div v-for="(day, index) in currentWeekDays" :key="day.dateStr" class="week-day-header" :class="{
-          'is-today': day.isToday,
-          'is-selected': day.isSelected,
-          'is-sunday': index === 0,
-          'is-saturday': index === 6
-        }" @click="selectDateAndSwitchToDay(day.dateStr)">
+        <div class="week-time-col" />
+        <div
+          v-for="(day, index) in currentWeekDays"
+          :key="day.dateStr"
+          class="week-day-header"
+          :class="{
+            'is-today': day.isToday,
+            'is-selected': day.isSelected,
+            'is-sunday': index === 0,
+            'is-saturday': index === 6
+          }"
+          @click="selectDateAndSwitchToDay(day.dateStr)"
+        >
           <span class="week-day-name">{{ weekdaysShort[index] }}</span>
           <span class="week-day-number">{{ day.day }}</span>
-          <div v-if="day.scheduleCount > 0" class="week-event-badge">{{ day.scheduleCount }}</div>
+          <div
+            v-if="day.scheduleCount > 0"
+            class="week-event-badge"
+          >
+            {{ day.scheduleCount }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 종일 일정 섹션 -->
+      <div
+        v-if="hasAnyAllDaySchedules"
+        class="week-allday-section"
+      >
+        <div class="week-allday-label">
+          {{ t('calendar.allDay') }}
+        </div>
+        <div class="week-allday-grid">
+          <div
+            v-for="(day, dayIndex) in currentWeekDays"
+            :key="'allday-' + day.dateStr"
+            class="week-allday-cell"
+            :class="{ 'is-today': day.isToday }"
+            @click="selectDateAndSwitchToDay(day.dateStr)"
+          >
+            <div
+              v-for="schedule in getAllDaySchedulesForDate(day.dateStr)"
+              :key="schedule.id"
+              class="allday-event"
+              :class="{ 'is-completed': schedule.completed }"
+              :style="{ '--schedule-color': schedule.color || '#c9a76c' }"
+            >
+              <span class="allday-event-title">{{ schedule.title }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="week-body">
         <div class="week-time-col">
-          <div v-for="hour in hours" :key="hour" class="time-slot-label">
+          <div
+            v-for="hour in hours"
+            :key="hour"
+            class="time-slot-label"
+          >
             {{ formatHour(hour) }}
           </div>
         </div>
         <div class="week-grid">
-          <div v-for="(day, dayIndex) in currentWeekDays" :key="day.dateStr" class="week-day-column" :class="{
-            'is-today': day.isToday,
-            'is-selected': day.isSelected
-          }" @click="selectDateAndSwitchToDay(day.dateStr)">
-            <div v-for="hour in hours" :key="hour" class="time-slot">
-              <div class="slot-line"></div>
+          <div
+            v-for="(day, dayIndex) in currentWeekDays"
+            :key="day.dateStr"
+            class="week-day-column"
+            :class="{
+              'is-today': day.isToday,
+              'is-selected': day.isSelected
+            }"
+            @click="selectDateAndSwitchToDay(day.dateStr)"
+          >
+            <div
+              v-for="hour in hours"
+              :key="hour"
+              class="time-slot"
+            >
+              <div class="slot-line" />
             </div>
             <!-- 스케줄 블록들 -->
-            <div v-for="schedule in getSchedulesForDate(day.dateStr)" :key="schedule.id" class="week-schedule-block"
-              :class="{ 'is-completed': schedule.completed }" :style="{
+            <div
+              v-for="schedule in getSchedulesForDate(day.dateStr)"
+              :key="schedule.id"
+              class="week-schedule-block"
+              :class="{ 'is-completed': schedule.completed }"
+              :style="{
                 ...getScheduleStyle(schedule),
                 '--schedule-color': schedule.color || '#c9a76c'
-              }" @click.stop="selectDateAndSwitchToDay(day.dateStr)">
+              }"
+              @click.stop="selectDateAndSwitchToDay(day.dateStr)"
+            >
               <span class="schedule-title">{{ schedule.title }}</span>
-              <span class="schedule-time" v-if="schedule.startTime">
+              <span
+                v-if="schedule.startTime"
+                class="schedule-time"
+              >
                 {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
               </span>
             </div>
             <!-- 현재 시간 인디케이터 -->
-            <div v-if="day.isToday" class="current-time-indicator" :style="{ top: currentTimePosition }">
-              <div class="time-dot"></div>
-              <div class="time-line"></div>
+            <div
+              v-if="day.isToday"
+              class="current-time-indicator"
+              :style="{ top: currentTimePosition }"
+            >
+              <div class="time-dot" />
+              <div class="time-line" />
             </div>
           </div>
         </div>
@@ -255,11 +575,24 @@
     </div>
 
     <!-- ===== 월간 뷰 ===== -->
-    <div v-else-if="viewMode === 'month'" class="month-view">
+    <div
+      v-else-if="viewMode === 'month'"
+      class="month-view"
+    >
       <!-- 이전 달 더보기 -->
-      <button class="load-more-btn load-more-top" @click="emit('load-more', 'up')">
+      <button
+        class="load-more-btn load-more-top"
+        @click="emit('load-more', 'up')"
+      >
         <div class="load-more-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="18 15 12 9 6 15" />
           </svg>
         </div>
@@ -267,63 +600,106 @@
       </button>
 
       <!-- 월별 캘린더 카드 -->
-      <div v-for="(monthData, monthIndex) in calendarMonths" :key="`${monthData.year}-${monthData.month}`"
-        class="month-card" :ref="el => setMonthRef(el, monthData.year, monthData.month)"
-        :style="{ '--delay': `${monthIndex * 0.05}s` }">
+      <div
+        v-for="(monthData, monthIndex) in calendarMonths"
+        :key="`${monthData.year}-${monthData.month}`"
+        :ref="el => setMonthRef(el, monthData.year, monthData.month)"
+        class="month-card"
+        :style="{ '--delay': `${monthIndex * 0.05}s` }"
+      >
         <!-- 월 헤더 -->
         <div class="month-card-header">
           <div class="month-title-group">
             <span class="month-year">{{ monthData.year }}</span>
-            <h3 class="month-name">{{ getMonthName(monthData.month) }}</h3>
+            <h3 class="month-name">
+              {{ getMonthName(monthData.month) }}
+            </h3>
           </div>
-          <div class="month-badge" v-if="isCurrentMonth(monthData.year, monthData.month)">
-            <span class="pulse-dot"></span>
+          <div
+            v-if="isCurrentMonth(monthData.year, monthData.month)"
+            class="month-badge"
+          >
+            <span class="pulse-dot" />
             {{ t('common.today') }}
           </div>
         </div>
 
         <!-- 요일 헤더 -->
         <div class="weekday-row">
-          <div v-for="(day, index) in weekdays" :key="day" class="weekday-cell" :class="{
-            'weekend-sun': index === 0,
-            'weekend-sat': index === 6
-          }">
+          <div
+            v-for="(day, index) in weekdays"
+            :key="day"
+            class="weekday-cell"
+            :class="{
+              'weekend-sun': index === 0,
+              'weekend-sat': index === 6
+            }"
+          >
             {{ day }}
           </div>
         </div>
 
         <!-- 날짜 그리드 -->
         <div class="days-grid">
-          <button v-for="day in monthData.days" :key="day.dateStr" class="day-cell" :class="{
-            'other-month': !day.isCurrentMonth,
-            'is-today': day.isToday,
-            'has-events': day.scheduleCount > 0,
-            'is-sunday': day.date.getDay() === 0,
-            'is-saturday': day.date.getDay() === 6,
-            'all-completed': day.scheduleCount > 0 && day.completedCount === day.scheduleCount,
-          }" @click="selectDateAndSwitchToDay(day.dateStr)">
+          <button
+            v-for="day in monthData.days"
+            :key="day.dateStr"
+            class="day-cell"
+            :class="{
+              'other-month': !day.isCurrentMonth,
+              'is-today': day.isToday,
+              'has-events': day.scheduleCount > 0,
+              'is-sunday': day.date.getDay() === 0,
+              'is-saturday': day.date.getDay() === 6,
+              'all-completed': day.scheduleCount > 0 && day.completedCount === day.scheduleCount,
+            }"
+            @click="selectDateAndSwitchToDay(day.dateStr)"
+          >
             <span class="day-number">{{ day.day }}</span>
 
             <!-- 일정 인디케이터 -->
-            <div class="event-indicators" v-if="day.scheduleCount > 0">
+            <div
+              v-if="day.scheduleCount > 0"
+              class="event-indicators"
+            >
               <div class="event-dots">
-                <span v-for="n in Math.min(day.scheduleCount, 3)" :key="n" class="event-dot"
-                  :class="{ 'completed': n <= day.completedCount }"></span>
-                <span v-if="day.scheduleCount > 3" class="more-indicator">+{{ day.scheduleCount - 3 }}</span>
+                <span
+                  v-for="n in Math.min(day.scheduleCount, 3)"
+                  :key="n"
+                  class="event-dot"
+                  :class="{ 'completed': n <= day.completedCount }"
+                />
+                <span
+                  v-if="day.scheduleCount > 3"
+                  class="more-indicator"
+                >+{{ day.scheduleCount - 3 }}</span>
               </div>
             </div>
 
             <!-- 오늘 표시 링 -->
-            <div v-if="day.isToday" class="today-ring"></div>
+            <div
+              v-if="day.isToday"
+              class="today-ring"
+            />
           </button>
         </div>
       </div>
 
       <!-- 다음 달 더보기 -->
-      <button class="load-more-btn load-more-bottom" @click="emit('load-more', 'down')">
+      <button
+        class="load-more-btn load-more-bottom"
+        @click="emit('load-more', 'down')"
+      >
         <span>{{ t('calendar.loadNext') }}</span>
         <div class="load-more-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
@@ -331,27 +707,46 @@
     </div>
 
     <!-- ===== 연간 뷰 ===== -->
-    <div v-else-if="viewMode === 'year'" class="year-view">
+    <div
+      v-else-if="viewMode === 'year'"
+      class="year-view"
+    >
       <div class="year-grid">
-        <div v-for="month in yearMonths" :key="month.month" class="year-month-card"
+        <div
+          v-for="month in yearMonths"
+          :key="month.month"
+          class="year-month-card"
           :class="{ 'is-current-month': isCurrentMonth(currentYear, month.month) }"
-          @click="switchToMonth(currentYear, month.month)">
+          @click="switchToMonth(currentYear, month.month)"
+        >
           <div class="year-month-header">
             <span class="year-month-name">{{ getMonthName(month.month) }}</span>
-            <span v-if="month.eventCount > 0" class="year-month-events">{{ month.eventCount }}</span>
+            <span
+              v-if="month.eventCount > 0"
+              class="year-month-events"
+            >{{ month.eventCount }}</span>
           </div>
           <div class="mini-calendar">
             <div class="mini-weekdays">
-              <span v-for="d in weekdaysMin" :key="d">{{ d }}</span>
+              <span
+                v-for="d in weekdaysMin"
+                :key="d"
+              >{{ d }}</span>
             </div>
             <div class="mini-days">
-              <button v-for="day in month.days" :key="day.dateStr" class="mini-day" :class="{
-                'other-month': !day.isCurrentMonth,
-                'is-today': day.isToday,
-                'has-events': day.scheduleCount > 0,
-                'is-sunday': day.date.getDay() === 0,
-                'is-saturday': day.date.getDay() === 6,
-              }" @click.stop="selectDateAndSwitchToDay(day.dateStr)">
+              <button
+                v-for="day in month.days"
+                :key="day.dateStr"
+                class="mini-day"
+                :class="{
+                  'other-month': !day.isCurrentMonth,
+                  'is-today': day.isToday,
+                  'has-events': day.scheduleCount > 0,
+                  'is-sunday': day.date.getDay() === 0,
+                  'is-saturday': day.date.getDay() === 6,
+                }"
+                @click.stop="selectDateAndSwitchToDay(day.dateStr)"
+              >
                 {{ day.day }}
               </button>
             </div>
@@ -605,15 +1000,27 @@ const weekSchedulesMap = computed(() => {
   return map;
 });
 
-// 특정 날짜의 스케줄 가져오기 (시간순 정렬)
+// 특정 날짜의 스케줄 가져오기 (시간순 정렬, 시간이 있는 것만)
 function getSchedulesForDate(dateStr: string): ScheduleItem[] {
   const schedules = weekSchedulesMap.value[dateStr] || [];
-  return schedules.sort((a, b) => {
-    if (!a.startTime) return 1;
-    if (!b.startTime) return -1;
-    return a.startTime.localeCompare(b.startTime);
-  });
+  return schedules
+    .filter(s => s.startTime) // 시간이 있는 일정만
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
 }
+
+// 특정 날짜의 종일 일정 가져오기 (시간이 없는 것)
+function getAllDaySchedulesForDate(dateStr: string): ScheduleItem[] {
+  const schedules = weekSchedulesMap.value[dateStr] || [];
+  return schedules.filter(s => !s.startTime);
+}
+
+// 현재 주에 종일 일정이 있는지 확인
+const hasAnyAllDaySchedules = computed(() => {
+  return currentWeekDays.value.some(day => {
+    const schedules = weekSchedulesMap.value[day.dateStr] || [];
+    return schedules.some(s => !s.startTime);
+  });
+});
 
 // 스케줄 위치 및 높이 계산
 function getScheduleStyle(schedule: ScheduleItem) {
@@ -923,14 +1330,19 @@ const todaySchedules = computed(() => {
   return getSchedulesForDate(currentDateStr.value);
 });
 
-// 특정 시간대의 일정 가져오기 (Day 뷰용)
+// 특정 시간대의 일정 가져오기 (Day 뷰용) - 시간이 있는 일정만
 function getSchedulesForHour(hour: number): ScheduleItem[] {
   return todaySchedules.value.filter(schedule => {
-    if (!schedule.startTime) return hour === 0; // 종일 일정은 0시에 표시
+    if (!schedule.startTime) return false; // 종일 일정은 타임라인에서 제외
     const [startHour] = schedule.startTime.split(':').map(Number);
     return startHour === hour;
   });
 }
+
+// 종일 일정 가져오기 (Day 뷰용) - weekSchedulesMap에서 직접 가져옴
+const allDaySchedules = computed(() => {
+  return getAllDaySchedulesForDate(currentDateStr.value);
+});
 
 // 현재 시간인지 확인
 function isCurrentHour(hour: number): boolean {
@@ -1358,6 +1770,87 @@ defineExpose({ scrollToToday });
   flex: 1;
   height: 2px;
   background: #ef4444;
+}
+
+/* ===== 주간 뷰 종일 일정 섹션 ===== */
+.week-allday-section {
+  display: flex;
+  border-bottom: 1px solid var(--surface-3);
+  background: var(--surface-1);
+}
+
+.week-allday-label {
+  width: 60px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  border-right: 1px solid var(--surface-2);
+}
+
+.week-allday-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.week-allday-cell {
+  min-height: 40px;
+  padding: 4px;
+  border-right: 1px solid var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.week-allday-cell:last-child {
+  border-right: none;
+}
+
+.week-allday-cell:hover {
+  background: var(--surface-2);
+}
+
+.week-allday-cell.is-today {
+  background: rgba(201, 167, 108, 0.05);
+}
+
+.allday-event {
+  padding: 4px 8px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--schedule-color) 20%, var(--surface-2) 80%) 0%,
+    color-mix(in srgb, var(--schedule-color) 12%, var(--surface-1) 88%) 100%);
+  border: 1px solid color-mix(in srgb, var(--schedule-color) 25%, var(--surface-4) 75%);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allday-event:hover {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--schedule-color) 28%, var(--surface-3) 72%) 0%,
+    color-mix(in srgb, var(--schedule-color) 18%, var(--surface-2) 82%) 100%);
+  transform: scale(1.02);
+}
+
+.allday-event.is-completed {
+  opacity: 0.5;
+}
+
+.allday-event-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 /* ===== 월간 뷰 ===== */
@@ -2191,6 +2684,86 @@ defineExpose({ scrollToToday });
   border: 1px solid var(--surface-3);
   border-radius: 20px;
   overflow: hidden;
+}
+
+/* 일간 뷰 종일 일정 섹션 */
+.day-allday-section {
+  border-bottom: 1px solid var(--surface-3);
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(201, 167, 108, 0.06) 0%, rgba(201, 167, 108, 0.02) 100%);
+}
+
+.allday-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c9a76c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.allday-header svg {
+  opacity: 0.7;
+}
+
+.allday-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.allday-schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--item-color) 15%, var(--surface-2) 85%) 0%,
+    color-mix(in srgb, var(--item-color) 8%, var(--surface-1) 92%) 100%);
+  border: 1px solid color-mix(in srgb, var(--item-color) 25%, var(--surface-4) 75%);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allday-schedule-item:hover {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--item-color) 22%, var(--surface-3) 78%) 0%,
+    color-mix(in srgb, var(--item-color) 12%, var(--surface-2) 88%) 100%);
+  border-color: color-mix(in srgb, var(--item-color) 40%, var(--surface-4) 60%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--item-color) 15%, transparent 85%);
+}
+
+.allday-schedule-item.is-completed {
+  opacity: 0.5;
+}
+
+.allday-item-indicator {
+  width: 4px;
+  height: 20px;
+  background: var(--item-color);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.allday-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.allday-schedule-item.is-completed .allday-item-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.allday-item-check {
+  color: #34d399;
+  flex-shrink: 0;
 }
 
 .timeline-container {

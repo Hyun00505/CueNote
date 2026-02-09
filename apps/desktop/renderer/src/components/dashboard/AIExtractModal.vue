@@ -1,12 +1,36 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="emit('close')">
+  <div
+    v-if="visible"
+    class="modal-overlay"
+    @click.self="emit('close')"
+  >
     <div class="modal-content extract-modal">
       <div class="modal-header">
         <h3>{{ t('aiExtract.title') }}</h3>
-        <button class="modal-close-btn" @click="emit('close')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
+        <button
+          class="modal-close-btn"
+          @click="emit('close')"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line
+              x1="18"
+              y1="6"
+              x2="6"
+              y2="18"
+            />
+            <line
+              x1="6"
+              y1="6"
+              x2="18"
+              y2="18"
+            />
           </svg>
         </button>
       </div>
@@ -19,9 +43,16 @@
             :class="{ active: inputMode === 'file' }"
             @click="inputMode = 'file'; clearExtracted()"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-              <polyline points="14 2 14 8 20 8"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14 2 14 8 20 8" />
             </svg>
             {{ t('aiExtract.selectFile') }}
           </button>
@@ -30,28 +61,74 @@
             :class="{ active: inputMode === 'text' }"
             @click="inputMode = 'text'; clearExtracted()"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="17" y1="10" x2="3" y2="10"/>
-              <line x1="21" y1="6" x2="3" y2="6"/>
-              <line x1="21" y1="14" x2="3" y2="14"/>
-              <line x1="17" y1="18" x2="3" y2="18"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line
+                x1="17"
+                y1="10"
+                x2="3"
+                y2="10"
+              />
+              <line
+                x1="21"
+                y1="6"
+                x2="3"
+                y2="6"
+              />
+              <line
+                x1="21"
+                y1="14"
+                x2="3"
+                y2="14"
+              />
+              <line
+                x1="17"
+                y1="18"
+                x2="3"
+                y2="18"
+              />
             </svg>
             {{ t('aiExtract.enterText') }}
           </button>
         </div>
 
         <!-- 파일 선택 모드 -->
-        <div v-if="inputMode === 'file'" class="file-select-section">
+        <div
+          v-if="inputMode === 'file'"
+          class="file-select-section"
+        >
           <div class="file-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+              <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+              />
             </svg>
             <input
               v-model="searchQuery"
               type="text"
               :placeholder="t('aiExtract.searchPlaceholder')"
-            />
+            >
           </div>
           <div class="file-list">
             <button
@@ -61,36 +138,58 @@
               :class="{ selected: selectedFile === file }"
               @click="selectFile(file)"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                <polyline points="14 2 14 8 20 8"/>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
               </svg>
               <span>{{ getFileName(file) }}</span>
             </button>
-            <div v-if="filteredFiles.length === 0" class="no-files">
+            <div
+              v-if="filteredFiles.length === 0"
+              class="no-files"
+            >
               {{ t('aiExtract.noFilesFound') }}
             </div>
           </div>
-          <div v-if="fileLoading" class="file-loading">
-            <div class="spinner"></div>
+          <div
+            v-if="fileLoading"
+            class="file-loading"
+          >
+            <div class="spinner" />
             <span>{{ t('aiExtract.loadingFile') }}</span>
           </div>
         </div>
 
         <!-- 텍스트 입력 모드 -->
-        <div v-else class="text-input-section">
+        <div
+          v-else
+          class="text-input-section"
+        >
           <textarea
             v-model="content"
             :placeholder="t('aiExtract.textPlaceholder')"
             rows="8"
-          ></textarea>
+          />
         </div>
 
         <!-- 추출된 일정 목록 -->
-        <div v-if="extractedSchedules.length > 0" class="extracted-schedules">
+        <div
+          v-if="extractedSchedules.length > 0"
+          class="extracted-schedules"
+        >
           <div class="extracted-header">
             <h4>{{ t('aiExtract.extractedCount') }} ({{ extractedSchedules.length }})</h4>
-            <span class="confidence-badge" :class="confidenceClass">
+            <span
+              class="confidence-badge"
+              :class="confidenceClass"
+            >
               {{ t('aiExtract.confidence') }} {{ Math.round(confidence * 100) }}%
             </span>
           </div>
@@ -102,25 +201,68 @@
               :style="{ '--item-color': schedule.color }"
             >
               <input
-                type="checkbox"
                 :id="`schedule-${index}`"
                 v-model="selectedIndexes"
+                type="checkbox"
                 :value="index"
-              />
-              <label :for="`schedule-${index}`" class="extracted-item-content">
+              >
+              <label
+                :for="`schedule-${index}`"
+                class="extracted-item-content"
+              >
                 <span class="item-title">{{ schedule.title }}</span>
                 <span class="item-meta">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect
+                      x="3"
+                      y="4"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      ry="2"
+                    />
+                    <line
+                      x1="16"
+                      y1="2"
+                      x2="16"
+                      y2="6"
+                    />
+                    <line
+                      x1="8"
+                      y1="2"
+                      x2="8"
+                      y2="6"
+                    />
+                    <line
+                      x1="3"
+                      y1="10"
+                      x2="21"
+                      y2="10"
+                    />
                   </svg>
                   {{ schedule.date }}
                   <template v-if="schedule.startTime">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                      />
+                      <polyline points="12 6 12 12 16 14" />
                     </svg>
                     {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
                   </template>
@@ -131,27 +273,67 @@
         </div>
 
         <!-- 추출 에러 -->
-        <div v-if="error" class="extract-error">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        <div
+          v-if="error"
+          class="extract-error"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <line
+              x1="12"
+              y1="8"
+              x2="12"
+              y2="12"
+            />
+            <line
+              x1="12"
+              y1="16"
+              x2="12.01"
+              y2="16"
+            />
           </svg>
           {{ error }}
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="cancel-btn" @click="emit('close')">{{ t('common.cancel') }}</button>
+        <button
+          class="cancel-btn"
+          @click="emit('close')"
+        >
+          {{ t('common.cancel') }}
+        </button>
         <button
           v-if="extractedSchedules.length === 0"
           class="extract-btn"
           :disabled="!content.trim() || loading"
           @click="emit('extract', content)"
         >
-          <span v-if="loading" class="spinner"></span>
-          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
+          <span
+            v-if="loading"
+            class="spinner"
+          />
+          <svg
+            v-else
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z" />
           </svg>
           {{ loading ? t('aiExtract.extracting') : t('aiExtract.extractBtn') }}
         </button>

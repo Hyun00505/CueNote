@@ -8,27 +8,34 @@
         @save-github="handleSaveGitHubFile" />
 
       <EditorToolbar :editor="editor as Editor" :summarizing="summarizing" :note-name="getFileName(activeFile)"
-        :active-file="activeFile" @summarize="handleSummarize" @extract-result="handleExtractResult" />
+        :active-file="activeFile" :show-source-view="showSourceView" @summarize="handleSummarize"
+        @extract-result="handleExtractResult" @toggle-source-view="toggleSourceView" />
 
       <!-- AI 요약 결과 패널 -->
       <EditorSummaryPanel :summary-result="summaryResult" @close="summaryResult = null" @copy="copySummary"
         @insert="insertSummary" />
 
-      <div ref="editorWrapperRef" class="editor-content-wrapper" :class="{ 'drag-over': isDraggingOver }"
+      <div v-if="showSourceView" class="editor-content-wrapper source-view-wrapper">
+        <div class="source-view-container">
+          <textarea class="source-view-textarea" :value="sourceContent" @input="handleSourceInput" spellcheck="false" />
+        </div>
+      </div>
+
+      <div v-else ref="editorWrapperRef" class="editor-content-wrapper" :class="{ 'drag-over': isDraggingOver }"
         @contextmenu="handleContextMenu" @dragenter="handleDragEnter" @dragover="handleDragOver"
         @dragleave="handleDragLeave" @drop="handleDrop" @paste="handlePaste">
         <EditorContent :editor="editor" class="editor-content" />
-
-        <!-- AI 스트리밍 프리뷰 및 액션 바 -->
-        <EditorAIPreview :is-a-i-streaming="isAIStreaming" :ai-streaming-action="aiStreamingAction"
-          :stream-preview-html="streamPreviewHtml" :show-a-i-action-bar="showAIActionBar" @reject="handleAIReject"
-          @accept="handleAIAccept" />
       </div>
+
+      <!-- AI 스트리밍 프리뷰 (하단 고정 패널 - Teleport to body) -->
+      <EditorAIPreview :is-a-i-streaming="isAIStreaming" :ai-streaming-action="aiStreamingAction"
+        :stream-preview-html="streamPreviewHtml" :show-a-i-action-bar="showAIActionBar" @reject="handleAIReject"
+        @accept="handleAIAccept" />
 
       <!-- AI 컨텍스트 메뉴 -->
       <AIContextMenu :visible="showAIMenu" :position="aiMenuPosition" :selected-text="selectedText" @close="closeAIMenu"
         @result="handleAIResult" @stream-start="handleStreamStart" @stream-chunk="handleStreamChunk"
-        @stream-end="handleStreamEnd" @error="handleAIError" @proofread="handleProofread" />
+        @stream-end="handleStreamEnd" @error="handleAIError" @proofread="handleProofread" @mcp-used="handleMcpUsed" />
 
       <!-- 맞춤법 검사 패널 -->
       <AIProofreadPanel :visible="showProofreadPanel" :loading="proofreadLoading" :original-text="proofreadOriginalText"
@@ -45,8 +52,23 @@
         </svg>
         {{ editorError }}
       </p>
-    </div>
 
+      <!-- MCP 도구 사용 알림 토스트 -->
+      <Transition name="mcp-toast">
+        <div v-if="mcpNotification" class="mcp-toast">
+          <span class="mcp-toast-icon">🔧</span>
+          <div class="mcp-toast-body">
+            <div class="mcp-toast-title">MCP 도구 사용됨</div>
+            <div class="mcp-toast-tools">
+              <span v-for="t in mcpNotification.tools" :key="t.tool" class="mcp-toast-tool">
+                {{ t.server }} → {{ t.tool }}
+              </span>
+            </div>
+          </div>
+          <button class="mcp-toast-close" @click="mcpNotification = null">✕</button>
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>
 
@@ -135,6 +157,10 @@ const saved = ref(false);
 const summarizing = ref(false);
 const isDirty = ref(false);
 
+// 마크다운 원본 보기 상태
+const showSourceView = ref(false);
+const sourceContent = ref('');
+
 // GitHub 스테이징 관련 상태
 const stagingSaving = ref(false);
 const stagingSaved = ref(false);
@@ -163,6 +189,9 @@ const streamInsertPos = ref(0);  // 스트리밍 삽입 시작 위치
 const showAIActionBar = ref(false);  // AI 완료 후 액션 바 표시
 const streamedContent = ref('');  // 스트리밍 중 누적된 텍스트
 const hasSelectionForAI = ref(true);  // AI 요청 시 선택이 있었는지
+
+// MCP 알림 상태
+const mcpNotification = ref<{ tools: Array<{ server: string; tool: string }> } | null>(null);
 
 // 스트리밍 프리뷰 HTML (실시간 미리보기)
 const streamPreviewHtml = computed(() => {
@@ -384,6 +413,9 @@ const editor = useEditor({
     }),
     Link.configure({
       openOnClick: false,
+      HTMLAttributes: {
+        class: 'editor-link',
+      },
     }),
     Highlight.configure({
       multicolor: true,
@@ -397,6 +429,32 @@ const editor = useEditor({
       lowlight,
     }),
   ],
+  editorProps: {
+    handleClick(view, pos, event) {
+      const marks = view.state.doc.resolve(pos).marks();
+      const linkMark = marks.find(m => m.type.name === 'link');
+
+      if (linkMark) {
+        // Ctrl+Click → 외부 브라우저에서 열기
+        if (event.ctrlKey || event.metaKey) {
+          const href = linkMark.attrs.href;
+          if (href) {
+            event.preventDefault();
+            if (window.cuenote?.openExternal) {
+              window.cuenote.openExternal(href);
+            } else {
+              window.open(href, '_blank');
+            }
+            return true;
+          }
+        }
+        // 일반 클릭 → 이동 차단 (커서만 위치)
+        event.preventDefault();
+        return false;
+      }
+      return false;
+    },
+  },
   onUpdate: () => {
     if (!isDirty.value) {
       isDirty.value = true;
@@ -409,6 +467,34 @@ const editor = useEditor({
 function getFileName(path: string): string {
   const name = path.split(/[/\\]/).pop() || path;
   return name.replace(/\.md$/, '');
+}
+
+// 마크다운 원본 보기 토글
+function toggleSourceView() {
+  if (!editor.value) return;
+
+  if (!showSourceView.value) {
+    // WYSIWYG → 소스 뷰: 현재 에디터 내용을 마크다운으로 변환
+    const html = editor.value.getHTML();
+    sourceContent.value = htmlToMarkdown(html);
+  } else {
+    // 소스 뷰 → WYSIWYG: 마크다운을 HTML로 변환하여 에디터에 설정
+    const html = markdownToHtml(sourceContent.value);
+    editor.value.commands.setContent(html, { emitUpdate: false });
+  }
+
+  showSourceView.value = !showSourceView.value;
+}
+
+// 소스 뷰에서 내용 변경 시 dirty 처리
+function handleSourceInput(e: Event) {
+  const target = e.target as HTMLTextAreaElement;
+  sourceContent.value = target.value;
+  if (!isDirty.value) {
+    isDirty.value = true;
+    emit('dirty-change', true);
+    emitDirtyFiles();
+  }
 }
 
 async function openFile(filePath: string) {
@@ -476,8 +562,9 @@ async function handleSave() {
   editorError.value = '';
 
   try {
-    const html = editor.value.getHTML();
-    const content = htmlToMarkdown(html);
+    const content = showSourceView.value
+      ? sourceContent.value
+      : htmlToMarkdown(editor.value.getHTML());
 
     const res = await fetch(`${CORE_BASE}/vault/file`, {
       method: 'PUT',
@@ -518,8 +605,9 @@ async function handleSaveGitHubFile() {
   editorError.value = '';
 
   try {
-    const html = editor.value.getHTML();
-    const content = htmlToMarkdown(html);
+    const content = showSourceView.value
+      ? sourceContent.value
+      : htmlToMarkdown(editor.value.getHTML());
 
     // 클론된 로컬 파일에 저장
     const success = await saveGitHubFile(props.activeFile, content);
@@ -591,6 +679,10 @@ async function handleSummarize() {
       keyPoints: data.keyPoints || [],
       wordCount: data.wordCount
     };
+    // MCP 도구 사용 알림
+    if (data.mcp_used && data.mcp_used.length > 0) {
+      handleMcpUsed(data.mcp_used);
+    }
   } catch (error) {
     const providerName = llmSettings.value.llm.provider === 'gemini' ? 'Gemini API' : 'Ollama';
     editorError.value = `요약 생성에 실패했습니다. ${providerName}가 올바르게 설정되었는지 확인하세요.`;
@@ -976,6 +1068,15 @@ function handleStreamEnd() {
   }
 
   showAIActionBar.value = true;
+}
+
+// MCP 도구 사용 알림
+function handleMcpUsed(tools: Array<{ server: string; tool: string; status: string }>) {
+  mcpNotification.value = { tools };
+  // 5초 후 자동 숨김
+  setTimeout(() => {
+    mcpNotification.value = null;
+  }, 5000);
 }
 
 // AI 변경 적용
@@ -1376,6 +1477,12 @@ async function handleImageUpload(file: File) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 watch(() => props.activeFile, async (newFile) => {
+  // 파일 전환 시 소스 뷰를 닫고 WYSIWYG로 복원
+  if (showSourceView.value) {
+    showSourceView.value = false;
+    sourceContent.value = '';
+  }
+
   if (newFile) {
     await openFile(newFile);
   } else {
@@ -1611,6 +1718,41 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 
+/* Source view (마크다운 원본 보기) */
+.source-view-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.source-view-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px;
+  min-height: 100%;
+}
+
+.source-view-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 200px);
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.source-view-textarea::placeholder {
+  color: var(--text-muted);
+}
+
 /* Error message */
 .error-msg {
   position: absolute;
@@ -1659,5 +1801,119 @@ onBeforeUnmount(() => {
   margin-top: 0;
   margin-bottom: 0;
   transform: translateY(-10px);
+}
+
+/* MCP Toast Notification */
+.mcp-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 92, 246, 0.1);
+  z-index: 9999;
+  max-width: 360px;
+}
+
+.mcp-toast-icon {
+  font-size: 18px;
+}
+
+.mcp-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.mcp-toast-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+
+.mcp-toast-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mcp-toast-tool {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.mcp-toast-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  opacity: 0.6;
+}
+
+.mcp-toast-close:hover {
+  opacity: 1;
+}
+
+.mcp-toast-enter-active,
+.mcp-toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.mcp-toast-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.mcp-toast-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+/* Editor Link Styles */
+:deep(.editor-link) {
+  color: var(--accent-primary, #8b5cf6);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-primary, #8b5cf6) 40%, transparent);
+  text-underline-offset: 2px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  border-radius: 2px;
+}
+
+:deep(.editor-link:hover) {
+  color: var(--accent-primary, #8b5cf6);
+  text-decoration-color: var(--accent-primary, #8b5cf6);
+  background: color-mix(in srgb, var(--accent-primary, #8b5cf6) 8%, transparent);
+}
+
+:deep(.editor-link:hover::after) {
+  content: 'Ctrl + 클릭으로 열기';
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  background: var(--bg-primary, #1a1a2e);
+  border: 1px solid var(--border-subtle, #333);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary, #aaa);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 </style>

@@ -1,8 +1,24 @@
 <template>
-  <div id="section-shortcuts" class="settings-category">
+  <div
+    id="section-shortcuts"
+    class="settings-category"
+  >
     <h2 class="category-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="2" y="4" width="20" height="16" rx="2" />
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <rect
+          x="2"
+          y="4"
+          width="20"
+          height="16"
+          rx="2"
+        />
         <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h8" />
       </svg>
       {{ t('shortcuts.title') }}
@@ -10,13 +26,28 @@
 
     <section class="settings-section">
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="4" width="20" height="16" rx="2" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect
+            x="2"
+            y="4"
+            width="20"
+            height="16"
+            rx="2"
+          />
           <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h8" />
         </svg>
         {{ t('shortcuts.title') }}
       </h3>
-      <p class="section-desc">{{ t('shortcuts.desc') }}</p>
+      <p class="section-desc">
+        {{ t('shortcuts.desc') }}
+      </p>
 
       <div class="shortcut-list">
         <div class="shortcut-item">
@@ -25,12 +56,26 @@
             <span class="shortcut-desc">{{ t('shortcuts.aiMenuDesc') }}</span>
           </div>
           <div class="shortcut-keys">
-            <span v-for="(shortcut, index) in shortcuts.aiMenu" :key="index" class="shortcut-key">
+            <span
+              v-for="(shortcut, index) in shortcuts.aiMenu"
+              :key="index"
+              class="shortcut-key"
+            >
               {{ formatShortcut(shortcut) }}
             </span>
           </div>
-          <button class="shortcut-edit-btn" @click="openShortcutEditor('aiMenu')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button
+            class="shortcut-edit-btn"
+            @click="openShortcutEditor('aiMenu')"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
@@ -41,52 +86,117 @@
 
     <!-- Shortcut Editor Modal -->
     <Teleport to="body">
-      <div v-if="showShortcutEditor" class="shortcut-modal-overlay" @click.self="closeShortcutEditor">
+      <div
+        v-if="showShortcutEditor"
+        class="shortcut-modal-overlay"
+        @click.self="closeShortcutEditor"
+      >
         <div class="shortcut-modal">
           <div class="shortcut-modal-header">
             <h3>{{ t('shortcuts.edit') }}</h3>
-            <button class="shortcut-modal-close" @click="closeShortcutEditor">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button
+              class="shortcut-modal-close"
+              @click="closeShortcutEditor"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
           <div class="shortcut-modal-body">
-            <p class="shortcut-modal-hint">{{ t('shortcuts.pressKeys') }}</p>
+            <p class="shortcut-modal-hint">
+              {{ t('shortcuts.pressKeys') }}
+            </p>
 
-            <div class="shortcut-capture-area" tabindex="0" @keydown="captureShortcut" ref="shortcutCaptureRef">
-              <span v-if="capturedShortcut" class="captured-shortcut">
+            <div
+              ref="shortcutCaptureRef"
+              class="shortcut-capture-area"
+              tabindex="0"
+              @keydown="captureShortcut"
+            >
+              <span
+                v-if="capturedShortcut"
+                class="captured-shortcut"
+              >
                 {{ formatShortcut(capturedShortcut) }}
               </span>
-              <span v-else class="capture-placeholder">{{ t('shortcuts.waitingForInput') }}</span>
+              <span
+                v-else
+                class="capture-placeholder"
+              >{{ t('shortcuts.waitingForInput') }}</span>
             </div>
 
             <div class="current-shortcuts">
               <span class="current-label">{{ t('shortcuts.current') }}:</span>
               <div class="current-keys">
-                <span v-for="(shortcut, index) in editingShortcuts" :key="index" class="shortcut-tag">
+                <span
+                  v-for="(shortcut, index) in editingShortcuts"
+                  :key="index"
+                  class="shortcut-tag"
+                >
                   {{ formatShortcut(shortcut) }}
-                  <button class="remove-shortcut" @click="removeEditingShortcut(index)">×</button>
+                  <button
+                    class="remove-shortcut"
+                    @click="removeEditingShortcut(index)"
+                  >×</button>
                 </span>
               </div>
             </div>
 
-            <button class="add-shortcut-btn" @click="addCapturedShortcut" :disabled="!capturedShortcut">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
+            <button
+              class="add-shortcut-btn"
+              :disabled="!capturedShortcut"
+              @click="addCapturedShortcut"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="12"
+                  y1="5"
+                  x2="12"
+                  y2="19"
+                />
+                <line
+                  x1="5"
+                  y1="12"
+                  x2="19"
+                  y2="12"
+                />
               </svg>
               {{ t('shortcuts.addShortcut') }}
             </button>
           </div>
           <div class="shortcut-modal-footer">
-            <button class="shortcut-modal-btn reset" @click="resetToDefault">
+            <button
+              class="shortcut-modal-btn reset"
+              @click="resetToDefault"
+            >
               {{ t('shortcuts.resetDefault') }}
             </button>
-            <button class="shortcut-modal-btn cancel" @click="closeShortcutEditor">
+            <button
+              class="shortcut-modal-btn cancel"
+              @click="closeShortcutEditor"
+            >
               {{ t('common.cancel') }}
             </button>
-            <button class="shortcut-modal-btn primary" @click="saveShortcuts" :disabled="editingShortcuts.length === 0">
+            <button
+              class="shortcut-modal-btn primary"
+              :disabled="editingShortcuts.length === 0"
+              @click="saveShortcuts"
+            >
               {{ t('common.save') }}
             </button>
           </div>

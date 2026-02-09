@@ -1,7 +1,17 @@
 <template>
-  <div id="section-ai" class="settings-category">
+  <div
+    id="section-ai"
+    class="settings-category"
+  >
     <h2 class="category-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M12 2L2 7l10 5 10-5-10-5z" />
         <path d="M2 17l10 5 10-5" />
         <path d="M2 12l10 5 10-5" />
@@ -11,7 +21,14 @@
 
     <section class="settings-section">
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M12 2L2 7l10 5 10-5-10-5z" />
           <path d="M2 17l10 5 10-5" />
           <path d="M2 12l10 5 10-5" />
@@ -20,26 +37,115 @@
       </h3>
 
       <div class="provider-cards">
-        <button v-for="provider in providers" :key="provider.id" class="provider-card"
-          :class="{ active: settings.llm.provider === provider.id }" @click="onProviderChange(provider.id)">
+        <button
+          v-for="provider in providers"
+          :key="provider.id"
+          class="provider-card"
+          :class="{ active: settings.llm.provider === provider.id }"
+          @click="onProviderChange(provider.id)"
+        >
           <div class="provider-icon">
-            <svg v-if="provider.id === 'ollama'" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10" />
+            <!-- Ollama 아이콘 -->
+            <svg
+              v-if="provider.id === 'ollama'"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
               <path d="M12 6v6l4 2" />
             </svg>
-            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <!-- Gemini 아이콘 -->
+            <svg
+              v-else-if="provider.id === 'gemini'"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
+            </svg>
+            <!-- OpenAI 아이콘 -->
+            <svg
+              v-else-if="provider.id === 'openai'"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+              />
+              <path d="M12 7v5l3 3" />
+              <path d="M8 12h8" />
+            </svg>
+            <!-- Anthropic 아이콘 -->
+            <svg
+              v-else-if="provider.id === 'anthropic'"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M12 3L4 9v6l8 6 8-6V9l-8-6z" />
+              <path d="M12 12v9" />
+              <path d="M12 12L4 9" />
+              <path d="M12 12l8-3" />
+            </svg>
+            <!-- 기본 아이콘 -->
+            <svg
+              v-else
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <rect
+                x="3"
+                y="3"
+                width="18"
+                height="18"
+                rx="2"
+              />
+              <path d="M12 8v8" />
+              <path d="M8 12h8" />
             </svg>
           </div>
           <div class="provider-info">
             <span class="provider-name">{{ provider.name }}</span>
             <span class="provider-desc">{{ provider.description }}</span>
           </div>
-          <div class="provider-check" v-if="settings.llm.provider === provider.id">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <div
+            v-if="settings.llm.provider === provider.id"
+            class="provider-check"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -47,53 +153,137 @@
       </div>
     </section>
 
-    <!-- API Key Section (for Gemini) -->
-    <section class="settings-section" v-if="settings.llm.provider === 'gemini'">
+    <!-- API Key Section (for providers that require API key) -->
+    <section
+      v-if="currentProvider?.requiresApiKey"
+      class="settings-section"
+    >
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect
+            x="3"
+            y="11"
+            width="18"
+            height="11"
+            rx="2"
+            ry="2"
+          />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
-        {{ t('settings.apiKey') }}
+        {{ currentProvider?.name }} API Key
       </h3>
 
       <div class="api-key-input-wrapper">
-        <input type="password" v-model="settings.llm.apiKey" :placeholder="t('settings.apiKeyPlaceholder')"
-          class="api-key-input" :class="{
+        <input
+          v-model="settings.llm.apiKey"
+          type="password"
+          :placeholder="getApiKeyPlaceholder()"
+          class="api-key-input"
+          :class="{
             valid: keyValidationResult === true,
             invalid: keyValidationResult === false
-          }" />
-        <button class="validate-btn" @click="handleValidateKey" :disabled="isValidatingKey || !settings.llm.apiKey">
-          <span v-if="isValidatingKey" class="loading-spinner"></span>
+          }"
+          @input="onApiKeyChange"
+        >
+        <button
+          class="validate-btn"
+          :disabled="isValidatingKey || !settings.llm.apiKey"
+          @click="handleValidateKey"
+        >
+          <span
+            v-if="isValidatingKey"
+            class="loading-spinner"
+          />
           <span v-else>{{ t('settings.validate') }}</span>
         </button>
       </div>
 
-      <div class="validation-result" v-if="keyValidationResult !== null">
-        <span v-if="keyValidationResult" class="valid-text">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div
+        v-if="keyValidationResult !== null"
+        class="validation-result"
+      >
+        <span
+          v-if="keyValidationResult"
+          class="valid-text"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
           {{ t('settings.validKey') }}
         </span>
-        <span v-else class="invalid-text">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
+        <span
+          v-else
+          class="invalid-text"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <line
+              x1="15"
+              y1="9"
+              x2="9"
+              y2="15"
+            />
+            <line
+              x1="9"
+              y1="9"
+              x2="15"
+              y2="15"
+            />
           </svg>
           {{ t('settings.invalidKey') }}
         </span>
       </div>
 
-      <button type="button" class="api-key-link" @click="openApiKeyPage">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button
+        v-if="currentProvider?.apiKeyUrl"
+        type="button"
+        class="api-key-link"
+        @click="openApiKeyPage"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
           <polyline points="15 3 21 3 21 9" />
-          <line x1="10" y1="14" x2="21" y2="3" />
+          <line
+            x1="10"
+            y1="14"
+            x2="21"
+            y2="3"
+          />
         </svg>
-        {{ t('settings.getApiKey') }}
+        {{ currentProvider?.name }} API Key 발급
       </button>
     </section>
 
@@ -101,17 +291,36 @@
     <section class="settings-section">
       <div class="section-header-with-action">
         <h3 class="section-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polygon points="12 2 2 7 12 12 22 7 12 2" />
             <polyline points="2 17 12 22 22 17" />
             <polyline points="2 12 12 17 22 12" />
           </svg>
           {{ t('settings.modelSelect') }}
         </h3>
-        <button v-if="settings.llm.provider === 'ollama'" class="refresh-btn" @click="handleRefreshOllama"
-          :disabled="isRefreshing" :title="t('settings.refreshModels')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            :class="{ spinning: isRefreshing }">
+        <button
+          v-if="settings.llm.provider === 'ollama'"
+          class="refresh-btn"
+          :disabled="isRefreshing"
+          :title="t('settings.refreshModels')"
+          @click="handleRefreshOllama"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            :class="{ spinning: isRefreshing }"
+          >
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
             <path d="M21 3v5h-5" />
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
@@ -121,34 +330,78 @@
       </div>
 
       <!-- Ollama 에러 메시지 -->
-      <div v-if="settings.llm.provider === 'ollama' && ollamaError" class="ollama-error">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
+      <div
+        v-if="settings.llm.provider === 'ollama' && ollamaError"
+        class="ollama-error"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+          <line
+            x1="12"
+            y1="8"
+            x2="12"
+            y2="12"
+          />
+          <line
+            x1="12"
+            y1="16"
+            x2="12.01"
+            y2="16"
+          />
         </svg>
         <span>{{ ollamaError }}</span>
       </div>
 
       <!-- 로딩 상태 -->
-      <div v-if="settingsLoading && currentModels.length === 0" class="models-loading">
-        <span class="loading-spinner"></span>
+      <div
+        v-if="settingsLoading && currentModels.length === 0"
+        class="models-loading"
+      >
+        <span class="loading-spinner" />
         <span>{{ t('settings.loadingModels') }}</span>
       </div>
 
-      <div v-else class="model-list">
-        <button v-for="model in currentModels" :key="model.id" class="model-card"
-          :class="{ active: settings.llm.model === model.id }" @click="settings.llm.model = model.id">
+      <div
+        v-else
+        class="model-list"
+      >
+        <button
+          v-for="model in currentModels"
+          :key="model.id"
+          class="model-card"
+          :class="{ active: settings.llm.model === model.id }"
+          @click="settings.llm.model = model.id"
+        >
           <div class="model-left">
             <div class="model-radio">
-              <div class="radio-dot" :class="{ checked: settings.llm.model === model.id }"></div>
+              <div
+                class="radio-dot"
+                :class="{ checked: settings.llm.model === model.id }"
+              />
             </div>
             <div class="model-info">
               <div class="model-header">
                 <span class="model-name">{{ model.name }}</span>
-                <span v-if="settings.llm.provider === 'gemini' && model.free" class="free-badge">{{
+                <span
+                  v-if="model.free"
+                  class="free-badge"
+                >{{
                   t('settings.badgeFree') }}</span>
-                <span v-if="settings.llm.provider === 'gemini' && !model.free" class="paid-badge">{{
+                <span
+                  v-if="model.free === false"
+                  class="paid-badge"
+                >{{
                   t('settings.badgePaid') }}</span>
               </div>
               <span class="model-desc">{{ model.description }}</span>
@@ -158,12 +411,18 @@
         </button>
       </div>
 
-      <p v-if="currentModels.length === 0 && !ollamaError" class="no-models">
+      <p
+        v-if="currentModels.length === 0 && !ollamaError"
+        class="no-models"
+      >
         {{ settings.llm.provider === 'ollama' ? t('settings.noModels') : t('settings.loadingModels') }}
       </p>
 
       <!-- Ollama 모델 설치 안내 -->
-      <div v-if="settings.llm.provider === 'ollama' && currentModels.length === 0" class="ollama-install-hint">
+      <div
+        v-if="settings.llm.provider === 'ollama' && currentModels.length === 0"
+        class="ollama-install-hint"
+      >
         <p>{{ t('settings.installHint') }}</p>
         <code>ollama pull qwen2.5:7b</code>
       </div>
@@ -173,7 +432,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useSettings, useI18n } from '../../composables';
+import { useSettings, useI18n, type LLMProvider } from '../../composables';
 
 const { t } = useI18n();
 
@@ -182,36 +441,75 @@ const {
   providers,
   ollamaModels,
   geminiModels,
+  openaiModels,
+  anthropicModels,
   ollamaError,
   isValidatingKey,
   keyValidationResult,
   settingsLoading,
   validateApiKey,
-  onProviderChange,
-  refreshOllamaModels
+  onProviderChange
 } = useSettings();
 
 const isRefreshing = ref(false);
 
-const currentModels = computed(() => {
-  if (settings.value.llm.provider === 'gemini') {
-    return geminiModels.value;
-  }
-  return ollamaModels.value;
+// 현재 선택된 provider 정보
+const currentProvider = computed((): LLMProvider | undefined => {
+  return providers.value.find(p => p.id === settings.value.llm.provider);
 });
+
+// 현재 provider에 맞는 모델 목록
+const currentModels = computed(() => {
+  switch (settings.value.llm.provider) {
+    case 'gemini':
+      return geminiModels.value;
+    case 'openai':
+      return openaiModels.value;
+    case 'anthropic':
+      return anthropicModels.value;
+    default:
+      return ollamaModels.value;
+  }
+});
+
+// API 키 플레이스홀더
+function getApiKeyPlaceholder(): string {
+  const provider = settings.value.llm.provider;
+  switch (provider) {
+    case 'gemini':
+      return 'AIza...';
+    case 'openai':
+      return 'sk-...';
+    case 'anthropic':
+      return 'sk-ant-...';
+    default:
+      return t('settings.apiKeyPlaceholder');
+  }
+}
+
+// API 키 변경 시 apiKeys에도 저장
+function onApiKeyChange() {
+  const provider = settings.value.llm.provider;
+  if (provider !== 'ollama') {
+    settings.value.llm.apiKeys[provider as keyof typeof settings.value.llm.apiKeys] = settings.value.llm.apiKey;
+  }
+}
 
 async function handleRefreshOllama() {
   isRefreshing.value = true;
+  const { refreshOllamaModels } = useSettings();
   await refreshOllamaModels();
   isRefreshing.value = false;
 }
 
 async function handleValidateKey() {
-  await validateApiKey(settings.value.llm.apiKey);
+  await validateApiKey(settings.value.llm.apiKey, settings.value.llm.provider);
 }
 
 function openApiKeyPage() {
-  const url = 'https://aistudio.google.com/app/apikey';
+  const url = currentProvider.value?.apiKeyUrl || '';
+  if (!url) return;
+
   if (window.cuenote?.openExternal) {
     window.cuenote.openExternal(url);
   } else {

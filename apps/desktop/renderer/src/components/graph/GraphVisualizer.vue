@@ -1,6 +1,9 @@
 <template>
-  <main class="graph-container" ref="containerRef">
-    <slot name="loading-error-empty"></slot>
+  <main
+    ref="containerRef"
+    class="graph-container"
+  >
+    <slot name="loading-error-empty" />
     <svg
       ref="svgRef"
       class="graph-svg"
@@ -8,7 +11,10 @@
     >
       <defs>
         <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+          <feGaussianBlur
+            stdDeviation="3"
+            result="coloredBlur"
+          />
           <feMerge>
             <feMergeNode in="coloredBlur" />
             <feMergeNode in="SourceGraphic" />
@@ -16,7 +22,10 @@
         </filter>
       </defs>
 
-      <g class="zoom-group" ref="zoomGroupRef">
+      <g
+        ref="zoomGroupRef"
+        class="zoom-group"
+      >
         <!-- 엣지 -->
         <g class="edges">
           <line
@@ -59,8 +68,17 @@
               :filter="selectedNode?.id === node.id ? 'url(#glow)' : undefined"
             />
             <!-- 잠금 아이콘 -->
-            <g v-if="isNoteLocked(node.id)" class="lock-icon" :transform="`translate(${getNodeRadius(node) - 4}, ${-getNodeRadius(node) + 4})`">
-              <circle r="8" fill="var(--bg-primary)" stroke="var(--accent-primary, #8b5cf6)" stroke-width="1.5" />
+            <g
+              v-if="isNoteLocked(node.id)"
+              class="lock-icon"
+              :transform="`translate(${getNodeRadius(node) - 4}, ${-getNodeRadius(node) + 4})`"
+            >
+              <circle
+                r="8"
+                fill="var(--bg-primary)"
+                stroke="var(--accent-primary, #8b5cf6)"
+                stroke-width="1.5"
+              />
               <path 
                 d="M-3 1h6v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4z M-2 1v-2a2 2 0 0 1 4 0v2" 
                 fill="none" 
@@ -80,7 +98,7 @@
         </g>
       </g>
     </svg>
-    <slot name="overlays"></slot>
+    <slot name="overlays" />
   </main>
 </template>
 

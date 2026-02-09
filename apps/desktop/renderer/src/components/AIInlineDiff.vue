@@ -11,17 +11,17 @@
         <div class="conflict-actions">
           <button 
             class="conflict-btn reject" 
-            @click="$emit('reject')" 
-            :disabled="isStreaming"
+            :disabled="isStreaming" 
             title="원본 유지 (Esc)"
+            @click="$emit('reject')"
           >
             원본 유지
           </button>
           <button 
             class="conflict-btn accept" 
-            @click="$emit('accept')" 
-            :disabled="isStreaming"
+            :disabled="isStreaming" 
             title="변경 적용 (Enter)"
+            @click="$emit('accept')"
           >
             변경 적용
           </button>
@@ -30,7 +30,7 @@
 
       <!-- 원본 (삭제될 내용) -->
       <div class="conflict-section original">
-        <pre class="conflict-content"><code v-html="formatText(original)"></code></pre>
+        <pre class="conflict-content"><code v-html="formatText(original)" /></pre>
       </div>
 
       <!-- 구분선 -->
@@ -41,11 +41,17 @@
 
       <!-- AI 제안 (추가될 내용) -->
       <div class="conflict-section incoming">
-        <pre class="conflict-content"><code v-html="formatText(result)"></code><span v-if="isStreaming" class="streaming-cursor">▌</span></pre>
-        <div v-if="isStreaming && !result" class="streaming-placeholder">
-          <span class="streaming-dot"></span>
-          <span class="streaming-dot"></span>
-          <span class="streaming-dot"></span>
+        <pre class="conflict-content"><code v-html="formatText(result)" /><span
+v-if="isStreaming"
+                                                                               class="streaming-cursor"
+>▌</span></pre>
+        <div
+          v-if="isStreaming && !result"
+          class="streaming-placeholder"
+        >
+          <span class="streaming-dot" />
+          <span class="streaming-dot" />
+          <span class="streaming-dot" />
           <span class="streaming-text">AI가 생성 중...</span>
         </div>
       </div>
@@ -54,10 +60,16 @@
       <div class="conflict-footer">
         <code class="conflict-marker">&gt;&gt;&gt;&gt;&gt;&gt;&gt; AI 제안</code>
         <div class="conflict-meta">
-          <span v-if="isStreaming" class="meta-info streaming-badge">
-            <span class="pulse-dot"></span> 스트리밍 중
+          <span
+            v-if="isStreaming"
+            class="meta-info streaming-badge"
+          >
+            <span class="pulse-dot" /> 스트리밍 중
           </span>
-          <span v-else-if="meta && meta.sourceLanguage" class="meta-info">
+          <span
+            v-else-if="meta && meta.sourceLanguage"
+            class="meta-info"
+          >
             {{ getLanguageName(meta.sourceLanguage) }} → {{ targetLanguage }}
           </span>
         </div>
@@ -65,10 +77,16 @@
 
       <!-- 하단 액션 바 -->
       <div class="conflict-action-bar">
-        <span v-if="isStreaming" class="hint streaming">
+        <span
+          v-if="isStreaming"
+          class="hint streaming"
+        >
           스트리밍 완료까지 기다려주세요...
         </span>
-        <span v-else class="hint">
+        <span
+          v-else
+          class="hint"
+        >
           <kbd>Enter</kbd> 변경 적용 · <kbd>Esc</kbd> 원본 유지
         </span>
       </div>

@@ -3,7 +3,7 @@
     <!-- Formatting Group -->
     <ToolbarFormatGroup :editor="editor" />
 
-    <div class="toolbar-divider"></div>
+    <div class="toolbar-divider" />
 
     <!-- Image Group -->
     <ToolbarImageGroup :editor="editor" />
@@ -11,7 +11,7 @@
     <!-- Table Group -->
     <ToolbarTableGroup :editor="editor" />
 
-    <div class="toolbar-divider"></div>
+    <div class="toolbar-divider" />
 
     <!-- Undo/Redo is now in ToolbarFormatGroup, but maybe it should be separate? 
          The plan put it in FormatGroup, but structure wise it might be better here or in its own group.
@@ -21,19 +21,46 @@
     -->
 
     <!-- Cluster Badge -->
-    <ToolbarClusterBadge :activeFile="activeFile" />
+    <ToolbarClusterBadge :active-file="activeFile" />
 
-    <div class="toolbar-divider" v-if="activeFile"></div>
+    <div
+      v-if="activeFile"
+      class="toolbar-divider"
+    />
 
     <!-- AI Group -->
-    <ToolbarAIGroup 
+    <ToolbarAIGroup
       :editor="editor"
       :summarizing="summarizing"
-      :noteName="noteName"
-      :llmSettings="llmSettings"
+      :note-name="noteName"
+      :llm-settings="llmSettings"
       @summarize="handleSummarize"
       @extract-result="handleExtractResult"
     />
+
+    <div class="toolbar-divider" />
+
+    <!-- Source View Toggle -->
+    <button
+      class="toolbar-btn"
+      :class="{ active: showSourceView }"
+      title="마크다운 원본 보기"
+      @click="$emit('toggle-source-view')"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -50,6 +77,7 @@ const props = defineProps<{
   summarizing?: boolean;
   noteName?: string;
   activeFile?: string | null;
+  showSourceView?: boolean;
   llmSettings?: {
     provider: string;
     apiKey: string;
@@ -60,6 +88,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'summarize'): void;
   (e: 'extract-result', markdown: string): void;
+  (e: 'toggle-source-view'): void;
 }>();
 
 function handleSummarize() {
@@ -87,5 +116,29 @@ function handleExtractResult(markdown: string) {
   height: 20px;
   background: var(--border-subtle);
   margin: 0 8px;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.toolbar-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.toolbar-btn.active {
+  background: var(--bg-active);
+  color: var(--accent);
 }
 </style>

@@ -1,12 +1,26 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="env-modal-overlay" @click.self="emit('close')">
+    <div
+      v-if="visible"
+      class="env-modal-overlay"
+      @click.self="emit('close')"
+    >
       <div class="env-modal env-modal-large">
         <div class="env-modal-header">
           <h3>{{ t('env.addNew') }}</h3>
-          <button class="env-modal-close" @click="emit('close')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
+          <button
+            class="env-modal-close"
+            @click="emit('close')"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -18,8 +32,15 @@
             :class="{ active: currentTab === 'local' }"
             @click="currentTab = 'local'"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
             로컬 폴더
           </button>
@@ -28,16 +49,29 @@
             :class="{ active: currentTab === 'github' }"
             @click="currentTab = 'github'; handleGitHubTabOpen()"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
             </svg>
             GitHub
-            <span v-if="isGitHubLoggedIn" class="tab-badge connected">연결됨</span>
+            <span
+              v-if="isGitHubLoggedIn"
+              class="tab-badge connected"
+            >연결됨</span>
           </button>
         </div>
 
         <!-- 로컬 폴더 탭 -->
-        <div v-if="currentTab === 'local'" class="env-modal-body">
+        <div
+          v-if="currentTab === 'local'"
+          class="env-modal-body"
+        >
           <div class="env-form-group">
             <label>{{ t('env.name') }}</label>
             <input 
@@ -45,7 +79,7 @@
               type="text" 
               :placeholder="t('env.namePlaceholder')"
               @keydown.enter="handleAddEnvironment"
-            />
+            >
           </div>
           <div class="env-form-group">
             <label>{{ t('env.folderPath') }}</label>
@@ -55,25 +89,61 @@
                 type="text" 
                 :placeholder="t('env.folderPlaceholder')"
                 readonly
-              />
-              <button class="env-browse-btn" @click="browseFolder">{{ t('env.browse') }}</button>
+              >
+              <button
+                class="env-browse-btn"
+                @click="browseFolder"
+              >
+                {{ t('env.browse') }}
+              </button>
             </div>
           </div>
-          <p v-if="error" class="env-error">{{ error }}</p>
+          <p
+            v-if="error"
+            class="env-error"
+          >
+            {{ error }}
+          </p>
         </div>
 
         <!-- GitHub 탭 -->
-        <div v-else-if="currentTab === 'github'" class="env-modal-body github-tab-body">
+        <div
+          v-else-if="currentTab === 'github'"
+          class="env-modal-body github-tab-body"
+        >
           <!-- GitHub 로그인 상태 -->
-          <div v-if="isGitHubLoggedIn" class="github-logged-section">
+          <div
+            v-if="isGitHubLoggedIn"
+            class="github-logged-section"
+          >
             <div class="github-user-bar">
-              <img :src="githubUser?.avatar_url" :alt="githubUser?.login" class="github-avatar-sm" />
+              <img
+                :src="githubUser?.avatar_url"
+                :alt="githubUser?.login"
+                class="github-avatar-sm"
+              >
               <span class="github-username-sm">{{ githubUser?.name || githubUser?.login }}</span>
-              <button class="github-logout-btn-sm" @click="emit('github-logout')" title="로그아웃">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
+              <button
+                class="github-logout-btn-sm"
+                title="로그아웃"
+                @click="emit('github-logout')"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line
+                    x1="21"
+                    y1="12"
+                    x2="9"
+                    y2="12"
+                  />
                 </svg>
               </button>
             </div>
@@ -82,31 +152,67 @@
             <div class="github-repos-section">
               <div class="github-repos-header">
                 <span>리포지토리 선택</span>
-                <button class="github-create-repo-btn" @click="emit('open-create-repo')">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 5v14M5 12h14"/>
+                <button
+                  class="github-create-repo-btn"
+                  @click="emit('open-create-repo')"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M12 5v14M5 12h14" />
                   </svg>
                   새 리포지토리
                 </button>
               </div>
               
-              <div v-if="githubLoading" class="github-repos-loading">
-                <span class="loading-spinner-sm"></span>
+              <div
+                v-if="githubLoading"
+                class="github-repos-loading"
+              >
+                <span class="loading-spinner-sm" />
                 <span>리포지토리 목록을 불러오는 중...</span>
               </div>
-              <div v-else-if="githubRepos.length === 0" class="github-repos-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              <div
+                v-else-if="githubRepos.length === 0"
+                class="github-repos-empty"
+              >
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1"
+                >
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 </svg>
                 <span>리포지토리가 없습니다</span>
-                <button class="github-create-repo-btn primary" @click="emit('open-create-repo')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 5v14M5 12h14"/>
+                <button
+                  class="github-create-repo-btn primary"
+                  @click="emit('open-create-repo')"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M12 5v14M5 12h14" />
                   </svg>
                   첫 리포지토리 만들기
                 </button>
               </div>
-              <div v-else class="github-repos-list-env">
+              <div
+                v-else
+                class="github-repos-list-env"
+              >
                 <button
                   v-for="repo in githubRepos"
                   :key="repo.id"
@@ -115,20 +221,43 @@
                   @click="selectedRepoId = repo.id"
                 >
                   <div class="repo-item-icon-env">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                   </div>
                   <div class="repo-item-info-env">
                     <div class="repo-item-name-env">
                       {{ repo.name }}
-                      <span v-if="repo.private" class="repo-private-badge-env">Private</span>
+                      <span
+                        v-if="repo.private"
+                        class="repo-private-badge-env"
+                      >Private</span>
                     </div>
-                    <span v-if="repo.description" class="repo-item-desc-env">{{ repo.description }}</span>
+                    <span
+                      v-if="repo.description"
+                      class="repo-item-desc-env"
+                    >{{ repo.description }}</span>
                   </div>
-                  <div v-if="selectedRepoId === repo.id" class="repo-selected-check">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="20 6 9 17 4 12"/>
+                  <div
+                    v-if="selectedRepoId === repo.id"
+                    class="repo-selected-check"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
                 </button>
@@ -137,47 +266,102 @@
           </div>
 
           <!-- GitHub 로그인 폼 -->
-          <div v-else class="github-login-section">
+          <div
+            v-else
+            class="github-login-section"
+          >
             <div class="github-login-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
               </svg>
             </div>
             <h4>GitHub에 연결하기</h4>
-            <p class="github-login-desc">Personal Access Token을 입력하여 GitHub 리포지토리에 연결하세요.</p>
+            <p class="github-login-desc">
+              Personal Access Token을 입력하여 GitHub 리포지토리에 연결하세요.
+            </p>
             
             <div class="github-token-input-wrapper">
               <input
-                type="password"
                 v-model="githubTokenInput"
+                type="password"
                 placeholder="GitHub Personal Access Token"
                 class="github-token-input"
                 @keydown.enter="handleGitHubLogin"
-              />
+              >
               <button 
                 class="github-login-btn"
-                @click="handleGitHubLogin"
                 :disabled="githubValidating || !githubTokenInput.trim()"
+                @click="handleGitHubLogin"
               >
-                <span v-if="githubValidating" class="loading-spinner-sm"></span>
+                <span
+                  v-if="githubValidating"
+                  class="loading-spinner-sm"
+                />
                 <span v-else>연결</span>
               </button>
             </div>
             
-            <div v-if="githubError" class="github-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
+            <div
+              v-if="githubError"
+              class="github-error"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+                <line
+                  x1="15"
+                  y1="9"
+                  x2="9"
+                  y2="15"
+                />
+                <line
+                  x1="9"
+                  y1="9"
+                  x2="15"
+                  y2="15"
+                />
               </svg>
               {{ githubError }}
             </div>
             
-            <button type="button" class="github-token-link" @click="openGitHubTokenPage">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/>
-                <line x1="10" y1="14" x2="21" y2="3"/>
+            <button
+              type="button"
+              class="github-token-link"
+              @click="openGitHubTokenPage"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line
+                  x1="10"
+                  y1="14"
+                  x2="21"
+                  y2="3"
+                />
               </svg>
               Personal Access Token 발급받기
             </button>
@@ -190,22 +374,30 @@
 
         <!-- 푸터 -->
         <div class="env-modal-footer">
-          <button class="env-modal-btn cancel" @click="emit('close')">{{ t('common.cancel') }}</button>
+          <button
+            class="env-modal-btn cancel"
+            @click="emit('close')"
+          >
+            {{ t('common.cancel') }}
+          </button>
           <button 
             v-if="currentTab === 'local'"
             class="env-modal-btn primary" 
-            @click="handleAddEnvironment" 
-            :disabled="!newEnvName || !newEnvPath"
+            :disabled="!newEnvName || !newEnvPath" 
+            @click="handleAddEnvironment"
           >
             {{ t('common.add') }}
           </button>
           <button 
             v-else-if="currentTab === 'github' && isGitHubLoggedIn"
             class="env-modal-btn primary" 
-            @click="handleAddGitHubEnvironment" 
-            :disabled="!selectedRepoId || isCloning"
+            :disabled="!selectedRepoId || isCloning" 
+            @click="handleAddGitHubEnvironment"
           >
-            <span v-if="isCloning" class="loading-spinner-sm"></span>
+            <span
+              v-if="isCloning"
+              class="loading-spinner-sm"
+            />
             <span v-else>{{ t('common.add') }}</span>
           </button>
         </div>

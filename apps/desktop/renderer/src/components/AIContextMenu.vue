@@ -1,159 +1,159 @@
 <template>
   <Teleport to="body">
     <Transition name="menu-fade">
-      <div
-        v-if="visible"
-        ref="menuRef"
-        class="ai-context-menu"
-        :style="menuStyle"
-        @click.stop
-      >
+      <div v-if="visible" ref="menuRef" class="ai-context-menu" :style="menuStyle" @click.stop>
         <div class="menu-header">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
+            <path
+              d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z" />
           </svg>
           <span>{{ t('ai.assistant') }}</span>
         </div>
 
         <div class="menu-scroll-container">
-        <div class="menu-section">
-          <div class="section-label">{{ t('ai.proofread') }}</div>
-          <button class="menu-item" @click="handleAction('proofread')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-            <span>{{ t('ai.proofreading') }}</span>
-            <span class="badge">KO/EN</span>
-          </button>
-        </div>
-
-        <div class="menu-section">
-          <div class="section-label">{{ t('ai.transform') }}</div>
-          <button class="menu-item" @click="handleAction('improve')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 20h9"/>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-            <span>{{ t('ai.improve') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('expand')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-            </svg>
-            <span>{{ t('ai.expand') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('shorten')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
-            </svg>
-            <span>{{ t('ai.shorten') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('summarize')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <path d="M14 2v6h6"/>
-              <path d="M16 13H8M16 17H8M10 9H8"/>
-            </svg>
-            <span>{{ t('ai.summarize') }}</span>
-          </button>
-        </div>
-
-        <div class="menu-section">
-          <div class="section-label">{{ t('ai.translate') }}</div>
-          <button class="menu-item" @click="handleAction('translate', 'ko')" :disabled="loading">
-            <span class="lang-flag">🇰🇷</span>
-            <span>{{ t('ai.toKorean') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('translate', 'en')" :disabled="loading">
-            <span class="lang-flag">🇺🇸</span>
-            <span>{{ t('ai.toEnglish') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('translate', 'ja')" :disabled="loading">
-            <span class="lang-flag">🇯🇵</span>
-            <span>{{ t('ai.toJapanese') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('translate', 'zh')" :disabled="loading">
-            <span class="lang-flag">🇨🇳</span>
-            <span>{{ t('ai.toChinese') }}</span>
-          </button>
-        </div>
-
-        <div class="menu-section">
-          <div class="section-label">{{ t('ai.style') }}</div>
-          <button class="menu-item" @click="handleAction('improve', 'professional')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-            </svg>
-            <span>{{ t('ai.professional') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('improve', 'casual')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-              <line x1="9" y1="9" x2="9.01" y2="9"/>
-              <line x1="15" y1="9" x2="15.01" y2="9"/>
-            </svg>
-            <span>{{ t('ai.casual') }}</span>
-          </button>
-          <button class="menu-item" @click="handleAction('improve', 'academic')" :disabled="loading">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-            </svg>
-            <span>{{ t('ai.academic') }}</span>
-          </button>
-        </div>
-
-        <!-- 직접 요청하기 섹션 -->
-        <div class="menu-section custom-section">
-          <div class="section-label">{{ t('ai.customRequest') }}</div>
-          
-          <!-- 선택된 텍스트 미리보기 -->
-          <div v-if="selectedText" class="selected-preview">
-            <div class="preview-label">{{ t('ai.selectedText') }}</div>
-            <div class="preview-text">{{ truncatedSelectedText }}</div>
-          </div>
-          <div v-else class="no-selection-hint">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 16v-4"/>
-              <path d="M12 8h.01"/>
-            </svg>
-            {{ t('ai.noSelectionHint') }}
-          </div>
-          
-          <div class="custom-input-wrapper">
-            <textarea
-              ref="customInputRef"
-              v-model="customPrompt"
-              class="custom-input"
-              :placeholder="t('ai.customPlaceholder')"
-              rows="2"
-              @keydown.enter.ctrl="handleCustomRequest"
-              @keydown.enter.meta="handleCustomRequest"
-              :disabled="loading"
-            ></textarea>
-            <button 
-              class="custom-submit-btn" 
-              @click="handleCustomRequest"
-              :disabled="!customPrompt.trim() || loading"
-              :title="t('ai.submitCustom')"
-            >
+          <div class="menu-section">
+            <div class="section-label">
+              {{ t('ai.proofread') }}
+            </div>
+            <button class="menu-item" :disabled="loading" @click="handleAction('proofread')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               </svg>
+              <span>{{ t('ai.proofreading') }}</span>
+              <span class="badge">KO/EN</span>
             </button>
           </div>
-          <div class="custom-hint">{{ t('ai.customHint') }}</div>
-        </div>
+
+          <div class="menu-section">
+            <div class="section-label">
+              {{ t('ai.transform') }}
+            </div>
+            <button class="menu-item" :disabled="loading" @click="handleAction('improve')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              <span>{{ t('ai.improve') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('expand')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+              <span>{{ t('ai.expand') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('shorten')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />
+              </svg>
+              <span>{{ t('ai.shorten') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('summarize')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M16 13H8M16 17H8M10 9H8" />
+              </svg>
+              <span>{{ t('ai.summarize') }}</span>
+            </button>
+          </div>
+
+          <div class="menu-section">
+            <div class="section-label">
+              {{ t('ai.translate') }}
+            </div>
+            <button class="menu-item" :disabled="loading" @click="handleAction('translate', 'ko')">
+              <span class="lang-flag">🇰🇷</span>
+              <span>{{ t('ai.toKorean') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('translate', 'en')">
+              <span class="lang-flag">🇺🇸</span>
+              <span>{{ t('ai.toEnglish') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('translate', 'ja')">
+              <span class="lang-flag">🇯🇵</span>
+              <span>{{ t('ai.toJapanese') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('translate', 'zh')">
+              <span class="lang-flag">🇨🇳</span>
+              <span>{{ t('ai.toChinese') }}</span>
+            </button>
+          </div>
+
+          <div class="menu-section">
+            <div class="section-label">
+              {{ t('ai.style') }}
+            </div>
+            <button class="menu-item" :disabled="loading" @click="handleAction('improve', 'professional')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+              <span>{{ t('ai.professional') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('improve', 'casual')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1="9" y1="9" x2="9.01" y2="9" />
+                <line x1="15" y1="9" x2="15.01" y2="9" />
+              </svg>
+              <span>{{ t('ai.casual') }}</span>
+            </button>
+            <button class="menu-item" :disabled="loading" @click="handleAction('improve', 'academic')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                <path d="M6 12v5c3 3 9 3 12 0v-5" />
+              </svg>
+              <span>{{ t('ai.academic') }}</span>
+            </button>
+          </div>
+
+          <!-- 직접 요청하기 섹션 -->
+          <div class="menu-section custom-section">
+            <div class="section-label">
+              {{ t('ai.customRequest') }}
+            </div>
+
+            <!-- 선택된 텍스트 미리보기 -->
+            <div v-if="selectedText" class="selected-preview">
+              <div class="preview-label">
+                {{ t('ai.selectedText') }}
+              </div>
+              <div class="preview-text">
+                {{ truncatedSelectedText }}
+              </div>
+            </div>
+            <div v-else class="no-selection-hint">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+              {{ t('ai.noSelectionHint') }}
+            </div>
+
+            <div class="custom-input-wrapper">
+              <textarea ref="customInputRef" v-model="customPrompt" class="custom-input"
+                :placeholder="t('ai.customPlaceholder')" rows="2" :disabled="loading"
+                @keydown.enter.ctrl="handleCustomRequest" @keydown.enter.meta="handleCustomRequest" />
+              <button class="custom-submit-btn" :disabled="!customPrompt.trim() || loading"
+                :title="t('ai.submitCustom')" @click="handleCustomRequest">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </div>
+            <div class="custom-hint">
+              {{ t('ai.customHint') }}
+            </div>
+          </div>
         </div>
 
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner"></div>
+          <div class="loading-spinner" />
           <span>{{ t('ai.processing') }}</span>
         </div>
       </div>
@@ -181,6 +181,7 @@ const emit = defineEmits<{
   (e: 'stream-end'): void;
   (e: 'error', message: string): void;
   (e: 'proofread', text: string): void;
+  (e: 'mcp-used', tools: Array<{ server: string; tool: string; status: string }>): void;
 }>();
 
 const loading = ref(false);
@@ -202,7 +203,7 @@ function calculatePosition() {
   const viewportHeight = window.innerHeight;
   const menuWidth = 260; // 고정 너비
   const headerHeight = 45; // 헤더 높이 대략
-  
+
   let x = props.position.x;
   let y = props.position.y;
 
@@ -210,7 +211,7 @@ function calculatePosition() {
   if (x + menuWidth + padding > viewportWidth) {
     x = viewportWidth - menuWidth - padding;
   }
-  
+
   // 왼쪽 경계 체크
   if (x < padding) {
     x = padding;
@@ -220,7 +221,7 @@ function calculatePosition() {
   const spaceBelow = viewportHeight - y - padding;
   // 사용 가능한 위쪽 공간  
   const spaceAbove = props.position.y - padding;
-  
+
   // 최대 높이 결정 (아래 또는 위 공간 중 큰 쪽 사용)
   if (spaceBelow >= 300) {
     // 아래에 충분한 공간이 있으면 아래로 표시
@@ -233,7 +234,7 @@ function calculatePosition() {
     // 아래쪽으로 표시하되 높이 제한
     maxMenuHeight.value = Math.max(spaceBelow, 200);
   }
-  
+
   // 위쪽 경계 체크
   if (y < padding) {
     y = padding;
@@ -327,13 +328,14 @@ async function handleAction(action: string, option?: string) {
 
     const decoder = new TextDecoder();
     let buffer = '';
+    let currentSseEvent = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      
+
       // SSE 이벤트 파싱
       const lines = buffer.split('\n');
       buffer = lines.pop() || ''; // 마지막 불완전한 라인 보관
@@ -349,12 +351,23 @@ async function handleAction(action: string, option?: string) {
           data = data.replace(/\\n/g, '\n');
           // 빈 문자열이 아니면 emit (공백만 있어도 전달)
           if (data !== '') {
-            emit('stream-chunk', data);
+            // MCP 이벤트 데이터 처리
+            if (currentSseEvent === 'mcp') {
+              try {
+                const mcpTools = JSON.parse(data);
+                emit('mcp-used', mcpTools);
+              } catch { /* ignore parse error */ }
+              currentSseEvent = '';
+            } else {
+              emit('stream-chunk', data);
+            }
           }
         } else if (line.startsWith('event:')) {
           const event = line.slice(6).trim();
           if (event === 'done') {
             emit('stream-end');
+          } else if (event === 'mcp') {
+            currentSseEvent = 'mcp';
           } else if (event === 'error') {
             // 다음 data 라인에서 에러 메시지를 읽음
           }
@@ -375,7 +388,7 @@ async function handleAction(action: string, option?: string) {
 // 직접 요청하기 처리
 async function handleCustomRequest() {
   const promptText = customPrompt.value.trim();
-  
+
   if (!promptText) {
     emit('error', t('ai.enterPrompt'));
     return;
@@ -385,7 +398,7 @@ async function handleCustomRequest() {
 
   // 선택된 텍스트가 없으면 빈 문자열로 처리 (AI가 지시만 수행)
   const content = props.selectedText.trim() || '';
-  
+
   const body = {
     content: content,
     action: 'custom',
@@ -399,8 +412,7 @@ async function handleCustomRequest() {
   try {
     emit('stream-start', {
       action: 'custom',
-      original: content,
-      hasSelection: !!content
+      original: content
     });
     emit('close');
 
@@ -421,13 +433,14 @@ async function handleCustomRequest() {
 
     const decoder = new TextDecoder();
     let buffer = '';
+    let currentSseEvent2 = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      
+
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
@@ -439,12 +452,22 @@ async function handleCustomRequest() {
           }
           data = data.replace(/\\n/g, '\n');
           if (data !== '') {
-            emit('stream-chunk', data);
+            if (currentSseEvent2 === 'mcp') {
+              try {
+                const mcpTools = JSON.parse(data);
+                emit('mcp-used', mcpTools);
+              } catch { /* ignore */ }
+              currentSseEvent2 = '';
+            } else {
+              emit('stream-chunk', data);
+            }
           }
         } else if (line.startsWith('event:')) {
           const event = line.slice(6).trim();
           if (event === 'done') {
             emit('stream-end');
+          } else if (event === 'mcp') {
+            currentSseEvent2 = 'mcp';
           }
         }
       }
@@ -500,7 +523,7 @@ onBeforeUnmount(() => {
   background: var(--bg-secondary, #16161a);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 12px;
-  box-shadow: 
+  box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px var(--surface-2),
     0 0 40px rgba(139, 92, 246, 0.15);
@@ -771,7 +794,9 @@ onBeforeUnmount(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Transition */

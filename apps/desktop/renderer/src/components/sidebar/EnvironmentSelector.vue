@@ -1,27 +1,63 @@
 <template>
   <div class="sidebar-section environment-section">
     <div class="env-header">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+        />
+        <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24" />
       </svg>
       <span class="env-label">환경</span>
       <div class="env-actions">
-        <button class="env-add-btn" @click="emit('open-add-modal')" title="로컬 환경 추가">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
-            </svg>
+        <button
+          class="env-add-btn"
+          title="로컬 환경 추가"
+          @click="emit('open-add-modal')"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
         </button>
       </div>
     </div>
     
     <!-- 환경 선택기 -->
-    <div class="env-selector" @click="toggleDropdown">
-      <div class="env-current" :class="{ 'github-mode': currentEnvironment?.type === 'github' }">
+    <div
+      class="env-selector"
+      @click="toggleDropdown"
+    >
+      <div
+        class="env-current"
+        :class="{ 'github-mode': currentEnvironment?.type === 'github' }"
+      >
         <!-- GitHub 모드 -->
         <template v-if="currentEnvironment?.type === 'github'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="env-github-icon">
-            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="env-github-icon"
+          >
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
           </svg>
           <span class="env-name">{{ currentEnvironment.name }}</span>
           <span class="env-github-badge">GitHub</span>
@@ -30,20 +66,41 @@
         <template v-else>
           <span class="env-name">{{ currentEnvironment?.name || '환경 선택' }}</span>
         </template>
-        <svg :class="{ rotated: dropdownOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="env-chevron">
-          <path d="M6 9l6 6 6-6"/>
+        <svg
+          :class="{ rotated: dropdownOpen }"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="env-chevron"
+        >
+          <path d="M6 9l6 6 6-6" />
         </svg>
       </div>
     </div>
     
     <!-- 환경 드롭다운 -->
-    <div v-if="dropdownOpen" class="env-dropdown">
-      
+    <div
+      v-if="dropdownOpen"
+      class="env-dropdown"
+    >
       <!-- GitHub 환경들 -->
-      <div v-if="githubEnvironments.length > 0" class="env-dropdown-section">
+      <div
+        v-if="githubEnvironments.length > 0"
+        class="env-dropdown-section"
+      >
         <div class="env-dropdown-section-title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
           </svg>
           GitHub Repos
         </div>
@@ -60,21 +117,38 @@
           </div>
           <button 
             class="env-remove-btn" 
-            @click.stop="emit('remove-environment', env.id)"
             title="연결 해제"
+            @click.stop="emit('remove-environment', env.id)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
       </div>
       
       <!-- 로컬 환경들 -->
-      <div v-if="localEnvironments.length > 0" class="env-dropdown-section">
+      <div
+        v-if="localEnvironments.length > 0"
+        class="env-dropdown-section"
+      >
         <div class="env-dropdown-section-title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
           로컬 폴더
         </div>
@@ -92,17 +166,27 @@
           <button 
             v-if="environments.length > 1" 
             class="env-remove-btn" 
-            @click.stop="emit('remove-environment', env.id)"
             title="환경 제거"
+            @click.stop="emit('remove-environment', env.id)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
       </div>
 
-       <div v-if="environments.length === 0" class="env-empty">
+      <div
+        v-if="environments.length === 0"
+        class="env-empty"
+      >
         환경이 없습니다.
       </div>
     </div>

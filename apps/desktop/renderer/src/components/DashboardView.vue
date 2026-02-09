@@ -2,9 +2,9 @@
   <div class="calendar-view">
     <!-- 배경 효과 -->
     <div class="view-background">
-      <div class="bg-gradient bg-gradient-1"></div>
-      <div class="bg-gradient bg-gradient-2"></div>
-      <div class="bg-noise"></div>
+      <div class="bg-gradient bg-gradient-1" />
+      <div class="bg-gradient bg-gradient-2" />
+      <div class="bg-noise" />
     </div>
 
     <div class="calendar-body">

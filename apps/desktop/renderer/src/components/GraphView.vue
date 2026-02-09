@@ -28,23 +28,66 @@
 
       <template #overlays>
         <!-- 연결 편집 모드 오버레이 -->
-        <div v-if="linkEditMode" class="link-edit-overlay" @click="cancelLinkEdit">
-          <div class="link-edit-banner" @click.stop>
+        <div
+          v-if="linkEditMode"
+          class="link-edit-overlay"
+          @click="cancelLinkEdit"
+        >
+          <div
+            class="link-edit-banner"
+            @click.stop
+          >
             <div class="link-edit-icon">
               <!-- 아이콘 생략 (간소화) -->
-              <svg v-if="linkEditMode === 'add'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
+              <svg
+                v-if="linkEditMode === 'add'"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="12"
+                  y1="5"
+                  x2="12"
+                  y2="19"
+                />
+                <line
+                  x1="5"
+                  y1="12"
+                  x2="19"
+                  y2="12"
+                />
               </svg>
-              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="5" y1="12" x2="19" y2="12" />
+              <svg
+                v-else
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="5"
+                  y1="12"
+                  x2="19"
+                  y2="12"
+                />
               </svg>
             </div>
             <div class="link-edit-text">
               <strong>{{ linkSourceNode?.label }}</strong>
               <span>{{ linkEditMode === 'add' ? '에 연결할 노드를 클릭하세요' : '에서 연결을 삭제할 노드를 클릭하세요' }}</span>
             </div>
-            <button class="link-edit-cancel" @click="cancelLinkEdit">취소</button>
+            <button
+              class="link-edit-cancel"
+              @click="cancelLinkEdit"
+            >
+              취소
+            </button>
           </div>
         </div>
 

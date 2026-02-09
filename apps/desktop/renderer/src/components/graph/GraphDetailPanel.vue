@@ -1,6 +1,12 @@
 <template>
-  <aside class="detail-panel" :class="{ open: selectedNode }">
-    <div v-if="selectedNode" class="detail-content">
+  <aside
+    class="detail-panel"
+    :class="{ open: selectedNode }"
+  >
+    <div
+      v-if="selectedNode"
+      class="detail-content"
+    >
       <div class="detail-header">
         <div 
           class="detail-cluster-badge"
@@ -8,19 +14,48 @@
         >
           {{ selectedCluster?.label || '미분류' }}
         </div>
-        <button class="close-btn" @click="emit('close')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
+        <button
+          class="close-btn"
+          @click="emit('close')"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line
+              x1="18"
+              y1="6"
+              x2="6"
+              y2="18"
+            />
+            <line
+              x1="6"
+              y1="6"
+              x2="18"
+              y2="18"
+            />
           </svg>
         </button>
       </div>
 
-      <h2 class="detail-title">{{ selectedNode.label }}</h2>
+      <h2 class="detail-title">
+        {{ selectedNode.label }}
+      </h2>
       
       <div class="detail-meta">
         <span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
@@ -31,10 +66,29 @@
       <!-- 클러스터 변경 섹션 -->
       <div class="cluster-change-section">
         <h4>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3" />
-            <circle cx="4" cy="8" r="2" />
-            <circle cx="20" cy="8" r="2" />
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+            />
+            <circle
+              cx="4"
+              cy="8"
+              r="2"
+            />
+            <circle
+              cx="20"
+              cy="8"
+              r="2"
+            />
           </svg>
           클러스터 소속
         </h4>
@@ -46,12 +100,20 @@
             :class="{ active: selectedNode.cluster === cluster.id }"
             @click="emit('move-cluster', cluster.id)"
           >
-            <span class="cluster-dot" :style="{ background: cluster.color }"></span>
+            <span
+              class="cluster-dot"
+              :style="{ background: cluster.color }"
+            />
             <span class="cluster-name">{{ cluster.label }}</span>
             <svg 
               v-if="selectedNode.cluster === cluster.id" 
               class="check-icon"
-              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
@@ -63,12 +125,42 @@
             :class="{ locked: isLocked }"
             @click="emit('toggle-lock')"
           >
-            <svg v-if="isLocked" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <svg
+              v-if="isLocked"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect
+                x="3"
+                y="11"
+                width="18"
+                height="11"
+                rx="2"
+                ry="2"
+              />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <svg
+              v-else
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect
+                x="3"
+                y="11"
+                width="18"
+                height="11"
+                rx="2"
+                ry="2"
+              />
               <path d="M7 11V7a5 5 0 0 1 9.9-1" />
             </svg>
             {{ isLocked ? '잠금 해제' : 'AI 분류 잠금' }}
@@ -89,7 +181,7 @@
             <span 
               class="connected-dot" 
               :style="{ background: note.color }"
-            ></span>
+            />
             <span class="connected-name">{{ note.label }}</span>
           </button>
           <div 
@@ -102,7 +194,10 @@
       </div>
 
       <!-- 클러스터 키워드 -->
-      <div v-if="selectedCluster?.keywords.length" class="cluster-keywords-section">
+      <div
+        v-if="selectedCluster?.keywords.length"
+        class="cluster-keywords-section"
+      >
         <h4>클러스터 키워드</h4>
         <div class="keyword-tags">
           <span 
@@ -115,11 +210,26 @@
         </div>
       </div>
 
-      <button class="open-note-btn" @click="emit('open-file', selectedNode.id)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button
+        class="open-note-btn"
+        @click="emit('open-file', selectedNode.id)"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
           <polyline points="15 3 21 3 21 9" />
-          <line x1="10" y1="14" x2="21" y2="3" />
+          <line
+            x1="10"
+            y1="14"
+            x2="21"
+            y2="3"
+          />
         </svg>
         노트 열기
       </button>

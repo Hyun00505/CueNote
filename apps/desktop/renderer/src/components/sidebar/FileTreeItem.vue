@@ -13,12 +13,34 @@
       @dragleave="onDragLeave"
       @drop.prevent="onDrop"
     >
-      <svg class="expand-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        class="expand-icon"
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polyline :points="isExpanded ? '6 9 12 15 18 9' : '9 6 15 12 9 18'" />
       </svg>
-      <svg class="folder-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path v-if="isExpanded" d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h9a2 2 0 0 1 2 2v1M5 19h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2z"/>
-        <path v-else d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      <svg
+        class="folder-icon"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          v-if="isExpanded"
+          d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h9a2 2 0 0 1 2 2v1M5 19h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2z"
+        />
+        <path
+          v-else
+          d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+        />
       </svg>
       
       <!-- 폴더 이름 편집 모드 -->
@@ -26,33 +48,64 @@
         v-if="editingFolder === item.path"
         ref="folderEditInputRef"
         :value="editingFolderName"
+        class="folder-name-edit-input"
         @input="onFolderEditInput"
         @keydown.enter="emit('folder-rename-confirm')"
         @keydown.escape="emit('folder-rename-cancel')"
         @blur="emit('folder-rename-confirm')"
-        class="folder-name-edit-input"
         @click.stop
-      />
-      <span v-else class="item-name">{{ item.name }}</span>
+      >
+      <span
+        v-else
+        class="item-name"
+      >{{ item.name }}</span>
       
       <!-- 폴더 액션 버튼들 -->
-      <div class="folder-actions" v-if="editingFolder !== item.path">
-        <button class="folder-action-btn" @click.stop="emit('create-file-in', item.path)" title="새 파일">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
+      <div
+        v-if="editingFolder !== item.path"
+        class="folder-actions"
+      >
+        <button
+          class="folder-action-btn"
+          title="새 파일"
+          @click.stop="emit('create-file-in', item.path)"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 5v14M5 12h14" />
           </svg>
         </button>
-        <button class="folder-action-btn delete" @click.stop="showDeletePopover($event, 'folder')" :title="t('common.delete')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        <button
+          class="folder-action-btn delete"
+          :title="t('common.delete')"
+          @click.stop="showDeletePopover($event, 'folder')"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
         </button>
       </div>
     </div>
 
     <!-- 폴더 자식 노드들 -->
-    <div v-if="item.type === 'folder' && isExpanded && item.children" class="tree-children">
+    <div
+      v-if="item.type === 'folder' && isExpanded && item.children"
+      class="tree-children"
+    >
       <FileTreeItem
         v-for="child in item.children"
         :key="child.path"
@@ -100,9 +153,17 @@
       @dragstart="onDragStart"
       @dragend="onDragEnd"
     >
-      <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-        <polyline points="14 2 14 8 20 8"/>
+      <svg
+        class="file-icon"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
       </svg>
       
       <!-- 편집 모드 -->
@@ -110,24 +171,44 @@
         v-if="editingFile === item.path"
         ref="editInputRef"
         :value="editingName"
+        class="file-name-edit-input"
         @input="onEditInput"
         @keydown.enter="emit('rename-confirm')"
         @keydown.escape="emit('rename-cancel')"
         @blur="emit('rename-confirm')"
-        class="file-name-edit-input"
         @click.stop
-      />
-      <span v-else class="item-name">{{ displayName }}</span>
+      >
+      <span
+        v-else
+        class="item-name"
+      >{{ displayName }}</span>
       
       <!-- 변경 표시 -->
-      <span v-if="dirtyFiles?.includes(item.path)" class="dirty-indicator">●</span>
+      <span
+        v-if="dirtyFiles?.includes(item.path)"
+        class="dirty-indicator"
+      >●</span>
       
       <!-- 파일 액션 버튼 -->
-      <div class="file-actions" v-if="editingFile !== item.path">
-        <button class="file-action-btn delete" @click.stop="showDeletePopover($event, 'file')" :title="t('common.delete')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      <div
+        v-if="editingFile !== item.path"
+        class="file-actions"
+      >
+        <button
+          class="file-action-btn delete"
+          :title="t('common.delete')"
+          @click.stop="showDeletePopover($event, 'file')"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
         </button>
       </div>
@@ -144,11 +225,28 @@
           :style="{ left: popoverPosition.x + 'px', top: popoverPosition.y + 'px' }"
           @click.stop
         >
-          <p class="delete-popover-text">{{ isGitHub ? t('file.deleteFolder') : t('file.deleteQuestion') }}</p>
-          <p v-if="isGitHub" class="delete-popover-warning">⚠️ {{ t('file.deleteWarning') }}</p>
+          <p class="delete-popover-text">
+            {{ isGitHub ? t('file.deleteFolder') : t('file.deleteQuestion') }}
+          </p>
+          <p
+            v-if="isGitHub"
+            class="delete-popover-warning"
+          >
+            ⚠️ {{ t('file.deleteWarning') }}
+          </p>
           <div class="delete-popover-actions">
-            <button class="popover-btn cancel" @click.stop="showFolderDeletePopover = false">{{ t('common.cancel') }}</button>
-            <button class="popover-btn confirm" @click.stop="confirmFolderDelete">{{ t('common.delete') }}</button>
+            <button
+              class="popover-btn cancel"
+              @click.stop="showFolderDeletePopover = false"
+            >
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              class="popover-btn confirm"
+              @click.stop="confirmFolderDelete"
+            >
+              {{ t('common.delete') }}
+            </button>
           </div>
         </div>
       </Transition>
@@ -162,11 +260,28 @@
           :style="{ left: popoverPosition.x + 'px', top: popoverPosition.y + 'px' }"
           @click.stop
         >
-          <p class="delete-popover-text">{{ isGitHub ? t('file.deleteFile') : t('file.deleteQuestion') }}</p>
-          <p v-if="isGitHub" class="delete-popover-warning">⚠️ {{ t('file.deleteWarning') }}</p>
+          <p class="delete-popover-text">
+            {{ isGitHub ? t('file.deleteFile') : t('file.deleteQuestion') }}
+          </p>
+          <p
+            v-if="isGitHub"
+            class="delete-popover-warning"
+          >
+            ⚠️ {{ t('file.deleteWarning') }}
+          </p>
           <div class="delete-popover-actions">
-            <button class="popover-btn cancel" @click.stop="showFileDeletePopover = false">{{ t('common.cancel') }}</button>
-            <button class="popover-btn confirm" @click.stop="confirmFileDelete">{{ t('common.delete') }}</button>
+            <button
+              class="popover-btn cancel"
+              @click.stop="showFileDeletePopover = false"
+            >
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              class="popover-btn confirm"
+              @click.stop="confirmFileDelete"
+            >
+              {{ t('common.delete') }}
+            </button>
           </div>
         </div>
       </Transition>

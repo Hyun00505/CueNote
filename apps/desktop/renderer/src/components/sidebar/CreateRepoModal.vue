@@ -1,12 +1,26 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="env-modal-overlay" @click.self="emit('close')">
+    <div
+      v-if="visible"
+      class="env-modal-overlay"
+      @click.self="emit('close')"
+    >
       <div class="env-modal">
         <div class="env-modal-header">
           <h3>새 GitHub 리포지토리</h3>
-          <button class="env-modal-close" @click="emit('close')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
+          <button
+            class="env-modal-close"
+            @click="emit('close')"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -18,7 +32,7 @@
               type="text" 
               placeholder="my-notes"
               @keydown.enter="handleCreate"
-            />
+            >
           </div>
           <div class="env-form-group">
             <label>설명 (선택)</label>
@@ -26,30 +40,49 @@
               v-model="repoDescription" 
               type="text" 
               placeholder="나의 마크다운 노트"
-            />
+            >
           </div>
           <div class="env-form-group">
             <label class="checkbox-label">
-              <input type="checkbox" v-model="repoPrivate" />
+              <input
+                v-model="repoPrivate"
+                type="checkbox"
+              >
               <span>Private 리포지토리로 생성</span>
             </label>
           </div>
           <div class="env-form-group">
             <label class="checkbox-label">
-              <input type="checkbox" v-model="repoInitReadme" />
+              <input
+                v-model="repoInitReadme"
+                type="checkbox"
+              >
               <span>README.md 파일 추가</span>
             </label>
           </div>
-          <p v-if="error" class="env-error">{{ error }}</p>
+          <p
+            v-if="error"
+            class="env-error"
+          >
+            {{ error }}
+          </p>
         </div>
         <div class="env-modal-footer">
-          <button class="env-modal-btn cancel" @click="emit('close')">{{ t('common.cancel') }}</button>
+          <button
+            class="env-modal-btn cancel"
+            @click="emit('close')"
+          >
+            {{ t('common.cancel') }}
+          </button>
           <button 
             class="env-modal-btn primary" 
-            @click="handleCreate" 
-            :disabled="!repoName.trim() || creating"
+            :disabled="!repoName.trim() || creating" 
+            @click="handleCreate"
           >
-            <span v-if="creating" class="loading-spinner-sm"></span>
+            <span
+              v-if="creating"
+              class="loading-spinner-sm"
+            />
             <span v-else>생성하기</span>
           </button>
         </div>

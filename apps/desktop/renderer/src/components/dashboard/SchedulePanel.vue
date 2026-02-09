@@ -2,21 +2,27 @@
   <div class="schedule-panel">
     <!-- 패널 배경 장식 -->
     <div class="panel-decoration">
-      <div class="deco-gradient"></div>
+      <div class="deco-gradient" />
     </div>
 
     <!-- 헤더 -->
     <div class="panel-header">
       <div class="date-display">
-        <div class="date-badge" :class="{ 'is-today': isToday }">
+        <div
+          class="date-badge"
+          :class="{ 'is-today': isToday }"
+        >
           <span class="date-day">{{ selectedDay }}</span>
           <div class="date-info">
             <span class="date-month">{{ selectedMonthStr }}</span>
             <span class="date-weekday">{{ selectedWeekday }}</span>
           </div>
         </div>
-        <div v-if="isToday" class="today-indicator">
-          <span class="today-dot"></span>
+        <div
+          v-if="isToday"
+          class="today-indicator"
+        >
+          <span class="today-dot" />
           {{ t('common.today') || '오늘' }}
         </div>
       </div>
@@ -24,44 +30,85 @@
       <div class="header-actions">
         <button 
           class="header-btn ai-btn" 
-          @click="emit('ai-extract')" 
-          :title="t('calendar.aiExtract')"
+          :title="t('calendar.aiExtract')" 
+          @click="emit('ai-extract')"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v1a2 2 0 0 1-2 2h-1v3a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2v-1a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z" />
           </svg>
         </button>
         <button 
           class="header-btn today-btn-icon" 
-          @click="emit('go-today')" 
-          :title="t('common.today')"
+          :title="t('common.today')" 
+          @click="emit('go-today')"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
         </button>
-        <button class="header-btn add-btn" @click="emit('add-schedule')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+        <button
+          class="header-btn add-btn"
+          @click="emit('add-schedule')"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <line
+              x1="12"
+              y1="5"
+              x2="12"
+              y2="19"
+            />
+            <line
+              x1="5"
+              y1="12"
+              x2="19"
+              y2="12"
+            />
           </svg>
         </button>
       </div>
     </div>
 
     <!-- 일정 카운트 바 -->
-    <div class="schedule-stats" v-if="schedules.length > 0">
+    <div
+      v-if="schedules.length > 0"
+      class="schedule-stats"
+    >
       <div class="stat-item">
         <span class="stat-count">{{ schedules.length }}</span>
         <span class="stat-label">{{ t('calendar.total') || '전체' }}</span>
       </div>
-      <div class="stat-divider"></div>
+      <div class="stat-divider" />
       <div class="stat-item completed">
         <span class="stat-count">{{ completedCount }}</span>
         <span class="stat-label">{{ t('calendar.completed') || '완료' }}</span>
       </div>
-      <div class="stat-divider"></div>
+      <div class="stat-divider" />
       <div class="stat-item pending">
         <span class="stat-count">{{ schedules.length - completedCount }}</span>
         <span class="stat-label">{{ t('calendar.remaining') || '남음' }}</span>
@@ -71,12 +118,15 @@
         <div 
           class="progress-fill" 
           :style="{ width: `${progressPercent}%` }"
-        ></div>
+        />
       </div>
     </div>
 
     <!-- 일정 목록 -->
-    <div class="schedule-list" v-if="!loading">
+    <div
+      v-if="!loading"
+      class="schedule-list"
+    >
       <TransitionGroup name="schedule-list">
         <div
           v-for="(schedule, index) in schedules"
@@ -87,21 +137,49 @@
         >
           <button
             class="check-button"
-            @click="emit('toggle-complete', schedule.id)"
             :class="{ checked: schedule.completed }"
+            @click="emit('toggle-complete', schedule.id)"
           >
-            <svg v-if="schedule.completed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <polyline points="20 6 9 17 4 12"/>
+            <svg
+              v-if="schedule.completed"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
             </svg>
           </button>
 
-          <div class="card-content" @click="emit('edit-schedule', schedule)">
+          <div
+            class="card-content"
+            @click="emit('edit-schedule', schedule)"
+          >
             <span class="card-title">{{ schedule.title }}</span>
-            <div class="card-meta" v-if="schedule.startTime || schedule.description">
-              <span class="card-time" v-if="schedule.startTime">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
+            <div
+              v-if="schedule.startTime || schedule.description"
+              class="card-meta"
+            >
+              <span
+                v-if="schedule.startTime"
+                class="card-time"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                  <polyline points="12 6 12 12 16 14" />
                 </svg>
                 {{ schedule.startTime }}{{ schedule.endTime ? ` - ${schedule.endTime}` : '' }}
               </span>
@@ -110,31 +188,92 @@
 
           <button 
             class="delete-button" 
-            @click="emit('delete-schedule', schedule)"
             :title="t('common.delete') || '삭제'"
+            @click="emit('delete-schedule', schedule)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
           </button>
         </div>
       </TransitionGroup>
 
       <!-- 빈 상태 -->
-      <div v-if="schedules.length === 0" class="empty-state">
+      <div
+        v-if="schedules.length === 0"
+        class="empty-state"
+      >
         <div class="empty-illustration">
-          <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
-            <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4" opacity="0.2"/>
-            <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="2" stroke-dasharray="6 3" opacity="0.15"/>
-            <path d="M35 50h30M50 35v30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+          <svg
+            width="80"
+            height="80"
+            viewBox="0 0 100 100"
+            fill="none"
+          >
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-dasharray="8 4"
+              opacity="0.2"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="30"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-dasharray="6 3"
+              opacity="0.15"
+            />
+            <path
+              d="M35 50h30M50 35v30"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              opacity="0.3"
+            />
           </svg>
         </div>
-        <p class="empty-title">{{ t('calendar.noSchedules') || '일정이 없습니다' }}</p>
-        <p class="empty-subtitle">{{ t('calendar.addScheduleHint') || '새로운 일정을 추가해보세요' }}</p>
-        <button class="empty-add-btn" @click="emit('add-schedule')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+        <p class="empty-title">
+          {{ t('calendar.noSchedules') || '일정이 없습니다' }}
+        </p>
+        <p class="empty-subtitle">
+          {{ t('calendar.addScheduleHint') || '새로운 일정을 추가해보세요' }}
+        </p>
+        <button
+          class="empty-add-btn"
+          @click="emit('add-schedule')"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line
+              x1="12"
+              y1="5"
+              x2="12"
+              y2="19"
+            />
+            <line
+              x1="5"
+              y1="12"
+              x2="19"
+              y2="12"
+            />
           </svg>
           {{ t('calendar.addFirst') || '일정 추가하기' }}
         </button>
@@ -142,22 +281,49 @@
     </div>
 
     <!-- 로딩 -->
-    <div v-else class="loading-state">
+    <div
+      v-else
+      class="loading-state"
+    >
       <div class="loading-spinner">
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
+        <div class="spinner-ring" />
+        <div class="spinner-ring" />
+        <div class="spinner-ring" />
       </div>
       <span>{{ t('calendar.loading') || '불러오는 중...' }}</span>
     </div>
 
     <!-- 에러 -->
     <Transition name="error-fade">
-      <div v-if="error" class="error-banner">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
+      <div
+        v-if="error"
+        class="error-banner"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+          <line
+            x1="12"
+            y1="8"
+            x2="12"
+            y2="12"
+          />
+          <line
+            x1="12"
+            y1="16"
+            x2="12.01"
+            y2="16"
+          />
         </svg>
         <span>{{ error }}</span>
       </div>

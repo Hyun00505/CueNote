@@ -23,7 +23,9 @@
       <!-- Settings Sidebar Navigation -->
       <nav class="settings-nav">
         <div class="nav-group">
-          <div class="nav-group-title">{{ t('settings.general') }}</div>
+          <div class="nav-group-title">
+            {{ t('settings.general') }}
+          </div>
           <button class="nav-item" :class="{ active: activeSection === 'general' }" @click="scrollToSection('general')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3" />
@@ -35,7 +37,9 @@
         </div>
 
         <div class="nav-group">
-          <div class="nav-group-title">{{ t('settings.appearance') }}</div>
+          <div class="nav-group-title">
+            {{ t('settings.appearance') }}
+          </div>
           <button class="nav-item" :class="{ active: activeSection === 'appearance' }"
             @click="scrollToSection('appearance')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -56,7 +60,9 @@
         </div>
 
         <div class="nav-group">
-          <div class="nav-group-title">{{ t('settings.ai') }}</div>
+          <div class="nav-group-title">
+            {{ t('settings.ai') }}
+          </div>
           <button class="nav-item" :class="{ active: activeSection === 'ai' }" @click="scrollToSection('ai')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -74,11 +80,21 @@
             </svg>
             <span>{{ t('settings.menuOcr') }}</span>
           </button>
+          <button class="nav-item" :class="{ active: activeSection === 'mcp' }" @click="scrollToSection('mcp')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="6" height="6" rx="1" />
+              <rect x="16" y="2" width="6" height="6" rx="1" />
+              <rect x="9" y="16" width="6" height="6" rx="1" />
+              <path d="M5 8v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+              <path d="M12 13v3" />
+            </svg>
+            <span>MCP 서버</span>
+          </button>
         </div>
       </nav>
 
       <!-- Content -->
-      <div class="settings-content" ref="settingsContentRef">
+      <div ref="settingsContentRef" class="settings-content">
         <div class="settings-inner">
           <!-- 일반 설정 -->
           <GeneralSettings ref="generalSettingsRef" />
@@ -94,6 +110,9 @@
 
           <!-- OCR 설정 -->
           <OCRSettings />
+
+          <!-- MCP 서버 관리 -->
+          <MCPSettings />
         </div>
       </div>
     </div>
@@ -108,7 +127,8 @@ import {
   AppearanceSettings,
   ShortcutSettings,
   AISettings,
-  OCRSettings
+  OCRSettings,
+  MCPSettings
 } from './settings';
 
 defineEmits<{
@@ -139,7 +159,7 @@ function scrollToSection(sectionId: string) {
 function updateActiveSection() {
   if (!settingsContentRef.value) return;
 
-  const sections = ['general', 'appearance', 'shortcuts', 'ai', 'ocr'];
+  const sections = ['general', 'appearance', 'shortcuts', 'ai', 'ocr', 'mcp'];
   const containerHeight = settingsContentRef.value.clientHeight;
 
   for (let i = sections.length - 1; i >= 0; i--) {

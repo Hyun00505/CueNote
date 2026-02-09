@@ -1,18 +1,49 @@
 <template>
-  <NodeViewWrapper class="resizable-image-wrapper" :class="{ 'is-selected': selected, 'is-resizing': isResizing }">
-    <div class="image-container" :style="containerStyle" ref="containerRef">
-      <img :src="node.attrs.src" :alt="node.attrs.alt || ''" :title="node.attrs.title || ''" class="resizable-image" draggable="false" @click="selectImage" />
+  <NodeViewWrapper
+    class="resizable-image-wrapper"
+    :class="{ 'is-selected': selected, 'is-resizing': isResizing }"
+  >
+    <div
+      ref="containerRef"
+      class="image-container"
+      :style="containerStyle"
+    >
+      <img
+        :src="node.attrs.src"
+        :alt="node.attrs.alt || ''"
+        :title="node.attrs.title || ''"
+        class="resizable-image"
+        draggable="false"
+        @click="selectImage"
+      >
 
       <!-- 리사이즈 핸들 (선택됐을 때만 표시) -->
       <template v-if="selected || isResizing">
-        <div class="resize-handle resize-handle-right" @mousedown.stop.prevent="startResize($event, 'right')"></div>
-        <div class="resize-handle resize-handle-left" @mousedown.stop.prevent="startResize($event, 'left')"></div>
-        <div class="resize-handle resize-handle-bottom-right" @mousedown.stop.prevent="startResize($event, 'corner')"></div>
-        <div class="resize-handle resize-handle-bottom-left" @mousedown.stop.prevent="startResize($event, 'corner-left')"></div>
+        <div
+          class="resize-handle resize-handle-right"
+          @mousedown.stop.prevent="startResize($event, 'right')"
+        />
+        <div
+          class="resize-handle resize-handle-left"
+          @mousedown.stop.prevent="startResize($event, 'left')"
+        />
+        <div
+          class="resize-handle resize-handle-bottom-right"
+          @mousedown.stop.prevent="startResize($event, 'corner')"
+        />
+        <div
+          class="resize-handle resize-handle-bottom-left"
+          @mousedown.stop.prevent="startResize($event, 'corner-left')"
+        />
       </template>
 
       <!-- 크기 표시 (리사이징 중) -->
-      <div v-if="isResizing" class="size-indicator">{{ displayWidth }}px</div>
+      <div
+        v-if="isResizing"
+        class="size-indicator"
+      >
+        {{ displayWidth }}px
+      </div>
     </div>
   </NodeViewWrapper>
 </template>

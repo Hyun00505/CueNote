@@ -1,4 +1,12 @@
 
+// Placeholder system to protect code blocks from being corrupted by other regex transformations
+const CODE_BLOCK_PLACEHOLDER_PREFIX = '\u0000CB_PLACEHOLDER_';
+const CODE_BLOCK_PLACEHOLDER_SUFFIX = '\u0000';
+
+function createPlaceholder(index: number): string {
+  return `${CODE_BLOCK_PLACEHOLDER_PREFIX}${index}${CODE_BLOCK_PLACEHOLDER_SUFFIX}`;
+}
+
 // Markdown to HTML conversion
 export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: any = null, coreBase = 'http://127.0.0.1:8787'): string {
   let html = md;
@@ -6,12 +14,27 @@ export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: a
   // Normalize all line endings to \n (Windows uses \r\n, old Mac uses \r)
   html = html.replace(/\r\n|\r/g, '\n');
 
-  // Code blocks first - handle with or without language, with flexible whitespace
-  html = html.replace(/```(\w*)\s*\n([\s\S]*?)\n?```/g, (_, lang, code) => {
+  // Step 1: Extract code blocks FIRST and replace with placeholders
+  const codeBlocks: string[] = [];
+  html = html.replace(/```(\w*)\s*\n([\s\S]*?)```/g, (_, lang, code) => {
     // Remove trailing whitespace from code
     const cleanCode = code.replace(/\s+$/, '');
-    return `<pre><code class="language-${lang}">${cleanCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    const htmlBlock = `<pre><code class="language-${lang}">${cleanCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    const index = codeBlocks.length;
+    codeBlocks.push(htmlBlock);
+    return createPlaceholder(index);
   });
+
+  // Step 2: Extract inline code and replace with placeholders
+  const inlineCodes: string[] = [];
+  html = html.replace(/`([^`]+)`/g, (_, code) => {
+    const inlineHtml = `<code>${code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>`;
+    const index = inlineCodes.length;
+    inlineCodes.push(inlineHtml);
+    return `\u0000IC_${index}\u0000`;
+  });
+
+  // Step 3: Apply all other markdown transformations (safe now - code blocks are protected)
 
   // Headings
   html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
@@ -26,9 +49,6 @@ export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: a
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
@@ -62,7 +82,6 @@ export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: a
   html = html.replace(/^\*\*\*$/gm, '<hr>');
 
   // Tables
-  const tableRegex = /^\|(.+)\|$/gm;
   let inTable = false;
   let tableRows: string[] = [];
   const lines = html.split('\n');
@@ -70,7 +89,7 @@ export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: a
 
   for (const line of lines) {
     if (line.match(/^\|.+\|$/)) {
-      if (!line.match(/^\|[\s\-:|]+\|$/)) {
+      if (!line.match(/^[\s\-:|]+$/)) {
         tableRows.push(line);
       }
       inTable = true;
@@ -104,9 +123,9 @@ export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: a
 
   html = processedLines.join('\n');
 
-  // Paragraphs - wrap remaining text
+  // Paragraphs - wrap remaining text (but not placeholders on their own line)
   html = html.split('\n').map(line => {
-    if (line.trim() && !line.match(/^<[a-z]/i)) {
+    if (line.trim() && !line.match(/^<[a-z]/i) && !line.includes(CODE_BLOCK_PLACEHOLDER_PREFIX)) {
       return `<p>${line}</p>`;
     }
     return line;
@@ -117,12 +136,57 @@ export function markdownToHtml(md: string, isGithubFile = false, selectedRepo: a
   html = html.replace(/<\/ol>\s*<ol>/g, '');
   html = html.replace(/<\/blockquote>\s*<blockquote>/g, '');
 
+  // Step 4: Restore inline code placeholders
+  html = html.replace(/\u0000IC_(\d+)\u0000/g, (_, idx) => {
+    return inlineCodes[parseInt(idx)] || '';
+  });
+
+  // Step 5: Restore code block placeholders
+  html = html.replace(new RegExp(CODE_BLOCK_PLACEHOLDER_PREFIX.replace('\u0000', '\\u0000') + '(\\d+)' + CODE_BLOCK_PLACEHOLDER_SUFFIX.replace('\u0000', '\\u0000'), 'g'), (_, idx) => {
+    return codeBlocks[parseInt(idx)] || '';
+  });
+
   return html;
 }
 
 // HTML to Markdown conversion
 export function htmlToMarkdown(html: string, isGithubFile = false, selectedRepo: any = null, coreBase = 'http://127.0.0.1:8787'): string {
   let md = html;
+
+  // Step 1: Extract code blocks FIRST (before any other processing)
+  // Tiptap outputs code blocks as <pre><code class="language-xxx">...</code></pre>
+  // Content inside may have <br>, <br />, or actual newlines
+  const codeBlocks: string[] = [];
+
+  // Handle <pre><code class="language-xxx">...</code></pre>
+  md = md.replace(/<pre[^>]*>\s*<code[^>]*class="language-(\w*)"[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_, lang, code) => {
+    // Convert <br> tags to newlines inside code
+    let cleanCode = code.replace(/<br\s*\/?>/gi, '\n');
+    // Strip any remaining HTML tags inside code
+    cleanCode = cleanCode.replace(/<[^>]+>/g, '');
+    // Decode HTML entities
+    cleanCode = cleanCode.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+    // Remove trailing whitespace
+    cleanCode = cleanCode.replace(/\s+$/, '');
+    const block = `\`\`\`${lang}\n${cleanCode}\n\`\`\``;
+    const index = codeBlocks.length;
+    codeBlocks.push(block);
+    return createPlaceholder(index);
+  });
+
+  // Handle <pre><code>...</code></pre> (no language)
+  md = md.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_, code) => {
+    let cleanCode = code.replace(/<br\s*\/?>/gi, '\n');
+    cleanCode = cleanCode.replace(/<[^>]+>/g, '');
+    cleanCode = cleanCode.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+    cleanCode = cleanCode.replace(/\s+$/, '');
+    const block = `\`\`\`\n${cleanCode}\n\`\`\``;
+    const index = codeBlocks.length;
+    codeBlocks.push(block);
+    return createPlaceholder(index);
+  });
+
+  // Step 2: Apply all other HTML to markdown transformations (code blocks are protected)
 
   // Headings
   md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
@@ -142,10 +206,7 @@ export function htmlToMarkdown(html: string, isGithubFile = false, selectedRepo:
   md = md.replace(/<del[^>]*>(.*?)<\/del>/gi, '~~$1~~');
   md = md.replace(/<mark[^>]*>(.*?)<\/mark>/gi, '==$1==');
 
-  // Code blocks first (before inline code to prevent breaking)
-  md = md.replace(/<pre[^>]*><code[^>]*class="language-(\w*)"[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```$1\n$2```\n\n');
-  md = md.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```\n$1```\n\n');
-  // Inline code (after code blocks)
+  // Inline code (safe now - code blocks are already extracted)
   md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
 
   // Links
@@ -198,14 +259,19 @@ export function htmlToMarkdown(html: string, isGithubFile = false, selectedRepo:
   // Horizontal rules
   md = md.replace(/<hr\s*\/?>/gi, '\n---\n\n');
 
-  // Tables
+  // Tables - process BEFORE paragraphs so <p> inside cells doesn't get converted
   md = md.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (_, tableContent) => {
     let result = '';
     const rows = tableContent.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
     rows.forEach((row: string, index: number) => {
       const cells = row.match(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi) || [];
       const rowContent = cells.map((cell: string) => {
-        return cell.replace(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/i, '$1').trim();
+        let content = cell.replace(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/i, '$1').trim();
+        // Strip <p> tags that Tiptap wraps cell content with
+        content = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1').trim();
+        // Strip any remaining HTML tags inside cells
+        content = content.replace(/<[^>]+>/g, '').trim();
+        return content;
       }).join(' | ');
       result += `| ${rowContent} |\n`;
       if (index === 0) {
@@ -219,13 +285,18 @@ export function htmlToMarkdown(html: string, isGithubFile = false, selectedRepo:
   md = md.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
   md = md.replace(/<br\s*\/?>/gi, '\n');
 
-  // Clean up
+  // Clean up remaining HTML tags (but NOT our placeholders)
   md = md.replace(/<[^>]+>/g, '');
   md = md.replace(/&nbsp;/g, ' ');
   md = md.replace(/&lt;/g, '<');
   md = md.replace(/&gt;/g, '>');
   md = md.replace(/&amp;/g, '&');
   md = md.replace(/\n{3,}/g, '\n\n');
+
+  // Step 3: Restore code block placeholders
+  md = md.replace(new RegExp(CODE_BLOCK_PLACEHOLDER_PREFIX.replace('\u0000', '\\u0000') + '(\\d+)' + CODE_BLOCK_PLACEHOLDER_SUFFIX.replace('\u0000', '\\u0000'), 'g'), (_, idx) => {
+    return codeBlocks[parseInt(idx)] || '';
+  });
 
   return md.trim();
 }

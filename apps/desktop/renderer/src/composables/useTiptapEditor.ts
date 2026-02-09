@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { useEditor, type Editor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import Table from '@tiptap/extension-table';
+import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
@@ -19,7 +19,9 @@ import { common, createLowlight } from 'lowlight';
 
 const lowlight = createLowlight(common);
 
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS } from '../config/api';
+// Assuming htmlToMarkdown is not exported from anywhere else, we use the local function.
+// But the local function is defined inside useTiptapEditor which is fine.
 
 export function useTiptapEditor() {
   const activeFile = ref<string | null>(null);
@@ -85,9 +87,47 @@ export function useTiptapEditor() {
     });
   }
 
-  // HTML to Markdown conversion (basic)
+  // Placeholder system to protect code blocks from corruption
+  const CB_PREFIX = '\u0000CB_PH_';
+  const CB_SUFFIX = '\u0000';
+  const IC_PREFIX = '\u0000IC_PH_';
+
+  function makePlaceholder(prefix: string, index: number): string {
+    return `${prefix}${index}${CB_SUFFIX}`;
+  }
+
+  // HTML to Markdown conversion
   function htmlToMarkdown(html: string): string {
     let md = html;
+
+    // Step 1: Extract code blocks FIRST (before any other processing)
+    const codeBlocks: string[] = [];
+
+    // Handle <pre><code class="language-xxx">...</code></pre>
+    md = md.replace(/<pre[^>]*>\s*<code[^>]*class="language-(\w*)"[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_, lang, code) => {
+      let cleanCode = code.replace(/<br\s*\/?>/gi, '\n');
+      cleanCode = cleanCode.replace(/<[^>]+>/g, '');
+      cleanCode = cleanCode.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+      cleanCode = cleanCode.replace(/\s+$/, '');
+      const block = `\`\`\`${lang}\n${cleanCode}\n\`\`\``;
+      const index = codeBlocks.length;
+      codeBlocks.push(block);
+      return makePlaceholder(CB_PREFIX, index);
+    });
+
+    // Handle <pre><code>...</code></pre> (no language)
+    md = md.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_, code) => {
+      let cleanCode = code.replace(/<br\s*\/?>/gi, '\n');
+      cleanCode = cleanCode.replace(/<[^>]+>/g, '');
+      cleanCode = cleanCode.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+      cleanCode = cleanCode.replace(/\s+$/, '');
+      const block = `\`\`\`\n${cleanCode}\n\`\`\``;
+      const index = codeBlocks.length;
+      codeBlocks.push(block);
+      return makePlaceholder(CB_PREFIX, index);
+    });
+
+    // Step 2: Apply other transformations (code blocks are safe)
 
     // Headings
     md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
@@ -106,9 +146,8 @@ export function useTiptapEditor() {
     md = md.replace(/<s[^>]*>(.*?)<\/s>/gi, '~~$1~~');
     md = md.replace(/<del[^>]*>(.*?)<\/del>/gi, '~~$1~~');
 
-    // Code
+    // Inline code (safe now - code blocks already extracted)
     md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
-    md = md.replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, '```\n$1\n```\n\n');
 
     // Links
     md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
@@ -116,6 +155,10 @@ export function useTiptapEditor() {
     // Images
     md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
     md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+
+    // Task lists
+    md = md.replace(/<li[^>]*data-checked="true"[^>]*>(.*?)<\/li>/gi, '- [x] $1\n');
+    md = md.replace(/<li[^>]*data-checked="false"[^>]*>(.*?)<\/li>/gi, '- [ ] $1\n');
 
     // Lists
     md = md.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (_, content) => {
@@ -125,10 +168,6 @@ export function useTiptapEditor() {
       let index = 0;
       return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${++index}. `) + '\n';
     });
-
-    // Task lists
-    md = md.replace(/<li[^>]*data-checked="true"[^>]*>(.*?)<\/li>/gi, '- [x] $1\n');
-    md = md.replace(/<li[^>]*data-checked="false"[^>]*>(.*?)<\/li>/gi, '- [ ] $1\n');
 
     // Paragraphs & line breaks
     md = md.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
@@ -142,14 +181,19 @@ export function useTiptapEditor() {
     // Horizontal rules
     md = md.replace(/<hr\s*\/?>/gi, '\n---\n\n');
 
-    // Tables (simplified)
+    // Tables
     md = md.replace(/<table[^>]*>(.*?)<\/table>/gis, (_, tableContent) => {
       let result = '';
       const rows = tableContent.match(/<tr[^>]*>(.*?)<\/tr>/gis) || [];
       rows.forEach((row: string, index: number) => {
         const cells = row.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gi) || [];
         const rowContent = cells.map((cell: string) => {
-          return cell.replace(/<t[hd][^>]*>(.*?)<\/t[hd]>/i, '$1').trim();
+          let content = cell.replace(/<t[hd][^>]*>(.*?)<\/t[hd]>/i, '$1').trim();
+          // Strip <p> tags that Tiptap wraps cell content with
+          content = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1').trim();
+          // Strip any remaining HTML tags
+          content = content.replace(/<[^>]+>/g, '').trim();
+          return content;
         }).join(' | ');
         result += `| ${rowContent} |\n`;
         if (index === 0) {
@@ -159,7 +203,7 @@ export function useTiptapEditor() {
       return result + '\n';
     });
 
-    // Clean up extra whitespace and HTML tags
+    // Clean up remaining HTML tags
     md = md.replace(/<[^>]+>/g, '');
     md = md.replace(/&nbsp;/g, ' ');
     md = md.replace(/&lt;/g, '<');
@@ -167,20 +211,41 @@ export function useTiptapEditor() {
     md = md.replace(/&amp;/g, '&');
     md = md.replace(/\n{3,}/g, '\n\n');
 
+    // Step 3: Restore code block placeholders
+    md = md.replace(new RegExp(CB_PREFIX.replace('\u0000', '\\u0000') + '(\\d+)' + CB_SUFFIX.replace('\u0000', '\\u0000'), 'g'), (_, idx) => {
+      return codeBlocks[parseInt(idx)] || '';
+    });
+
     return md.trim();
   }
 
-  // Markdown to HTML conversion (basic)
+  // Markdown to HTML conversion
   function markdownToHtml(md: string): string {
     let html = md;
 
-    // Escape HTML
-    html = html.replace(/&/g, '&amp;');
-    html = html.replace(/</g, '&lt;');
-    html = html.replace(/>/g, '&gt;');
+    // Normalize line endings
+    html = html.replace(/\r\n|\r/g, '\n');
 
-    // Code blocks (before other processing) - support both \r\n (Windows) and \n (Unix)
-    html = html.replace(/```(\w*)\r?\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+    // Step 1: Extract code blocks FIRST
+    const codeBlocks: string[] = [];
+    html = html.replace(/```(\w*)\s*\n([\s\S]*?)```/g, (_, lang, code) => {
+      const cleanCode = code.replace(/\s+$/, '');
+      const htmlBlock = `<pre><code class="language-${lang}">${cleanCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+      const index = codeBlocks.length;
+      codeBlocks.push(htmlBlock);
+      return makePlaceholder(CB_PREFIX, index);
+    });
+
+    // Step 2: Extract inline code
+    const inlineCodes: string[] = [];
+    html = html.replace(/`([^`]+)`/g, (_, code) => {
+      const inlineHtml = `<code>${code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>`;
+      const index = inlineCodes.length;
+      inlineCodes.push(inlineHtml);
+      return makePlaceholder(IC_PREFIX, index);
+    });
+
+    // Step 3: Apply other transformations (code is protected)
 
     // Headings
     html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
@@ -195,9 +260,6 @@ export function useTiptapEditor() {
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
     html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
-
-    // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
@@ -224,7 +286,7 @@ export function useTiptapEditor() {
 
     // Tables
     html = html.replace(/^\|(.+)\|$/gm, (match, content) => {
-      if (content.match(/^[\s\-|]+$/)) return ''; // Skip separator row
+      if (content.match(/^[\s\-|]+$/)) return '';
       const cells = content.split('|').map((cell: string) => cell.trim());
       const cellHtml = cells.map((cell: string) => `<td>${cell}</td>`).join('');
       return `<tr>${cellHtml}</tr>`;
@@ -238,6 +300,16 @@ export function useTiptapEditor() {
     html = html.replace(/<\/ul>\n*<ul>/g, '');
     html = html.replace(/<\/blockquote>\n*<blockquote>/g, '');
 
+    // Step 4: Restore inline code placeholders
+    html = html.replace(new RegExp(IC_PREFIX.replace('\u0000', '\\u0000') + '(\\d+)' + CB_SUFFIX.replace('\u0000', '\\u0000'), 'g'), (_, idx) => {
+      return inlineCodes[parseInt(idx)] || '';
+    });
+
+    // Step 5: Restore code block placeholders
+    html = html.replace(new RegExp(CB_PREFIX.replace('\u0000', '\\u0000') + '(\\d+)' + CB_SUFFIX.replace('\u0000', '\\u0000'), 'g'), (_, idx) => {
+      return codeBlocks[parseInt(idx)] || '';
+    });
+
     return html;
   }
 
@@ -246,7 +318,7 @@ export function useTiptapEditor() {
     activeFile.value = filePath;
 
     try {
-      const url = `${CORE_BASE}/vault/file?path=${encodeURIComponent(filePath)}`;
+      const url = `${API_ENDPOINTS.VAULT.FILE}?path=${encodeURIComponent(filePath)}`;
       const res = await fetch(url);
 
       if (!res.ok) {
@@ -277,9 +349,9 @@ export function useTiptapEditor() {
 
     try {
       const html = editorInstance.getHTML();
+      // Use the local function defined in this scope
       const content = htmlToMarkdown(html);
-
-      const res = await fetch(`${CORE_BASE}/vault/file`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.FILE, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: activeFile.value, content })
@@ -304,7 +376,8 @@ export function useTiptapEditor() {
     editorError.value = '';
 
     try {
-      const res = await fetch(`${CORE_BASE}/vault/file`, {
+      // 빈 파일 생성
+      const res = await fetch(API_ENDPOINTS.VAULT.FILE, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: fileName, content: '' })

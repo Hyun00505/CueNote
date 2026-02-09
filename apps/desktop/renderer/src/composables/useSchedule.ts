@@ -1,7 +1,8 @@
 import { ref, computed, watch } from 'vue';
 import type { ScheduleItem, ScheduleCountByDate, CalendarDay } from '../types';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE = 'http://127.0.0.1:8787';
+const API_BASE = API_BASE_URL;
 
 // 전역 상태
 const schedules = ref<ScheduleItem[]>([]);

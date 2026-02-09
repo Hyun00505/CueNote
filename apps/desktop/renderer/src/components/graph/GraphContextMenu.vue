@@ -13,8 +13,22 @@
           class="lock-badge"
           title="클러스터 잠금됨"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect
+              x="3"
+              y="11"
+              width="18"
+              height="11"
+              rx="2"
+              ry="2"
+            />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </span>
@@ -29,39 +43,82 @@
         :class="{ current: node?.cluster === cluster.id }"
         @click="emit('move-to-cluster', cluster.id)"
       >
-        <span class="cluster-dot" :style="{ background: cluster.color }"></span>
+        <span
+          class="cluster-dot"
+          :style="{ background: cluster.color }"
+        />
         <span class="cluster-label">{{ cluster.label }}</span>
         <svg 
           v-if="node?.cluster === cluster.id" 
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
         >
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </button>
     </div>
-    <div class="context-menu-divider"></div>
+    <div class="context-menu-divider" />
     
     <!-- 연결 관리 -->
     <div class="context-menu-section">
       <span class="context-section-label">연결 관리</span>
       <div class="context-link-buttons">
-        <button class="link-btn add" @click="emit('start-link-add')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
+        <button
+          class="link-btn add"
+          @click="emit('start-link-add')"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line
+              x1="12"
+              y1="5"
+              x2="12"
+              y2="19"
+            />
+            <line
+              x1="5"
+              y1="12"
+              x2="19"
+              y2="12"
+            />
           </svg>
           연결 추가
         </button>
-        <button class="link-btn remove" @click="emit('start-link-remove')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="5" y1="12" x2="19" y2="12" />
+        <button
+          class="link-btn remove"
+          @click="emit('start-link-remove')"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line
+              x1="5"
+              y1="12"
+              x2="19"
+              y2="12"
+            />
           </svg>
           연결 삭제
         </button>
       </div>
     </div>
     
-    <div class="context-menu-divider"></div>
+    <div class="context-menu-divider" />
     
     <div class="context-menu-footer">
       <!-- 잠금/해제 버튼 -->
@@ -71,13 +128,43 @@
         @click="emit('toggle-lock')"
       >
         <!-- 잠금된 상태: 닫힌 자물쇠 -->
-        <svg v-if="isLocked" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <svg
+          v-if="isLocked"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect
+            x="3"
+            y="11"
+            width="18"
+            height="11"
+            rx="2"
+            ry="2"
+          />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
         <!-- 잠금 안 된 상태: 열린 자물쇠 -->
-        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <svg
+          v-else
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect
+            x="3"
+            y="11"
+            width="18"
+            height="11"
+            rx="2"
+            ry="2"
+          />
           <path d="M7 11V7a5 5 0 0 1 9.9-1" />
         </svg>
         {{ isLocked ? '잠금 해제' : 'AI 분류 잠금' }}
@@ -85,11 +172,18 @@
       <!-- AI 복원 버튼 -->
       <button 
         class="reset-btn" 
-        @click="emit('reset-cluster')"
         :disabled="isLocked"
         :title="isLocked ? '잠금 해제 후 사용 가능' : ''"
+        @click="emit('reset-cluster')"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
           <path d="M3 3v5h5" />
         </svg>

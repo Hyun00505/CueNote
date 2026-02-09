@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import init_db
-from .routers import vault_router, todos_router, ai_router, llm_router, environment_router, schedules_router, graph_router, github_router
+from .routers import vault_router, todos_router, ai_router, llm_router, environment_router, schedules_router, graph_router, github_router, mcp_router
 
 # 로거 설정
 logger = logging.getLogger("cuenote.core")
@@ -38,6 +38,7 @@ app.include_router(environment_router)
 app.include_router(schedules_router)
 app.include_router(graph_router)
 app.include_router(github_router)
+app.include_router(mcp_router)
 
 
 @app.on_event("startup")
@@ -45,6 +46,14 @@ async def on_startup() -> None:
     """앱 시작 시 초기화"""
     init_db()
     logger.info("CueNote core started")
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    """앱 종료 시 정리"""
+    from . import mcp_client
+    await mcp_client.stop_all()
+    logger.info("CueNote core stopped")
 
 
 @app.get("/health")

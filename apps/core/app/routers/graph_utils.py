@@ -281,6 +281,12 @@ JSON만 출력하세요:"""
             if provider == "gemini" and api_key:
                 from .. import gemini_client
                 result = gemini_client.call_json(prompt, '{"label": "", "keywords": []}', api_key, model or None)
+            elif provider == "openai" and api_key:
+                from .. import openai_client
+                result = openai_client.call_json(prompt, '{"label": "", "keywords": []}', api_key, model or None)
+            elif provider == "anthropic" and api_key:
+                from .. import anthropic_client
+                result = anthropic_client.call_json(prompt, '{"label": "", "keywords": []}', api_key, model or None)
             else:
                 from .. import ollama_client
                 result = ollama_client.call_json(prompt, '{"label": "", "keywords": []}', model or None)

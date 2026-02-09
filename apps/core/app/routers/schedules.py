@@ -13,6 +13,8 @@ from ..config import logger
 from ..db import get_conn
 from ..ollama_client import call_json as ollama_call_json
 from ..gemini_client import call_json as gemini_call_json
+from ..openai_client import call_json as openai_call_json
+from ..anthropic_client import call_json as anthropic_call_json
 from ..schemas import (
     ScheduleItem,
     ScheduleCreatePayload,
@@ -347,45 +349,61 @@ JSON만 출력하세요:"""
     schema_hint = "ExtractedSchedules with fields schedules (array of schedule objects) and confidence (float)"
 
     # ===== 디버깅 로그 =====
-    print("\n" + "="*60)
-    print("🔍 [AI 일정 추출] 디버깅 시작")
-    print("="*60)
-    print(f"📅 오늘 날짜: {today_str} ({today_weekday})")
-    print(f"🤖 Provider: {payload.provider}")
-    print(f"🧠 Model: {payload.model or '기본값'}")
-    print(f"🔑 API Key: {'있음' if payload.api_key else '없음'}")
-    print("-"*60)
-    print("📝 입력 텍스트:")
-    print(payload.content[:500] + ("..." if len(payload.content) > 500 else ""))
-    print("-"*60)
-    print("📤 AI에 보내는 프롬프트 (앞부분):")
-    print(prompt[:800] + "...")
-    print("="*60)
+    logger.info("=" * 60)
+    logger.info("[AI 일정 추출] 디버깅 시작")
+    logger.info("=" * 60)
+    logger.info(f"오늘 날짜: {today_str} ({today_weekday})")
+    logger.info(f"Provider: {payload.provider}")
+    logger.info(f"Model: {payload.model or '기본값'}")
+    logger.info(f"API Key: {'있음' if payload.api_key else '없음'}")
+    logger.info("-" * 60)
+    logger.info("입력 텍스트:")
+    logger.info(payload.content[:500] + ("..." if len(payload.content) > 500 else ""))
+    logger.info("-" * 60)
+    logger.info("AI에 보내는 프롬프트 (앞부분):")
+    logger.info(prompt[:800] + "...")
+    logger.info("=" * 60)
 
     try:
         if payload.provider == "gemini" and payload.api_key:
-            print("🚀 Gemini API 호출 중...")
+            logger.info("Gemini API 호출 중...")
             result = gemini_call_json(
-                prompt, 
-                schema_hint, 
-                api_key=payload.api_key, 
+                prompt,
+                schema_hint,
+                api_key=payload.api_key,
+                model=payload.model or None
+            )
+        elif payload.provider == "openai" and payload.api_key:
+            logger.info("OpenAI API 호출 중...")
+            result = openai_call_json(
+                prompt,
+                schema_hint,
+                api_key=payload.api_key,
+                model=payload.model or None
+            )
+        elif payload.provider == "anthropic" and payload.api_key:
+            logger.info("Anthropic API 호출 중...")
+            result = anthropic_call_json(
+                prompt,
+                schema_hint,
+                api_key=payload.api_key,
                 model=payload.model or None
             )
         else:
-            print("🚀 Ollama API 호출 중...")
+            logger.info("Ollama API 호출 중...")
             result = ollama_call_json(prompt, schema_hint, model=payload.model or None)
 
         # ===== 결과 디버깅 =====
-        print("\n" + "="*60)
-        print("✅ AI 응답 받음!")
-        print("-"*60)
-        print("📥 Raw 결과:")
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        print("="*60 + "\n")
+        logger.info("=" * 60)
+        logger.info("AI 응답 받음!")
+        logger.info("-" * 60)
+        logger.info("Raw 결과:")
+        logger.info(json.dumps(result, ensure_ascii=False, indent=2))
+        logger.info("=" * 60)
 
         # 추출된 일정에 ID 부여
         schedules = result.get("schedules", [])
-        print(f"📊 추출된 일정 개수: {len(schedules)}개")
+        logger.info(f"추출된 일정 개수: {len(schedules)}개")
         
         for i, schedule in enumerate(schedules):
             schedule["id"] = str(uuid.uuid4())
@@ -399,29 +417,28 @@ JSON만 출력하세요:"""
             if "endTime" not in schedule:
                 schedule["endTime"] = schedule.pop("end_time", "")
             
-            print(f"  [{i+1}] {schedule.get('title', '?')} - {schedule.get('date', '?')} {schedule.get('startTime', '')}")
+            logger.info(f"  [{i+1}] {schedule.get('title', '?')} - {schedule.get('date', '?')} {schedule.get('startTime', '')}")
 
         final_result = {
             "schedules": schedules,
             "confidence": result.get("confidence", 0.5)
         }
         
-        print(f"\n🎯 최종 신뢰도: {final_result['confidence']}")
-        print("="*60 + "\n")
+        logger.info(f"최종 신뢰도: {final_result['confidence']}")
+        logger.info("=" * 60)
         
         return final_result
 
     except Exception as e:
-        print("\n" + "="*60)
-        print(f"❌ 일정 추출 실패!")
-        print(f"🔴 에러 타입: {type(e).__name__}")
-        print(f"🔴 에러 메시지: {e}")
+        logger.error("=" * 60)
+        logger.error("일정 추출 실패!")
+        logger.error(f"에러 타입: {type(e).__name__}")
+        logger.error(f"에러 메시지: {e}")
         import traceback
-        print("🔴 스택 트레이스:")
-        traceback.print_exc()
-        print("="*60 + "\n")
+        logger.error("스택 트레이스:")
+        logger.error(traceback.format_exc())
+        logger.error("=" * 60)
         
-        logger.error(f"일정 추출 실패: {e}")
         return {"schedules": [], "confidence": 0.0, "error": str(e)}
 
 

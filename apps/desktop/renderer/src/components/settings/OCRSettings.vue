@@ -1,7 +1,17 @@
 <template>
-  <div id="section-ocr" class="settings-category">
+  <div
+    id="section-ocr"
+    class="settings-category"
+  >
     <h2 class="category-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <path d="M12 18v-6" />
@@ -12,7 +22,14 @@
 
     <section class="settings-section">
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <path d="M12 18v-6" />
@@ -25,25 +42,49 @@
       <div class="ocr-engine-selector">
         <label class="setting-label">{{ t('settings.ocrEngineSelect') }}</label>
         <div class="ocr-engine-options">
-          <label v-for="engine in ocrEngines" :key="engine.id" class="ocr-engine-option" :class="{
-            selected: settings.ocr?.engine === engine.id,
-            disabled: !engine.available && engine.id !== 'gemini'
-          }">
-            <input type="radio" name="ocr-engine" :value="engine.id" :checked="settings.ocr?.engine === engine.id"
-              :disabled="!engine.available && engine.id !== 'gemini'" @change="selectOcrEngine(engine.id)" />
+          <label
+            v-for="engine in ocrEngines"
+            :key="engine.id"
+            class="ocr-engine-option"
+            :class="{
+              selected: settings.ocr?.engine === engine.id,
+              disabled: !engine.available && engine.id !== 'gemini'
+            }"
+          >
+            <input
+              type="radio"
+              name="ocr-engine"
+              :value="engine.id"
+              :checked="settings.ocr?.engine === engine.id"
+              :disabled="!engine.available && engine.id !== 'gemini'"
+              @change="selectOcrEngine(engine.id)"
+            >
             <div class="engine-info">
               <div class="engine-header">
                 <span class="engine-name">{{ engine.name }}</span>
-                <span v-if="engine.accuracy" class="engine-accuracy">{{ t('settings.accuracy') }} {{ engine.id ===
+                <span
+                  v-if="engine.accuracy"
+                  class="engine-accuracy"
+                >{{ t('settings.accuracy') }} {{ engine.id ===
                   'rapidocr' ? t('ocr.rapidocr.accuracy') : (engine.id === 'gemini' ? t('ocr.gemini.accuracy') :
                     engine.accuracy) }}</span>
               </div>
               <span class="engine-desc">{{ engine.id === 'rapidocr' ? t('ocr.rapidocr.desc') : (engine.id === 'gemini' ?
                 t('ocr.gemini.desc') : engine.description) }}</span>
               <div class="engine-tags">
-                <span v-if="engine.requires_api_key" class="tag api-key">{{ t('settings.apiKeyRequired') }}</span>
-                <span v-else class="tag free">{{ t('settings.free') }}</span>
-                <span v-for="lang in engine.languages?.slice(0, 3)" :key="lang" class="tag lang">{{ lang }}</span>
+                <span
+                  v-if="engine.requires_api_key"
+                  class="tag api-key"
+                >{{ t('settings.apiKeyRequired') }}</span>
+                <span
+                  v-else
+                  class="tag free"
+                >{{ t('settings.free') }}</span>
+                <span
+                  v-for="lang in engine.languages?.slice(0, 3)"
+                  :key="lang"
+                  class="tag lang"
+                >{{ lang }}</span>
               </div>
             </div>
           </label>
@@ -51,19 +92,40 @@
       </div>
 
       <!-- Gemini Vision 모델 선택 (Gemini 선택 시) -->
-      <div v-if="settings.ocr?.engine === 'gemini'" class="gemini-vision-settings">
+      <div
+        v-if="settings.ocr?.engine === 'gemini'"
+        class="gemini-vision-settings"
+      >
         <label class="setting-label">{{ t('settings.visionModelSelect') }}</label>
         <div class="vision-model-list">
-          <label v-for="model in geminiVisionModels" :key="model.id" class="vision-model-option"
-            :class="{ selected: settings.ocr?.geminiModel === model.id }">
-            <input type="radio" name="gemini-vision-model" :value="model.id"
-              :checked="settings.ocr?.geminiModel === model.id" @change="selectGeminiVisionModel(model.id)" />
+          <label
+            v-for="model in geminiVisionModels"
+            :key="model.id"
+            class="vision-model-option"
+            :class="{ selected: settings.ocr?.geminiModel === model.id }"
+          >
+            <input
+              type="radio"
+              name="gemini-vision-model"
+              :value="model.id"
+              :checked="settings.ocr?.geminiModel === model.id"
+              @change="selectGeminiVisionModel(model.id)"
+            >
             <div class="vision-model-info">
               <div class="vision-model-header">
                 <span class="vision-model-name">{{ model.name }}</span>
-                <span v-if="model.recommended" class="badge recommended">{{ t('settings.badgeRecommended') }}</span>
-                <span v-if="model.free" class="badge free">{{ t('settings.badgeFree') }}</span>
-                <span v-else class="badge paid">{{ t('settings.badgePaid') }}</span>
+                <span
+                  v-if="model.recommended"
+                  class="badge recommended"
+                >{{ t('settings.badgeRecommended') }}</span>
+                <span
+                  v-if="model.free"
+                  class="badge free"
+                >{{ t('settings.badgeFree') }}</span>
+                <span
+                  v-else
+                  class="badge paid"
+                >{{ t('settings.badgePaid') }}</span>
               </div>
               <span class="vision-model-desc">{{ model.description }}</span>
             </div>
@@ -71,8 +133,19 @@
         </div>
 
         <div class="gemini-ocr-notice">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
             <path d="M12 16v-4" />
             <path d="M12 8h.01" />
           </svg>

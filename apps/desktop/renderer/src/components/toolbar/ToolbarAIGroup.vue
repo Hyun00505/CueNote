@@ -1,7 +1,7 @@
 <template>
   <div class="toolbar-group">
-    <button class="toolbar-btn ai-btn" :class="{ loading: summarizing }" :disabled="summarizing"
-      @click="handleSummarize" title="AI 요약">
+    <button class="toolbar-btn ai-btn" :class="{ loading: summarizing }" :disabled="summarizing" title="AI 요약"
+      @click="handleSummarize">
       <svg v-if="!summarizing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2">
         <path
@@ -9,11 +9,11 @@
         <circle cx="9" cy="6" r="1" fill="currentColor" />
         <circle cx="15" cy="6" r="1" fill="currentColor" />
       </svg>
-      <span v-else class="spinner"></span>
+      <span v-else class="spinner" />
       <span class="ai-label">요약</span>
     </button>
     <button class="toolbar-btn ai-btn extract-btn" :class="{ loading: extracting }" :disabled="extracting"
-      @click="showExtractModal = true" title="PDF/이미지 → 마크다운 변환">
+      title="PDF/이미지 → 마크다운 변환" @click="showExtractModal = true">
       <svg v-if="!extracting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -21,11 +21,21 @@
         <path d="M12 18v-6" />
         <path d="m9 15 3-3 3 3" />
       </svg>
-      <span v-else class="spinner"></span>
+      <span v-else class="spinner" />
       <span class="ai-label">문서 변환</span>
     </button>
+    <button class="toolbar-btn ai-btn url-btn" :class="{ loading: urlExtracting }" :disabled="urlExtracting"
+      title="URL → 마크다운 변환" @click="showUrlExtractModal = true">
+      <svg v-if="!urlExtracting" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+      <span v-else class="spinner" />
+      <span class="ai-label">URL 추출</span>
+    </button>
     <button class="toolbar-btn ai-btn pdf-btn" :class="{ loading: exportingPdf }" :disabled="exportingPdf"
-      @click="exportToPdf" title="PDF로 저장">
+      title="PDF로 저장" @click="exportToPdf">
       <svg v-if="!exportingPdf" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -33,7 +43,7 @@
         <path d="M12 12v6" />
         <path d="m15 15-3 3-3-3" />
       </svg>
-      <span v-else class="spinner"></span>
+      <span v-else class="spinner" />
       <span class="ai-label">PDF 저장</span>
     </button>
 
@@ -61,7 +71,7 @@
                 @dragenter="isExtractDragging = true" @dragleave="isExtractDragging = false" @dragover.prevent
                 @drop.prevent="handleExtractFileDrop" @click="triggerExtractFileInput">
                 <input ref="extractFileInputRef" type="file" accept=".pdf,image/*" style="display: none"
-                  @change="handleExtractFileSelect" />
+                  @change="handleExtractFileSelect">
                 <div v-if="!extractFile" class="dropzone-empty">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -91,7 +101,7 @@
                     <span class="file-name">{{ extractFile?.name }}</span>
                     <span class="file-size">{{ formatFileSize(extractFile?.size || 0) }}</span>
                   </div>
-                  <button class="remove-file-btn" @click.stop="clearExtractFile" title="파일 제거">
+                  <button class="remove-file-btn" title="파일 제거" @click.stop="clearExtractFile">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
@@ -129,8 +139,8 @@
               <!-- 텍스트만 가져오기 옵션 -->
               <div v-if="extractFile" class="extract-options">
                 <label class="checkbox-wrapper">
-                  <input type="checkbox" v-model="rawTextOnly" />
-                  <span class="checkbox-custom"></span>
+                  <input v-model="rawTextOnly" type="checkbox">
+                  <span class="checkbox-custom" />
                   <span class="checkbox-label">
                     📄 텍스트만 가져오기
                     <span class="option-hint">(AI 없이 빠르게)</span>
@@ -172,13 +182,101 @@
               </div>
             </div>
             <div class="extract-modal-footer">
-              <button class="btn-cancel" @click="closeExtractModal">취소</button>
+              <button class="btn-cancel" @click="closeExtractModal">
+                취소
+              </button>
               <button v-if="!extractResult" class="btn-extract" :disabled="!extractFile || extracting"
                 @click="handleExtract">
-                <span v-if="extracting" class="spinner"></span>
+                <span v-if="extracting" class="spinner" />
                 <span>{{ extracting ? '변환 중...' : '변환하기' }}</span>
               </button>
               <button v-else class="btn-insert" @click="insertExtractResult">
+                에디터에 삽입
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- URL 추출 모달 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showUrlExtractModal" class="extract-modal-overlay" @click.self="closeUrlExtractModal">
+          <div class="extract-modal">
+            <div class="extract-modal-header">
+              <h3>🔗 URL → 마크다운 변환</h3>
+              <button class="close-btn" @click="closeUrlExtractModal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div class="extract-modal-content">
+              <p class="extract-description">
+                웹 페이지 URL을 입력하면 AI가 내용을 분석하여 마크다운 문서로 변환합니다.
+              </p>
+
+              <!-- URL 입력 -->
+              <div class="url-input-group">
+                <label>웹 페이지 URL</label>
+                <div class="url-input-wrapper">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    class="url-input-icon">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                  <input v-model="urlInput" type="text" placeholder="https://example.com/article"
+                    :disabled="urlExtracting" @keydown.enter="handleUrlExtract">
+                </div>
+              </div>
+
+              <!-- 텍스트만 가져오기 옵션 -->
+              <div class="extract-options">
+                <label class="checkbox-wrapper">
+                  <input v-model="urlRawTextOnly" type="checkbox">
+                  <span class="checkbox-custom" />
+                  <span class="checkbox-label">
+                    📄 텍스트만 가져오기
+                    <span class="option-hint">(AI 없이 빠르게)</span>
+                  </span>
+                </label>
+              </div>
+
+              <!-- 추출 결과 미리보기 -->
+              <div v-if="urlExtractResult" class="extract-result">
+                <div class="result-header">
+                  <span class="result-title">✨ 변환 완료</span>
+                  <div class="result-meta">
+                    <span v-if="urlExtractResult.title">{{ urlExtractResult.title }}</span>
+                  </div>
+                </div>
+                <div class="result-preview">
+                  <pre>{{ urlExtractResult.markdown.slice(0, 500) }}{{ urlExtractResult.markdown.length > 500 ? '...' : '' }}</pre>
+                </div>
+              </div>
+
+              <!-- 에러 메시지 -->
+              <div v-if="urlExtractError" class="extract-error">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{{ urlExtractError }}</span>
+              </div>
+            </div>
+            <div class="extract-modal-footer">
+              <button class="btn-cancel" @click="closeUrlExtractModal">
+                취소
+              </button>
+              <button v-if="!urlExtractResult" class="btn-extract" :disabled="!urlInput.trim() || urlExtracting"
+                @click="handleUrlExtract">
+                <span v-if="urlExtracting" class="spinner" />
+                <span>{{ urlExtracting ? '추출 중...' : '추출하기' }}</span>
+              </button>
+              <button v-else class="btn-insert" @click="insertUrlExtractResult">
                 에디터에 삽입
               </button>
             </div>
@@ -193,6 +291,8 @@
 import { ref, computed, watch } from 'vue';
 import type { Editor } from '@tiptap/vue-3';
 import { useSettings } from '../../composables';
+import { useEditor } from '../../composables/useEditor';
+import { API_ENDPOINTS } from '../../config/api';
 import { GEMINI_VISION_MODELS } from '../../composables/useSettings';
 
 const props = defineProps<{
@@ -389,7 +489,7 @@ async function handleExtract() {
       ? (llmSettingsStore.value.ocr?.geminiModel || 'gemini-2.0-flash')
       : undefined;
 
-    const res = await fetch(`${CORE_BASE}/ai/extract`, {
+    const res = await fetch(API_ENDPOINTS.AI.SUMMARIZE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -458,6 +558,70 @@ watch(showExtractModal, (isOpen) => {
     rawTextOnly.value = false;
   }
 });
+
+// ─── URL 추출 관련 ───
+const showUrlExtractModal = ref(false);
+const urlExtracting = ref(false);
+const urlInput = ref('');
+const urlRawTextOnly = ref(false);
+const urlExtractResult = ref<{ markdown: string; title: string; images: string[]; source_url: string } | null>(null);
+const urlExtractError = ref('');
+
+function closeUrlExtractModal() {
+  showUrlExtractModal.value = false;
+  urlInput.value = '';
+  urlExtractResult.value = null;
+  urlExtractError.value = '';
+  urlRawTextOnly.value = false;
+}
+
+async function handleUrlExtract() {
+  const url = urlInput.value.trim();
+  if (!url) return;
+
+  urlExtracting.value = true;
+  urlExtractError.value = '';
+  urlExtractResult.value = null;
+
+  try {
+    const res = await fetch(API_ENDPOINTS.AI.EXTRACT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        language: 'auto',
+        raw_text_only: urlRawTextOnly.value,
+        provider: llmSettingsStore.value.llm.provider,
+        api_key: llmSettingsStore.value.llm.apiKey,
+        model: llmSettingsStore.value.llm.model,
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: '알 수 없는 오류' }));
+      throw new Error(errorData.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    urlExtractResult.value = {
+      markdown: data.markdown,
+      title: data.title || '',
+      images: data.images || [],
+      source_url: data.source_url || url,
+    };
+  } catch (error) {
+    console.error('URL extract error:', error);
+    urlExtractError.value = error instanceof Error ? error.message : 'URL 추출에 실패했습니다.';
+  } finally {
+    urlExtracting.value = false;
+  }
+}
+
+function insertUrlExtractResult() {
+  if (!props.editor || !urlExtractResult.value) return;
+  emit('extract-result', urlExtractResult.value.markdown);
+  closeUrlExtractModal();
+}
 </script>
 
 <style scoped>
@@ -534,6 +698,54 @@ watch(showExtractModal, (isOpen) => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* URL Input */
+.url-input-group {
+  margin-bottom: 16px;
+}
+
+.url-input-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.url-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.url-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.url-input-wrapper input {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.url-input-wrapper input:focus {
+  border-color: var(--accent-primary, #8b5cf6);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.url-input-wrapper input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Extract Modal */

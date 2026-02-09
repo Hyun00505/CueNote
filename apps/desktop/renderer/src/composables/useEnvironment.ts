@@ -1,6 +1,5 @@
 import { ref, computed } from 'vue';
-
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_BASE_URL } from '../config/api';
 
 export interface Environment {
   id: string;
@@ -36,7 +35,7 @@ export function useEnvironment() {
     error.value = null;
     
     try {
-      const res = await fetch(`${CORE_BASE}/environment/list`);
+      const res = await fetch(`${API_BASE_URL}/environment/list`);
       const data = await res.json();
       
       environments.value = data.environments || [];
@@ -57,7 +56,7 @@ export function useEnvironment() {
   // 기본 환경 초기화
   async function initDefaultEnvironment() {
     try {
-      const res = await fetch(`${CORE_BASE}/environment/init-default`, {
+      const res = await fetch(`${API_BASE_URL}/environment/init-default`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -82,7 +81,7 @@ export function useEnvironment() {
         body.github = githubInfo;
       }
 
-      const res = await fetch(`${CORE_BASE}/environment/add`, {
+      const res = await fetch(`${API_BASE_URL}/environment/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -111,7 +110,7 @@ export function useEnvironment() {
     error.value = null;
     
     try {
-      const res = await fetch(`${CORE_BASE}/environment/set-current`, {
+      const res = await fetch(`${API_BASE_URL}/environment/set-current`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
@@ -140,7 +139,7 @@ export function useEnvironment() {
     error.value = null;
     
     try {
-      const res = await fetch(`${CORE_BASE}/environment/remove`, {
+      const res = await fetch(`${API_BASE_URL}/environment/remove`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })

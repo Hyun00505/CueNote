@@ -1,6 +1,5 @@
 import { ref, computed } from 'vue';
-
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 const STORAGE_KEY = 'cuenote-github';
 
 export interface GitHubUser {
@@ -102,7 +101,7 @@ export function useGitHub() {
   // Git 설치 확인
   async function checkGitInstalled(): Promise<boolean> {
     try {
-      const res = await fetch(`${CORE_BASE}/github/check-git`);
+      const res = await fetch(API_ENDPOINTS.GITHUB.CHECK_GIT);
       const data = await res.json();
       gitInstalled.value = data.installed;
       return data.installed;
@@ -123,7 +122,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/validate-token`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.VALIDATE_TOKEN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: newToken })
@@ -160,7 +159,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repos`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.REPOS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: token.value })
@@ -225,7 +224,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/clone`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.CLONE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -284,7 +283,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/files`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.REPO_FILES, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -320,7 +319,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/save-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.SAVE_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -355,7 +354,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/create-folder`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.CREATE_FOLDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -392,7 +391,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/rename-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.RENAME_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -429,7 +428,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/rename-folder`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.RENAME_FOLDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -466,7 +465,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/create-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.CREATE_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -506,7 +505,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/delete-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.DELETE_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -544,7 +543,7 @@ export function useGitHub() {
         repo: selectedRepo.value.name
       });
       
-      const res = await fetch(`${CORE_BASE}/github/repo/trash?${params}`);
+      const res = await fetch(`${API_ENDPOINTS.GITHUB.TRASH}?${params}`);
       
       if (res.ok) {
         const data = await res.json();
@@ -563,7 +562,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/trash/restore`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.RESTORE_TRASH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -604,7 +603,7 @@ export function useGitHub() {
         filename
       });
       
-      const res = await fetch(`${CORE_BASE}/github/repo/trash?${params}`, {
+      const res = await fetch(`${API_ENDPOINTS.GITHUB.TRASH}?${params}`, {
         method: 'DELETE'
       });
 
@@ -635,7 +634,7 @@ export function useGitHub() {
         repo: selectedRepo.value.name
       });
       
-      const res = await fetch(`${CORE_BASE}/github/repo/trash/empty?${params}`, {
+      const res = await fetch(`${API_ENDPOINTS.GITHUB.EMPTY_TRASH}?${params}`, {
         method: 'DELETE'
       });
 
@@ -662,7 +661,7 @@ export function useGitHub() {
     console.log('[checkGitStatus] Checking status for:', selectedRepo.value.owner, selectedRepo.value.name);
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/status`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.STATUS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -698,7 +697,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/pull`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.PULL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -751,7 +750,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/push`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.PUSH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -831,7 +830,7 @@ export function useGitHub() {
   async function disconnectRepo(): Promise<boolean> {
     if (selectedRepo.value && token.value) {
       try {
-        const res = await fetch(`${CORE_BASE}/github/disconnect`, {
+        const res = await fetch(`${API_BASE_URL}/github/disconnect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -883,7 +882,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/create-repo`, {
+      const res = await fetch(`${API_BASE_URL}/github/create-repo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -947,7 +946,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/image`, {
+      const res = await fetch(`${API_BASE_URL}/github/repo/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -977,7 +976,7 @@ export function useGitHub() {
   // GitHub 이미지의 상대 경로를 로컬 URL로 변환 (에디터에서 이미지 표시용)
   function getImageUrl(relativePath: string): string {
     if (!selectedRepo.value) return relativePath;
-    return `${CORE_BASE}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${relativePath.replace('img/', '')}`;
+    return `${API_BASE_URL}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${relativePath.replace('img/', '')}`;
   }
 
   return {

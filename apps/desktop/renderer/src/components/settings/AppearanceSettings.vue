@@ -1,24 +1,63 @@
 <template>
-  <div id="section-appearance" class="settings-category">
+  <div
+    id="section-appearance"
+    class="settings-category"
+  >
     <h2 class="category-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polyline points="4 7 4 4 20 4 20 7" />
-        <line x1="9" y1="20" x2="15" y2="20" />
-        <line x1="12" y1="4" x2="12" y2="20" />
+        <line
+          x1="9"
+          y1="20"
+          x2="15"
+          y2="20"
+        />
+        <line
+          x1="12"
+          y1="4"
+          x2="12"
+          y2="20"
+        />
       </svg>
       {{ t('settings.appearanceTitle') }}
     </h2>
 
     <section class="settings-section">
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <polyline points="4 7 4 4 20 4 20 7" />
-          <line x1="9" y1="20" x2="15" y2="20" />
-          <line x1="12" y1="4" x2="12" y2="20" />
+          <line
+            x1="9"
+            y1="20"
+            x2="15"
+            y2="20"
+          />
+          <line
+            x1="12"
+            y1="4"
+            x2="12"
+            y2="20"
+          />
         </svg>
         {{ t('fonts.title') }}
       </h3>
-      <p class="section-desc">{{ t('fonts.desc') }}</p>
+      <p class="section-desc">
+        {{ t('fonts.desc') }}
+      </p>
 
       <!-- 폰트 선택 그리드 -->
       <div class="font-settings-grid">
@@ -28,9 +67,16 @@
             <span class="font-label-text">{{ t('fonts.uiFont') }}</span>
             <span class="font-label-desc">{{ t('fonts.uiFontDesc') }}</span>
           </div>
-          <select class="font-select" :value="fontSettings.sansFont"
-            @change="updateFontSettings({ sansFont: ($event.target as HTMLSelectElement).value })">
-            <option v-for="font in sansFonts" :key="font.id" :value="font.id">
+          <select
+            class="font-select"
+            :value="fontSettings.sansFont"
+            @change="updateFontSettings({ sansFont: ($event.target as HTMLSelectElement).value })"
+          >
+            <option
+              v-for="font in sansFonts"
+              :key="font.id"
+              :value="font.id"
+            >
               {{ font.name }}
             </option>
           </select>
@@ -42,9 +88,16 @@
             <span class="font-label-text">{{ t('fonts.editorFont') }}</span>
             <span class="font-label-desc">{{ t('fonts.editorFontDesc') }}</span>
           </div>
-          <select class="font-select" :value="fontSettings.serifFont"
-            @change="updateFontSettings({ serifFont: ($event.target as HTMLSelectElement).value })">
-            <option v-for="font in serifFonts" :key="font.id" :value="font.id">
+          <select
+            class="font-select"
+            :value="fontSettings.serifFont"
+            @change="updateFontSettings({ serifFont: ($event.target as HTMLSelectElement).value })"
+          >
+            <option
+              v-for="font in serifFonts"
+              :key="font.id"
+              :value="font.id"
+            >
               {{ font.name }}
             </option>
           </select>
@@ -56,9 +109,16 @@
             <span class="font-label-text">{{ t('fonts.codeFont') }}</span>
             <span class="font-label-desc">{{ t('fonts.codeFontDesc') }}</span>
           </div>
-          <select class="font-select" :value="fontSettings.monoFont"
-            @change="updateFontSettings({ monoFont: ($event.target as HTMLSelectElement).value })">
-            <option v-for="font in monoFonts" :key="font.id" :value="font.id">
+          <select
+            class="font-select"
+            :value="fontSettings.monoFont"
+            @change="updateFontSettings({ monoFont: ($event.target as HTMLSelectElement).value })"
+          >
+            <option
+              v-for="font in monoFonts"
+              :key="font.id"
+              :value="font.id"
+            >
               {{ font.name }}
             </option>
           </select>
@@ -72,8 +132,13 @@
           <span class="ui-scale-current">{{ fontSettings.uiScale }}%</span>
         </div>
         <div class="ui-scale-buttons">
-          <button v-for="scale in uiScaleOptions" :key="scale" class="ui-scale-btn"
-            :class="{ active: fontSettings.uiScale === scale }" @click="updateFontSettings({ uiScale: scale })">
+          <button
+            v-for="scale in uiScaleOptions"
+            :key="scale"
+            class="ui-scale-btn"
+            :class="{ active: fontSettings.uiScale === scale }"
+            @click="updateFontSettings({ uiScale: scale })"
+          >
             {{ scale }}%
           </button>
         </div>
@@ -86,31 +151,85 @@
             <span class="custom-fonts-title">{{ t('fonts.customFonts') }}</span>
             <span class="custom-fonts-desc">{{ t('fonts.customFontsDesc') }}</span>
           </div>
-          <button class="add-font-btn" @click="openAddFontModal">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+          <button
+            class="add-font-btn"
+            @click="openAddFontModal"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line
+                x1="12"
+                y1="5"
+                x2="12"
+                y2="19"
+              />
+              <line
+                x1="5"
+                y1="12"
+                x2="19"
+                y2="12"
+              />
             </svg>
             {{ t('fonts.addFont') }}
           </button>
         </div>
 
-        <div v-if="customFonts.length === 0" class="no-custom-fonts">
+        <div
+          v-if="customFonts.length === 0"
+          class="no-custom-fonts"
+        >
           {{ t('fonts.noCustomFonts') }}
         </div>
-        <div v-else class="custom-fonts-list">
-          <div v-for="font in customFonts" :key="font.id" class="custom-font-item">
+        <div
+          v-else
+          class="custom-fonts-list"
+        >
+          <div
+            v-for="font in customFonts"
+            :key="font.id"
+            class="custom-font-item"
+          >
             <div class="custom-font-info">
               <span class="custom-font-name">{{ font.name }}</span>
               <div class="custom-font-categories">
-                <span v-for="cat in font.categories" :key="cat" class="custom-font-category">{{ fontCategoryLabels[cat]
-                  }}</span>
+                <span
+                  v-for="cat in font.categories"
+                  :key="cat"
+                  class="custom-font-category"
+                >{{ fontCategoryLabels[cat]
+                }}</span>
               </div>
             </div>
-            <button class="remove-font-btn" @click="handleRemoveFont(font.id)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
+            <button
+              class="remove-font-btn"
+              @click="handleRemoveFont(font.id)"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="6"
+                  y2="18"
+                />
+                <line
+                  x1="6"
+                  y1="6"
+                  x2="18"
+                  y2="18"
+                />
               </svg>
             </button>
           </div>
@@ -120,12 +239,26 @@
 
     <!-- 커스텀 폰트 추가 모달 -->
     <Teleport to="body">
-      <div v-if="showAddFontModal" class="font-modal-overlay" @click.self="closeAddFontModal">
+      <div
+        v-if="showAddFontModal"
+        class="font-modal-overlay"
+        @click.self="closeAddFontModal"
+      >
         <div class="font-modal">
           <div class="font-modal-header">
             <h3>{{ t('fonts.addFont') }}</h3>
-            <button class="font-modal-close" @click="closeAddFontModal">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button
+              class="font-modal-close"
+              @click="closeAddFontModal"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
@@ -134,12 +267,32 @@
             <div class="font-form-group">
               <label>{{ t('fonts.fontFile') }}</label>
               <div class="font-file-input">
-                <input type="text" :value="newFontFileName" readonly :placeholder="t('fonts.fontFilePlaceholder')" />
-                <button class="font-browse-btn" @click="selectFontFile">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <input
+                  type="text"
+                  :value="newFontFileName"
+                  readonly
+                  :placeholder="t('fonts.fontFilePlaceholder')"
+                >
+                <button
+                  class="font-browse-btn"
+                  @click="selectFontFile"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
+                    <line
+                      x1="12"
+                      y1="3"
+                      x2="12"
+                      y2="15"
+                    />
                   </svg>
                   {{ t('fonts.selectFile') }}
                 </button>
@@ -147,26 +300,47 @@
             </div>
             <div class="font-form-group">
               <label>{{ t('fonts.fontName') }}</label>
-              <input v-model="newFontName" type="text" :placeholder="t('fonts.fontNamePlaceholder')" />
+              <input
+                v-model="newFontName"
+                type="text"
+                :placeholder="t('fonts.fontNamePlaceholder')"
+              >
             </div>
             <div class="font-form-group">
               <label>{{ t('fonts.fontCategory') }}</label>
               <div class="font-category-checkboxes">
-                <label v-for="cat in (['sans', 'serif', 'mono'] as const)" :key="cat" class="font-category-checkbox"
-                  :class="{ checked: newFontCategories.includes(cat) }">
-                  <input type="checkbox" :checked="newFontCategories.includes(cat)" @change="toggleCategory(cat)" />
+                <label
+                  v-for="cat in (['sans', 'serif', 'mono'] as const)"
+                  :key="cat"
+                  class="font-category-checkbox"
+                  :class="{ checked: newFontCategories.includes(cat) }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="newFontCategories.includes(cat)"
+                    @change="toggleCategory(cat)"
+                  >
                   <span>{{ fontCategoryLabels[cat] }}</span>
                 </label>
               </div>
             </div>
           </div>
           <div class="font-modal-footer">
-            <button class="font-modal-btn cancel" @click="closeAddFontModal">
+            <button
+              class="font-modal-btn cancel"
+              @click="closeAddFontModal"
+            >
               {{ t('common.cancel') }}
             </button>
-            <button class="font-modal-btn primary" @click="handleAddFont"
-              :disabled="!newFontName || !newFontFilePath || isAddingFont">
-              <span v-if="isAddingFont" class="loading-spinner-sm"></span>
+            <button
+              class="font-modal-btn primary"
+              :disabled="!newFontName || !newFontFilePath || isAddingFont"
+              @click="handleAddFont"
+            >
+              <span
+                v-if="isAddingFont"
+                class="loading-spinner-sm"
+              />
               <span v-else>{{ t('common.add') }}</span>
             </button>
           </div>

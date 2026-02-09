@@ -1,29 +1,92 @@
 <template>
-  <aside class="sidebar" :class="{ collapsed: isCollapsed }"
-    :style="{ width: isCollapsed ? 'var(--sidebar-collapsed)' : `${sidebarWidth}px` }">
+  <aside
+    class="sidebar"
+    :class="{ collapsed: isCollapsed }"
+    :style="{ width: isCollapsed ? 'var(--sidebar-collapsed)' : `${sidebarWidth}px` }"
+  >
     <!-- 리사이즈 핸들 -->
-    <div class="resize-handle" @mousedown="startResize"></div>
+    <div
+      class="resize-handle"
+      @mousedown="startResize"
+    />
 
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
-          <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="7" y="4" width="18" height="24" rx="2" fill="currentColor" opacity="0.15" />
-            <rect x="7" y="4" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.6" />
-            <line x1="11" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"
-              opacity="0.4" />
-            <line x1="11" y1="16" x2="18" y2="16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"
-              opacity="0.3" />
-            <line x1="11" y1="21" x2="19" y2="21" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"
-              opacity="0.2" />
+          <svg
+            class="logo-svg"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="7"
+              y="4"
+              width="18"
+              height="24"
+              rx="2"
+              fill="currentColor"
+              opacity="0.15"
+            />
+            <rect
+              x="7"
+              y="4"
+              width="18"
+              height="24"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.6"
+            />
+            <line
+              x1="11"
+              y1="11"
+              x2="21"
+              y2="11"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              opacity="0.4"
+            />
+            <line
+              x1="11"
+              y1="16"
+              x2="18"
+              y2="16"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              opacity="0.3"
+            />
+            <line
+              x1="11"
+              y1="21"
+              x2="19"
+              y2="21"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              opacity="0.2"
+            />
           </svg>
         </div>
         <span class="logo-text">
           <span class="logo-cue">Cue</span><span class="logo-note">Note</span>
         </span>
       </div>
-      <button class="icon-btn" @click="$emit('toggle-collapse')" title="Toggle Sidebar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button
+        class="icon-btn"
+        title="Toggle Sidebar"
+        @click="$emit('toggle-collapse')"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
@@ -31,87 +94,167 @@
 
     <div class="sidebar-content">
       <!-- Environment Section -->
-      <EnvironmentSelector ref="envSelectorRef" :environments="environments" :current-id="currentId"
-        :current-environment="currentEnvironment" @open-add-modal="showEnvModal = true"
-        @select-environment="handleSelectEnvironment" @remove-environment="handleRemoveEnvironment" />
+      <EnvironmentSelector
+        ref="envSelectorRef"
+        :environments="environments"
+        :current-id="currentId"
+        :current-environment="currentEnvironment"
+        @open-add-modal="showEnvModal = true"
+        @select-environment="handleSelectEnvironment"
+        @remove-environment="handleRemoveEnvironment"
+      />
 
       <!-- 그래프 뷰 클러스터 패널 -->
       <template v-if="currentView === 'graph'">
-        <GraphClusterPanel :clusters="clusters || []" :selected-cluster-id="selectedClusterId || null"
-          :stats="graphStats || null" :is-loading="isGraphLoading || false" :unclustered-count="unclusteredCount || 0"
-          @filter-cluster="emit('filter-cluster', $event)" @refresh-graph="emit('refresh-graph')"
-          @edit-cluster="openClusterEdit" @create-cluster="openClusterCreate" />
+        <GraphClusterPanel
+          :clusters="clusters || []"
+          :selected-cluster-id="selectedClusterId || null"
+          :stats="graphStats || null"
+          :is-loading="isGraphLoading || false"
+          :unclustered-count="unclusteredCount || 0"
+          @filter-cluster="emit('filter-cluster', $event)"
+          @refresh-graph="emit('refresh-graph')"
+          @edit-cluster="openClusterEdit"
+          @create-cluster="openClusterCreate"
+        />
       </template>
 
       <!-- 기본 Vault Section (그래프 뷰가 아닐 때) -->
       <template v-else>
         <div class="sidebar-section">
-          <div v-if="vaultPath && todoCount !== null" class="vault-stats">
+          <div
+            v-if="vaultPath && todoCount !== null"
+            class="vault-stats"
+          >
             <span class="stat">{{ vaultFiles.length }} notes</span>
             <span class="stat-dot">·</span>
             <span class="stat">{{ todoCount }} tasks</span>
           </div>
 
-          <p v-if="vaultError" class="error-msg">{{ vaultError }}</p>
+          <p
+            v-if="vaultError"
+            class="error-msg"
+          >
+            {{ vaultError }}
+          </p>
         </div>
       </template>
 
       <!-- Files List (그래프 뷰가 아닐 때만) -->
-      <FileList v-if="currentView !== 'graph'" :is-git-hub-mode="isGitHubMode" :active-file="activeFile"
-        :dirty-files="dirtyFiles" :vault-path="vaultPath" :vault-files="vaultFiles" :vault-folders="vaultFolders"
-        :github-files="githubFiles" :github-loading="githubLoading" @select-file="emit('select-file', $event)"
-        @select-github-file="handleSelectGitHubFile" @delete-file="handleDeleteFile" @create-file="handleCreateFile"
-        @folder-created="handleFolderCreated" @rename-file="handleRenameFile" @rename-folder="handleRenameFolder"
-        @move-file="handleMoveFile" @create-github-file="handleCreateGitHubFile"
-        @create-github-folder="handleCreateGitHubFolder" @rename-github-file="handleRenameGitHubFile"
-        @rename-github-folder="handleRenameGitHubFolder" @delete-github-file="handleDeleteGitHubFile"
-        @delete-github-folder="handleDeleteGitHubFolder" />
+      <FileList
+        v-if="currentView !== 'graph'"
+        :is-git-hub-mode="isGitHubMode"
+        :active-file="activeFile"
+        :dirty-files="dirtyFiles"
+        :vault-path="vaultPath"
+        :vault-files="vaultFiles"
+        :vault-folders="vaultFolders"
+        :github-files="githubFiles"
+        :github-loading="githubLoading"
+        @select-file="emit('select-file', $event)"
+        @select-github-file="handleSelectGitHubFile"
+        @delete-file="handleDeleteFile"
+        @create-file="handleCreateFile"
+        @folder-created="handleFolderCreated"
+        @rename-file="handleRenameFile"
+        @rename-folder="handleRenameFolder"
+        @move-file="handleMoveFile"
+        @create-github-file="handleCreateGitHubFile"
+        @create-github-folder="handleCreateGitHubFolder"
+        @rename-github-file="handleRenameGitHubFile"
+        @rename-github-folder="handleRenameGitHubFolder"
+        @delete-github-file="handleDeleteGitHubFile"
+        @delete-github-folder="handleDeleteGitHubFolder"
+      />
 
       <!-- Git Panel (GitHub 모드일 때만) -->
-      <GitPanel v-if="currentView !== 'graph'" :is-git-hub-mode="isGitHubMode" @commit-success="handleCommitSuccess" />
+      <GitPanel
+        v-if="currentView !== 'graph'"
+        :is-git-hub-mode="isGitHubMode"
+        @commit-success="handleCommitSuccess"
+      />
 
       <!-- Trash Section - 로컬 모드 (그래프 뷰가 아닐 때만) -->
-      <TrashSection v-if="!isGitHubMode && vaultPath && trashFiles.length > 0 && currentView !== 'graph'"
-        :trash-files="trashFiles" @restore-file="handleRestoreFile" @permanent-delete="handlePermanentDelete"
-        @empty-trash="handleEmptyTrash" />
+      <TrashSection
+        v-if="!isGitHubMode && vaultPath && trashFiles.length > 0 && currentView !== 'graph'"
+        :trash-files="trashFiles"
+        @restore-file="handleRestoreFile"
+        @permanent-delete="handlePermanentDelete"
+        @empty-trash="handleEmptyTrash"
+      />
 
       <!-- Trash Section - GitHub 모드 (그래프 뷰가 아닐 때만) -->
-      <TrashSection v-if="isGitHubMode && githubTrashFiles.length > 0 && currentView !== 'graph'"
-        :trash-files="githubTrashFiles" @restore-file="handleGitHubRestoreFile"
-        @permanent-delete="handleGitHubPermanentDelete" @empty-trash="handleGitHubEmptyTrash" />
+      <TrashSection
+        v-if="isGitHubMode && githubTrashFiles.length > 0 && currentView !== 'graph'"
+        :trash-files="githubTrashFiles"
+        @restore-file="handleGitHubRestoreFile"
+        @permanent-delete="handleGitHubPermanentDelete"
+        @empty-trash="handleGitHubEmptyTrash"
+      />
     </div>
 
     <!-- Status Bar -->
     <div class="sidebar-footer">
-      <div class="status-indicator" :class="coreStatus === 'ok' ? 'online' : 'offline'">
-        <span class="status-dot"></span>
+      <div
+        class="status-indicator"
+        :class="coreStatus === 'ok' ? 'online' : 'offline'"
+      >
+        <span class="status-dot" />
         <span class="status-text">{{ coreStatus === 'ok' ? 'Core Online' : 'Offline' }}</span>
       </div>
     </div>
   </aside>
 
   <!-- 환경 추가 모달 -->
-  <EnvAddModal :visible="showEnvModal" :error="envError" :is-git-hub-logged-in="isGitHubLoggedIn"
-    :github-user="githubUser" :github-repos="githubRepos" :github-loading="githubLoading" :github-error="githubError"
-    :github-validating="githubValidating" :is-cloning="isCloning" @close="closeEnvModal"
-    @add-local="handleAddLocalEnvironment" @add-github="handleAddGitHubEnvironment" @github-login="handleGitHubLogin"
-    @github-logout="handleGitHubLogout" @open-create-repo="showCreateRepoModal = true"
-    @fetch-repos="fetchGitHubRepos" />
+  <EnvAddModal
+    :visible="showEnvModal"
+    :error="envError"
+    :is-git-hub-logged-in="isGitHubLoggedIn"
+    :github-user="githubUser"
+    :github-repos="githubRepos"
+    :github-loading="githubLoading"
+    :github-error="githubError"
+    :github-validating="githubValidating"
+    :is-cloning="isCloning"
+    @close="closeEnvModal"
+    @add-local="handleAddLocalEnvironment"
+    @add-github="handleAddGitHubEnvironment"
+    @github-login="handleGitHubLogin"
+    @github-logout="handleGitHubLogout"
+    @open-create-repo="showCreateRepoModal = true"
+    @fetch-repos="fetchGitHubRepos"
+  />
 
   <!-- GitHub 리포지토리 생성 모달 -->
-  <CreateRepoModal :visible="showCreateRepoModal" :creating="creatingRepo" :error="createRepoError"
-    @close="showCreateRepoModal = false" @create="handleCreateRepo" />
+  <CreateRepoModal
+    :visible="showCreateRepoModal"
+    :creating="creatingRepo"
+    :error="createRepoError"
+    @close="showCreateRepoModal = false"
+    @create="handleCreateRepo"
+  />
 
   <!-- 환경 삭제 확인 모달 -->
-  <DeleteEnvModal :visible="showDeleteEnvModal" :env-name="envToDelete?.name || ''" @close="closeDeleteEnvModal"
-    @confirm="confirmDeleteEnvironment" />
+  <DeleteEnvModal
+    :visible="showDeleteEnvModal"
+    :env-name="envToDelete?.name || ''"
+    @close="closeDeleteEnvModal"
+    @confirm="confirmDeleteEnvironment"
+  />
 
 
 
   <!-- 클러스터 편집 모달 -->
-  <ClusterEditModal :visible="showClusterEditModal" :cluster="editingCluster" :isCreateMode="isClusterCreateMode"
-    @close="closeClusterEdit" @save="handleClusterSave" @reset="handleClusterReset" @create="handleClusterCreate"
-    @delete="handleClusterDelete" />
+  <ClusterEditModal
+    :visible="showClusterEditModal"
+    :cluster="editingCluster"
+    :is-create-mode="isClusterCreateMode"
+    @close="closeClusterEdit"
+    @save="handleClusterSave"
+    @reset="handleClusterReset"
+    @create="handleClusterCreate"
+    @delete="handleClusterDelete"
+  />
 </template>
 
 <script setup lang="ts">
@@ -301,6 +444,8 @@ onMounted(async () => {
       description: null,
       default_branch: 'main'
     });
+    // GitHub 환경의 파일 목록도 vault를 통해 갱신
+    await refreshFiles();
   }
 });
 
@@ -334,6 +479,8 @@ async function handleSelectEnvironment(id: string) {
         description: null,
         default_branch: 'main'
       });
+      // GitHub 환경의 파일 목록도 vault를 통해 갱신
+      await refreshFiles();
     } else {
       // 로컬 환경이면 GitHub 비활성화
       setGitHubActive(false);
