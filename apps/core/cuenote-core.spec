@@ -12,10 +12,9 @@ block_cipher = None
 # 현재 디렉토리
 CORE_DIR = Path(SPECPATH)
 
-# 데이터 파일 (DB, 설정 등)
+# 데이터 파일 (프로덕션에서는 AppData에서 동적 생성)
 datas = [
-    # data 폴더 포함
-    (str(CORE_DIR / 'data'), 'data'),
+    # data 폴더는 빌드에 포함하지 않음 (테스트용 데이터)
 ]
 
 # 숨겨진 imports (동적으로 임포트되는 모듈들)
@@ -192,7 +191,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,  # 콘솔 창 표시 (디버깅용, 배포 시 False로)
+    console=False,  # 배포용: 콘솔 창 숨김
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

@@ -9,12 +9,12 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..config import PROJECT_ROOT, logger
+from ..config import PROJECT_ROOT, DATA_DIR, VAULT_PATH, logger
 
 router = APIRouter(prefix="/environment", tags=["environment"])
 
 # 환경 설정 파일 경로 (앱 데이터 폴더에 저장)
-ENV_CONFIG_PATH = PROJECT_ROOT / "apps" / "core" / "data" / "environments.json"
+ENV_CONFIG_PATH = DATA_DIR / "environments.json"
 
 
 class Environment(BaseModel):
@@ -238,7 +238,7 @@ async def init_default_environment():
     config = load_config()
     
     # 기본 환경이 이미 있는지 확인
-    default_path = PROJECT_ROOT / "data"
+    default_path = VAULT_PATH
     for env in config.environments:
         if Path(env.path).resolve() == default_path.resolve():
             # 이미 있으면 현재 환경으로 설정

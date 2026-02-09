@@ -9,12 +9,12 @@ import sys
 from typing import Optional
 from pathlib import Path
 
-from ..config import logger, PROJECT_ROOT
+from ..config import logger, DATA_DIR, VAULT_PATH
 from .graph_cache import GraphCache
 
 # 환경 설정 파일 경로 (vault.py와 동일)
-ENV_CONFIG_PATH = PROJECT_ROOT / "apps" / "core" / "data" / "environments.json"
-DEFAULT_VAULT_PATH = PROJECT_ROOT / "data"
+ENV_CONFIG_PATH = DATA_DIR / "environments.json"
+DEFAULT_VAULT_PATH = VAULT_PATH
 
 
 # ─────────────────────────────────────────────────────────────────────────────

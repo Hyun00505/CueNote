@@ -8,10 +8,10 @@ import time
 from typing import Optional
 from pathlib import Path
 
-from ..config import logger, PROJECT_ROOT
+from ..config import logger, DATA_DIR
 
 # 캐시 파일 경로
-CACHE_DIR = PROJECT_ROOT / "apps" / "core" / "data" / ".graph_cache"
+CACHE_DIR = DATA_DIR / ".graph_cache"
 
 # 클러스터 색상 팔레트 (최대 12개)
 CLUSTER_COLORS = [

@@ -2,15 +2,14 @@ import logging
 import sqlite3
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "data"
-DB_PATH = DATA_PATH / "cuenote.db"
+from .config import DATA_DIR
+
+DB_PATH = DATA_DIR / "cuenote.db"
 
 logger = logging.getLogger("cuenote.core")
 
 
 def get_conn() -> sqlite3.Connection:
-    DATA_PATH.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 

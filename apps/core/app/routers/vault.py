@@ -14,7 +14,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse
 
-from ..config import VAULT_PATH, TRASH_PATH, TODO_PATTERN, logger, PROJECT_ROOT
+from ..config import VAULT_PATH, TRASH_PATH, TODO_PATTERN, logger, PROJECT_ROOT, DATA_DIR
 from ..db import get_conn
 from pydantic import BaseModel as PydanticBaseModel
 
@@ -27,7 +27,7 @@ from ..schemas import (
 router = APIRouter(prefix="/vault", tags=["vault"])
 
 # 환경 설정 파일 경로
-ENV_CONFIG_PATH = PROJECT_ROOT / "apps" / "core" / "data" / "environments.json"
+ENV_CONFIG_PATH = DATA_DIR / "environments.json"
 
 
 def get_git_repos_dir() -> Path:
