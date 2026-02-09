@@ -10,6 +10,8 @@ from sse_starlette.sse import EventSourceResponse
 from ..config import logger
 from .. import ollama_client
 from .. import gemini_client
+from .. import openai_client
+from .. import anthropic_client
 from ..schemas import (
     SummarizePayload, SummarizeResponse,
     TranslatePayload, TranslateResponse,
@@ -19,11 +21,15 @@ from ..schemas import (
     ProofreadPayload, ProofreadResponse, CorrectionItem,
     StreamPayload,
     DocumentExtractPayload, DocumentExtractResponse,
+    URLExtractPayload, URLExtractResponse,
     OCRModelStatus, OCRDownloadResponse,
 )
 
 # 기존 호환성을 위한 import
 from ..ollama_client import process_long_text, MAX_INPUT_CHARS
+
+# MCP 통합
+from .mcp_integration import try_mcp_enhance
 
 
 def call_json_with_provider(
@@ -36,6 +42,10 @@ def call_json_with_provider(
     """LLM 제공자에 따라 적절한 클라이언트로 JSON 호출"""
     if provider == "gemini" and api_key:
         return gemini_client.call_json(prompt, schema_hint, api_key, model)
+    elif provider == "openai" and api_key:
+        return openai_client.call_json(prompt, schema_hint, api_key, model)
+    elif provider == "anthropic" and api_key:
+        return anthropic_client.call_json(prompt, schema_hint, api_key, model)
     else:
         return ollama_client.call_json(prompt, schema_hint, model)
 
@@ -83,6 +93,10 @@ async def summarize_note(payload: SummarizePayload):
     )
     
     try:
+        # MCP 도구 활용 시도
+        mcp_result = await try_mcp_enhance(content, "summarize")
+        mcp_used = mcp_result.get("mcp_used", [])
+
         result = call_json_with_provider(
             prompt,
             "SummarizeResult with fields summary, keyPoints",
@@ -93,11 +107,17 @@ async def summarize_note(payload: SummarizePayload):
         summary = result.get("summary", "요약 생성 실패")
         if truncation_warning:
             summary = f"{summary}\n\n{truncation_warning}"
-        return SummarizeResponse(
-            summary=summary,
-            keyPoints=result.get("keyPoints", []),
-            wordCount=word_count
-        )
+        
+        response_data = {
+            "summary": summary,
+            "keyPoints": result.get("keyPoints", []),
+            "wordCount": word_count,
+        }
+        # MCP 도구가 사용된 경우 응답에 포함
+        if mcp_used:
+            response_data["mcp_used"] = mcp_used
+            logger.info("MCP tools used in summarize: %s", [t['tool'] for t in mcp_used])
+        return response_data
     except Exception as e:
         logger.error("Summarize failed: %s", e)
         raise HTTPException(status_code=500, detail="Failed to generate summary")
@@ -565,9 +585,20 @@ async def ai_stream(payload: StreamPayload):
     
     async def event_generator():
         try:
-            # Gemini 또는 Ollama 스트리밍 선택
+            # MCP 도구 활용 시도 (스트리밍 전에)
+            mcp_result = await try_mcp_enhance(content, payload.action)
+            mcp_used = mcp_result.get("mcp_used", [])
+            if mcp_used:
+                import json
+                yield {"event": "mcp", "data": json.dumps(mcp_used)}
+
+            # LLM 제공자에 따른 스트리밍 함수 선택
             if provider == "gemini" and api_key:
                 stream_func = gemini_client.stream_generate(prompt, api_key, model)
+            elif provider == "openai" and api_key:
+                stream_func = openai_client.stream_generate(prompt, api_key, model)
+            elif provider == "anthropic" and api_key:
+                stream_func = anthropic_client.stream_generate(prompt, api_key, model)
             else:
                 stream_func = ollama_client.stream_generate(prompt, model)
             
@@ -669,6 +700,10 @@ Output the markdown below (no explanations, no instructions, just the converted 
     
     if provider == "gemini" and api_key:
         return gemini_client.generate(prompt, api_key, model)
+    elif provider == "openai" and api_key:
+        return openai_client.generate(prompt, api_key, model)
+    elif provider == "anthropic" and api_key:
+        return anthropic_client.generate(prompt, api_key, model)
     else:
         return ollama_client.generate(prompt, model=model)
 
@@ -831,6 +866,89 @@ async def extract_document(payload: DocumentExtractPayload):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# URL → 마크다운 추출
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/extract-url", response_model=URLExtractResponse)
+async def extract_url(payload: URLExtractPayload):
+    """
+    URL에서 텍스트와 이미지를 추출하여 마크다운으로 변환합니다.
+    
+    - trafilatura로 본문 텍스트 + 이미지 URL 추출
+    - raw_text_only=False면 LLM으로 마크다운 형식 정리
+    """
+    from .. import web_extractor
+
+    url = payload.url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL이 비어 있습니다.")
+
+    # URL 앞에 스킴이 없으면 https:// 추가
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+
+    try:
+        # 1) HTML 가져오기
+        html = await web_extractor.fetch_url(url)
+
+        # 2) 콘텐츠 추출
+        content = web_extractor.extract_content(html, url)
+        title = content["title"]
+        text = content["text"]
+        images = content["images"]
+
+        if not text:
+            raise HTTPException(
+                status_code=400,
+                detail="해당 URL에서 텍스트를 추출할 수 없습니다."
+            )
+
+        # 3) 마크다운 생성
+        if payload.raw_text_only:
+            # AI 없이 기본 조합
+            markdown_result = web_extractor.build_markdown(
+                title, text, images, url
+            )
+        else:
+            # LLM으로 마크다운 정리
+            raw_markdown = web_extractor.build_markdown(
+                title, text, images, url
+            )
+            markdown_result = format_text_as_markdown(
+                raw_markdown,
+                payload.provider,
+                payload.api_key,
+                payload.language,
+                payload.model if payload.model else None,
+            )
+            # 출처 정보가 LLM 출력에서 빠졌을 수 있으므로 추가
+            if url not in markdown_result:
+                markdown_result = (
+                    f"> 📎 출처: [{url}]({url})\n\n"
+                    + markdown_result
+                )
+
+        logger.info("URL extracted: %s (title=%s, images=%d)", url, title, len(images))
+        return URLExtractResponse(
+            markdown=markdown_result,
+            title=title,
+            images=images,
+            source_url=url,
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("URL extract failed: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"URL 추출에 실패했습니다: {str(e)}"
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # OCR 엔진 관리
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -859,5 +977,4 @@ async def get_ocr_status(engine: str = "rapidocr"):
         "engine_description": info["engine_description"],
         "requires_api_key": info.get("requires_api_key", False),
     }
-
 

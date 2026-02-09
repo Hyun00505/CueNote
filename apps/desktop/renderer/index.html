@@ -204,6 +204,74 @@
           radial-gradient(ellipse at 100% 100%, rgba(56, 139, 253, 0.02) 0%, transparent 40%);
       }
 
+      /* Light Theme */
+      html[data-theme="light"] {
+        /* Backgrounds */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f3f4f6; /* gray-100 */
+        --bg-tertiary: #f9fafb; /* gray-50 */
+        --bg-elevated: #ffffff;
+        --bg-hover: rgba(0, 0, 0, 0.04);
+        --bg-active: rgba(0, 0, 0, 0.06);
+
+        /* Glass Effect */
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(0, 0, 0, 0.06);
+        --glass-highlight: rgba(255, 255, 255, 0.5);
+
+        /* Text Colors */
+        --text-primary: #111827; /* gray-900 */
+        --text-secondary: #4b5563; /* gray-600 */
+        --text-muted: #6b7280; /* gray-500 */
+        --text-accent: #374151; /* gray-700 */
+
+        /* Accents */
+        --accent-primary: #4b5563; /* gray-600 */
+        --accent-secondary: #9ca3af; /* gray-400 */
+        --accent-tertiary: #d1d5db; /* gray-300 */
+        --accent-glow: rgba(75, 85, 99, 0.15);
+
+        /* Gold Accent (Adjusted for Light) */
+        --accent-gold: #b49257;
+        --accent-gold-dim: #967843;
+        --accent-gold-glow: rgba(180, 146, 87, 0.15);
+        --gradient-gold: linear-gradient(135deg, #b49257, #967843);
+
+        /* Gradients */
+        --gradient-primary: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        --gradient-secondary: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%);
+
+        /* Borders */
+        --border-subtle: rgba(0, 0, 0, 0.04);
+        --border-default: rgba(0, 0, 0, 0.08);
+        --border-strong: rgba(0, 0, 0, 0.12);
+
+        /* Surface Overlays */
+        --surface-1: rgba(0, 0, 0, 0.02);
+        --surface-2: rgba(0, 0, 0, 0.04);
+        --surface-3: rgba(0, 0, 0, 0.05);
+        --surface-4: rgba(0, 0, 0, 0.06);
+
+        /* Modal Overlay */
+        --overlay-bg: rgba(0, 0, 0, 0.4);
+        --overlay-bg-heavy: rgba(0, 0, 0, 0.6);
+
+        /* Shadows */
+        --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+      }
+
+      html[data-theme="light"] body::before {
+        background: 
+          radial-gradient(ellipse at 0% 0%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+          radial-gradient(ellipse at 100% 100%, rgba(0, 0, 0, 0.02) 0%, transparent 40%);
+      }
+
       html, body {
         height: 100%;
         width: 100%;
@@ -295,6 +363,15 @@
     </style>
   </head>
   <body>
+    <script>
+      // Vue 로드 전에 테마를 먼저 적용하여 깜빡임 방지
+      (function() {
+        const savedTheme = localStorage.getItem('cuenote-theme');
+        const validThemes = ['dark', 'dim', 'github-dark', 'light'];
+        const theme = validThemes.includes(savedTheme) ? savedTheme : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

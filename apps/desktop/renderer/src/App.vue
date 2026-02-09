@@ -1,5 +1,8 @@
 <template>
-  <div class="app-container" :class="{ 'is-resizing': isResizing }">
+  <div
+    class="app-container"
+    :class="{ 'is-resizing': isResizing }"
+  >
     <AppSidebar
       v-if="currentView !== 'settings' && currentView !== 'dashboard'"
       :collapsed="sidebarCollapsed"
@@ -30,29 +33,66 @@
     <!-- 저장 확인 모달 -->
     <Teleport to="body">
       <Transition name="modal">
-        <div v-if="showUnsavedModal" class="unsaved-modal-overlay" @click.self="cancelFileSwitch">
+        <div
+          v-if="showUnsavedModal"
+          class="unsaved-modal-overlay"
+          @click.self="cancelFileSwitch"
+        >
           <div class="unsaved-modal">
             <div class="unsaved-modal-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line
+                  x1="12"
+                  y1="9"
+                  x2="12"
+                  y2="13"
+                />
+                <line
+                  x1="12"
+                  y1="17"
+                  x2="12.01"
+                  y2="17"
+                />
               </svg>
             </div>
             <h3>저장되지 않은 변경사항</h3>
-            <p>현재 문서에 저장되지 않은 변경사항이 있습니다.<br/>저장하시겠습니까?</p>
+            <p>현재 문서에 저장되지 않은 변경사항이 있습니다.<br>저장하시겠습니까?</p>
             <div class="unsaved-modal-actions">
-              <button class="btn-discard" @click="discardAndSwitch">
+              <button
+                class="btn-discard"
+                @click="discardAndSwitch"
+              >
                 저장 안 함
               </button>
-              <button class="btn-cancel" @click="cancelFileSwitch">
+              <button
+                class="btn-cancel"
+                @click="cancelFileSwitch"
+              >
                 취소
               </button>
-              <button class="btn-save" @click="saveAndSwitch">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/>
-                  <polyline points="7 3 7 8 15 8"/>
+              <button
+                class="btn-save"
+                @click="saveAndSwitch"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
                 </svg>
                 저장
               </button>
@@ -74,8 +114,8 @@
 
       <div class="content-area">
         <EditorView
-          ref="editorViewRef"
           v-show="currentView === 'editor'"
+          ref="editorViewRef"
           :active-file="activeFile"
           :is-github-file="isGitHubFile"
           :github-content="githubFileContent"
@@ -84,14 +124,14 @@
         />
 
         <DashboardView
-          ref="dashboardViewRef"
           v-show="currentView === 'dashboard'"
+          ref="dashboardViewRef"
           :has-vault="!!vaultPath"
         />
 
         <GraphView
-          ref="graphViewRef"
           v-show="currentView === 'graph'"
+          ref="graphViewRef"
           :filter-cluster-id="selectedClusterId"
           :is-active="currentView === 'graph'"
           @select-file="handleSelectFile"
@@ -112,6 +152,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView, GraphView } from './components';
 import { useVault, useHealth, useFonts, useGraph, useGitHub } from './composables';
 import type { ViewType, ClusterInfo } from './types';
+import { API_ENDPOINTS } from './config/api';
 
 const sidebarCollapsed = ref(false);
 const currentView = ref<ViewType>('editor');
@@ -146,7 +187,7 @@ function handleDirtyFilesChange(files: string[]) {
 // 뷰 전환 핸들러
 function handleChangeView(view: ViewType) {
   currentView.value = view;
-  
+
   // 캘린더 뷰로 전환할 때 오늘 날짜로 스크롤
   if (view === 'dashboard') {
     nextTick(() => {
@@ -181,20 +222,24 @@ const vaultName = computed(() => {
 function handleSelectFile(file: string) {
   // 같은 파일이면 무시
   if (file === activeFile.value && !isGitHubFile.value) return;
-  
+
   // GitHub 모드 해제
   isGitHubFile.value = false;
   githubFileContent.value = null;
-  
+
   // 바로 파일 전환 (저장하지 않은 변경사항은 캐시에 유지됨)
   activeFile.value = file;
   currentView.value = 'editor';
 }
 
-// GitHub 파일 선택 핸들러
-function handleSelectGitHubFile(path: string, content: string) {
+// GitHub 파일 선택 핸들러 (로컬 파일과 동일하게 처리)
+// 백엔드의 /vault/file API가 GitHub 환경에서도 클론 경로를 사용
+function handleSelectGitHubFile(path: string) {
+  // 같은 파일이면 무시
+  if (path === activeFile.value && isGitHubFile.value) return;
+
   isGitHubFile.value = true;
-  githubFileContent.value = content;
+  githubFileContent.value = null; // content는 EditorView에서 /vault/file로 로드
   activeFile.value = path;
   currentView.value = 'editor';
 }
@@ -249,17 +294,17 @@ function handleFileRestored(file: string) {
 // 환경 변경 핸들러
 async function handleEnvironmentChanged() {
   console.log('[App] Environment changed, current view:', currentView.value);
-  
+
   // 현재 선택된 파일 초기화
   activeFile.value = null;
   isGitHubFile.value = false;
   githubFileContent.value = null;
-  
+
   // 그래프 관련 상태 초기화
   graphClusters.value = [];
   graphStats.value = { totalNotes: 0, totalClusters: 0, totalEdges: 0 };
   selectedClusterId.value = null;
-  
+
   // 그래프 뷰가 비활성 상태면 데이터만 초기화
   // (활성 상태면 GraphView의 환경 watch가 자동으로 새 데이터 로드)
   if (currentView.value !== 'graph') {
@@ -275,15 +320,15 @@ function handleOpenSettings() {
 // 파일 이름 변경
 async function handleRenameFile(payload: { oldPath: string; newName: string }) {
   const { oldPath, newName } = payload;
-  
+
   // 기존 경로에서 폴더 경로 추출
   const pathParts = oldPath.split('/');
   pathParts.pop(); // 파일명 제거
   const folderPath = pathParts.join('/');
-  
+
   // 새 경로 생성
   const newPath = folderPath ? `${folderPath}/${newName}.md` : `${newName}.md`;
-  
+
   try {
     if (isGitHubFile.value) {
       // GitHub 파일인 경우
@@ -293,12 +338,12 @@ async function handleRenameFile(payload: { oldPath: string; newName: string }) {
       }
     } else {
       // 로컬 파일인 경우
-      const response = await fetch('http://localhost:23432/vault/file/rename', {
+      const response = await fetch(API_ENDPOINTS.VAULT.RENAME, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ old_path: oldPath, new_path: newPath })
       });
-      
+
       if (response.ok) {
         activeFile.value = newPath;
         await refreshFiles();
@@ -344,7 +389,7 @@ async function handleUpdateCluster(data: { id: number; label: string; color: str
     color: data.color,
     keywords: data.keywords
   });
-  
+
   // 로컬 상태가 즉시 업데이트되므로 새로고침 불필요
   // 사이드바 클러스터 목록도 자동 반영
   updateGraphClustersFromLocal();
@@ -395,21 +440,32 @@ watch(currentView, (newView, oldView) => {
   }
 });
 
+// 테마 초기화 함수
+function initTheme() {
+  const savedTheme = localStorage.getItem('cuenote-theme');
+  const validThemes = ['dark', 'dim', 'github-dark', 'light'];
+  const theme = validThemes.includes(savedTheme as string) ? savedTheme : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
 onMounted(async () => {
+  // 앱 시작 시 테마 초기화 (설정 페이지 방문 전에도 적용)
+  initTheme();
+
   // 앱 시작 시 뷰를 에디터로 명시적 초기화 (중복 설정으로 확실하게)
   currentView.value = 'editor';
   previousView.value = 'editor';
-  
+
   // 선택된 파일 초기화 (새 파일 없이 시작)
   activeFile.value = null;
   isGitHubFile.value = false;
   githubFileContent.value = null;
-  
+
   checkHealth();
   initFonts();
   // 앱 시작 시 기본 vault(data 폴더) 자동 로드
   await initVault();
-  
+
   // Vue 렌더링 사이클 완료 후 한 번 더 확인
   await nextTick();
   if (currentView.value !== 'editor') {
@@ -452,7 +508,7 @@ onMounted(async () => {
 }
 
 /* 뷰 컴포넌트들의 기본 스타일 - v-show가 제대로 작동하도록 */
-.content-area > * {
+.content-area>* {
   position: absolute;
   top: 0;
   left: 0;

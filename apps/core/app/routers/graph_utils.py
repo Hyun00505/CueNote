@@ -3,7 +3,9 @@ CueNote Core - Graph 유틸리티 함수
 임베딩, 클러스터링, AI 라벨 생성 등
 """
 import json
+import os
 import re
+import sys
 from typing import Optional
 from pathlib import Path
 
@@ -19,8 +21,22 @@ DEFAULT_VAULT_PATH = PROJECT_ROOT / "data"
 # 유틸리티 함수
 # ─────────────────────────────────────────────────────────────────────────────
 
+def get_git_repos_dir() -> Path:
+    """GitHub 리포지토리 클론 디렉토리 경로 반환 (vault.py, github.py와 동일)"""
+    if os.name == 'nt':
+        base = Path(os.environ.get('APPDATA', '')) / 'cuenote'
+    elif os.name == 'posix':
+        if 'darwin' in sys.platform:
+            base = Path.home() / 'Library' / 'Application Support' / 'cuenote'
+        else:
+            base = Path.home() / '.local' / 'share' / 'cuenote'
+    else:
+        base = Path.home() / '.cuenote'
+    return base / 'git-repos'
+
+
 def get_current_vault_path() -> Path:
-    """현재 선택된 환경의 Vault 경로 반환"""
+    """현재 선택된 환경의 Vault 경로 반환 (GitHub 환경 포함)"""
     if not ENV_CONFIG_PATH.exists():
         return DEFAULT_VAULT_PATH
     
@@ -32,6 +48,20 @@ def get_current_vault_path() -> Path:
         
         for env in data.get("environments", []):
             if env.get("id") == current_id:
+                env_type = env.get("type", "local")
+                
+                # GitHub 환경인 경우 로컬 클론 경로 반환
+                if env_type == "github":
+                    github_info = env.get("github", {})
+                    owner = github_info.get("owner")
+                    repo = github_info.get("repo")
+                    if owner and repo:
+                        git_path = get_git_repos_dir() / f"{owner}_{repo}"
+                        if git_path.exists():
+                            return git_path
+                    return DEFAULT_VAULT_PATH
+                
+                # 로컬 환경
                 env_path = Path(env.get("path", ""))
                 if env_path.exists():
                     return env_path
@@ -251,6 +281,12 @@ JSON만 출력하세요:"""
             if provider == "gemini" and api_key:
                 from .. import gemini_client
                 result = gemini_client.call_json(prompt, '{"label": "", "keywords": []}', api_key, model or None)
+            elif provider == "openai" and api_key:
+                from .. import openai_client
+                result = openai_client.call_json(prompt, '{"label": "", "keywords": []}', api_key, model or None)
+            elif provider == "anthropic" and api_key:
+                from .. import anthropic_client
+                result = anthropic_client.call_json(prompt, '{"label": "", "keywords": []}', api_key, model or None)
             else:
                 from .. import ollama_client
                 result = ollama_client.call_json(prompt, '{"label": "", "keywords": []}', model or None)

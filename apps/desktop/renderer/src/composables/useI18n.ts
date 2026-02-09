@@ -59,6 +59,42 @@ type TranslationKeys = {
   'settings.ocrHint': string;
   'settings.supportedLangs': string;
   'settings.features': string;
+  
+  // Settings Sidebar
+  'settings.general': string;
+  'settings.generalTitle': string;
+  'settings.appearance': string;
+  'settings.appearanceTitle': string;
+  'settings.ai': string;
+  'settings.aiTitle': string;
+  'settings.menuLanguageTheme': string;
+  'settings.menuFonts': string;
+  'settings.menuAiModel': string;
+  'settings.menuOcr': string;
+  'settings.ocrTitle': string;
+
+  // AI & OCR Settings Details
+  'settings.refreshModels': string;
+  'settings.loadingModels': string;
+  'settings.badgeFree': string;
+  'settings.badgePaid': string;
+  'settings.badgeRecommended': string;
+  'settings.ocrEngineTitle': string;
+  'settings.ocrEngineSelect': string;
+  'settings.accuracy': string;
+  'settings.apiKeyRequired': string;
+  'settings.free': string;
+  'settings.paid': string;
+  'settings.visionModelSelect': string;
+  'settings.geminiOcrNotice': string;
+  
+  // OCR Data
+  'ocr.rapidocr.desc': string;
+  'ocr.rapidocr.accuracy': string;
+  'ocr.rapidocr.speed': string;
+  'ocr.gemini.desc': string;
+  'ocr.gemini.accuracy': string;
+  'ocr.gemini.speed': string;
 
   // Calendar
   'calendar.title': string;
@@ -141,6 +177,10 @@ type TranslationKeys = {
   'calendar.yearView': string;
   'calendar.previous': string;
   'calendar.next': string;
+  'calendar.dayView': string;
+  'calendar.noSchedulesToday': string;
+  'calendar.schedulesCount': string;
+  'calendar.allDay': string;
 
   // Days short
   'days.sunShort': string;
@@ -255,6 +295,12 @@ type TranslationKeys = {
   'fonts.fontNamePlaceholder': string;
   'fonts.fontCategory': string;
   'fonts.categoryOptions': string;
+  'fonts.categorySans': string;
+  'fonts.categorySerif': string;
+  'fonts.categoryMono': string;
+  'fonts.alertElectronOnly': string;
+  'fonts.alertSaveFailed': string;
+  'fonts.alertError': string;
   'fonts.noCustomFonts': string;
   'fonts.preview': string;
   'fonts.uiScale': string;
@@ -305,6 +351,7 @@ const ko: TranslationKeys = {
   'editor.emptyHint': '왼쪽의 볼트에서 파일을 선택하세요',
 
   // Settings
+  // Settings
   'settings.title': '설정',
   'settings.language': '언어',
   'settings.languageDesc': 'UI 표시 언어를 선택합니다',
@@ -329,6 +376,42 @@ const ko: TranslationKeys = {
   'settings.ocrHint': 'PDF나 이미지에서 텍스트를 추출하는 OCR 모델입니다. 에디터 툴바의 "문서 변환" 버튼으로 사용할 수 있습니다.',
   'settings.supportedLangs': '지원 언어:',
   'settings.features': '특징:',
+  
+  // Settings Sidebar
+  'settings.general': '일반',
+  'settings.generalTitle': '일반 설정',
+  'settings.appearance': '외관',
+  'settings.appearanceTitle': '외관 설정',
+  'settings.ai': 'AI',
+  'settings.aiTitle': 'AI 모델 설정',
+  'settings.menuLanguageTheme': '언어 및 테마',
+  'settings.menuFonts': '폰트 설정',
+  'settings.menuAiModel': 'AI 모델',
+  'settings.menuOcr': '문서 변환 (OCR)',
+  'settings.ocrTitle': '문서 변환 (OCR)',
+
+  // AI & OCR Settings Details
+  'settings.refreshModels': '모델 목록 새로고침',
+  'settings.loadingModels': '모델 목록 불러오는 중...',
+  'settings.badgeFree': '무료',
+  'settings.badgePaid': '유료',
+  'settings.badgeRecommended': '추천',
+  'settings.ocrEngineTitle': 'OCR 엔진 (문서 변환)',
+  'settings.ocrEngineSelect': 'OCR 엔진 선택',
+  'settings.accuracy': '정확도: ',
+  'settings.apiKeyRequired': 'API 키 필요',
+  'settings.free': '무료',
+  'settings.paid': '유료',
+  'settings.visionModelSelect': 'Vision 모델 선택',
+  'settings.geminiOcrNotice': 'Gemini Vision OCR은 위에서 설정한 Gemini API 키를 사용합니다. 무료 모델은 분당/일당 요청 제한이 있습니다.',
+
+  // OCR Data
+  'ocr.rapidocr.desc': '로컬 OCR, 무료, 인터넷 불필요',
+  'ocr.rapidocr.accuracy': '보통',
+  'ocr.rapidocr.speed': '빠름',
+  'ocr.gemini.desc': 'Google AI 기반, 최고 정확도 (API 키 필요)',
+  'ocr.gemini.accuracy': '최상',
+  'ocr.gemini.speed': '보통',
 
   // Calendar
   'calendar.title': '달력',
@@ -411,6 +494,10 @@ const ko: TranslationKeys = {
   'calendar.yearView': '연',
   'calendar.previous': '이전',
   'calendar.next': '다음',
+  'calendar.dayView': '일',
+  'calendar.noSchedulesToday': '오늘 일정이 없습니다',
+  'calendar.schedulesCount': '개의 일정',
+  'calendar.allDay': '종일',
 
   // Days short
   'days.sunShort': '일',
@@ -525,6 +612,12 @@ const ko: TranslationKeys = {
   'fonts.fontNamePlaceholder': '표시될 폰트 이름',
   'fonts.fontCategory': '폰트 종류',
   'fonts.categoryOptions': '카테고리 선택',
+  'fonts.categorySans': '고딕 (Sans)',
+  'fonts.categorySerif': '명조 (Serif)',
+  'fonts.categoryMono': '고정폭 (Mono)',
+  'fonts.alertElectronOnly': 'Electron 환경에서만 사용 가능합니다.',
+  'fonts.alertSaveFailed': '폰트 저장 실패: ',
+  'fonts.alertError': '폰트 추가 중 오류가 발생했습니다.',
   'fonts.noCustomFonts': '추가된 커스텀 폰트가 없습니다',
   'fonts.preview': '미리보기',
   'fonts.uiScale': 'UI 크기',
@@ -599,6 +692,42 @@ const en: TranslationKeys = {
   'settings.ocrHint': 'OCR model extracts text from PDFs and images. Use the "Convert Document" button in the editor toolbar.',
   'settings.supportedLangs': 'Supported languages:',
   'settings.features': 'Features:',
+  
+  // Settings Sidebar
+  'settings.general': 'General',
+  'settings.generalTitle': 'General Settings',
+  'settings.appearance': 'Appearance',
+  'settings.appearanceTitle': 'Appearance Settings',
+  'settings.ai': 'AI',
+  'settings.aiTitle': 'AI Model Settings',
+  'settings.menuLanguageTheme': 'Language & Theme',
+  'settings.menuFonts': 'Font Settings',
+  'settings.menuAiModel': 'AI Model',
+  'settings.menuOcr': 'Document Conversion (OCR)',
+  'settings.ocrTitle': 'Document Conversion (OCR)',
+
+  // AI & OCR Settings Details
+  'settings.refreshModels': 'Refresh Models',
+  'settings.loadingModels': 'Loading models...',
+  'settings.badgeFree': 'FREE',
+  'settings.badgePaid': 'PAID',
+  'settings.badgeRecommended': 'Recommended',
+  'settings.ocrEngineTitle': 'OCR Engine (Document Conversion)',
+  'settings.ocrEngineSelect': 'Select OCR Engine',
+  'settings.accuracy': 'Accuracy: ',
+  'settings.apiKeyRequired': 'API Key Required',
+  'settings.free': 'Free',
+  'settings.paid': 'Paid',
+  'settings.visionModelSelect': 'Select Vision Model',
+  'settings.geminiOcrNotice': 'Gemini Vision OCR uses the API key set above. Free models have rate limits.',
+
+  // OCR Data
+  'ocr.rapidocr.desc': 'Local OCR, Free, No Internet required',
+  'ocr.rapidocr.accuracy': 'Normal',
+  'ocr.rapidocr.speed': 'Fast',
+  'ocr.gemini.desc': 'Google AI based, Best Accuracy (API Key required)',
+  'ocr.gemini.accuracy': 'Best',
+  'ocr.gemini.speed': 'Normal',
 
   // Calendar
   'calendar.title': 'Schedule Manager',
@@ -681,6 +810,10 @@ const en: TranslationKeys = {
   'calendar.yearView': 'Year',
   'calendar.previous': 'Previous',
   'calendar.next': 'Next',
+  'calendar.dayView': 'Day',
+  'calendar.noSchedulesToday': 'No schedules today',
+  'calendar.schedulesCount': ' schedules',
+  'calendar.allDay': 'All day',
 
   // Days short
   'days.sunShort': 'Sun',
@@ -795,6 +928,12 @@ const en: TranslationKeys = {
   'fonts.fontNamePlaceholder': 'Display name for the font',
   'fonts.fontCategory': 'Font Type',
   'fonts.categoryOptions': 'Select category',
+  'fonts.categorySans': 'Sans-serif',
+  'fonts.categorySerif': 'Serif',
+  'fonts.categoryMono': 'Monospace',
+  'fonts.alertElectronOnly': 'Available only in Electron environment.',
+  'fonts.alertSaveFailed': 'Failed to save font: ',
+  'fonts.alertError': 'An error occurred while adding font.',
   'fonts.noCustomFonts': 'No custom fonts added',
   'fonts.preview': 'Preview',
   'fonts.uiScale': 'UI Scale',

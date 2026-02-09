@@ -1,6 +1,5 @@
 import { ref, computed } from 'vue';
-
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 const STORAGE_KEY = 'cuenote-github';
 
 export interface GitHubUser {
@@ -102,7 +101,7 @@ export function useGitHub() {
   // Git 설치 확인
   async function checkGitInstalled(): Promise<boolean> {
     try {
-      const res = await fetch(`${CORE_BASE}/github/check-git`);
+      const res = await fetch(API_ENDPOINTS.GITHUB.CHECK_GIT);
       const data = await res.json();
       gitInstalled.value = data.installed;
       return data.installed;
@@ -123,7 +122,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/validate-token`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.VALIDATE_TOKEN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: newToken })
@@ -160,7 +159,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repos`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.REPOS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: token.value })
@@ -225,7 +224,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/clone`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.CLONE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -258,6 +257,21 @@ export function useGitHub() {
     }
   }
 
+  // 환경 전환 시 GitHub 모드 활성화 (클론/풀 없이)
+  // 이미 클론된 환경을 전환할 때 사용
+  async function switchToGitHubEnv(repo: GitHubRepo): Promise<boolean> {
+    selectedRepo.value = repo;
+    saveSettings();
+    isGitHubActive.value = true;
+    
+    // 파일 목록 가져오기
+    await fetchRepoFiles();
+    // Git 상태 확인
+    await checkGitStatus();
+    
+    return true;
+  }
+
   // 파일 목록 가져오기 (로컬)
   async function fetchRepoFiles(): Promise<boolean> {
     if (!token.value || !selectedRepo.value) {
@@ -269,7 +283,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/files`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.REPO_FILES, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,43 +311,6 @@ export function useGitHub() {
     }
   }
 
-  // 파일 내용 가져오기
-  async function fetchFileContent(filePath: string): Promise<string | null> {
-    if (!token.value || !selectedRepo.value) {
-      error.value = '리포지토리를 먼저 선택해주세요';
-      return null;
-    }
-
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const res = await fetch(`${CORE_BASE}/github/repo/file-content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: token.value,
-          owner: selectedRepo.value.owner,
-          repo: selectedRepo.value.name,
-          path: filePath
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error('파일 내용을 가져올 수 없습니다');
-      }
-
-      const data = await res.json();
-      return data.content;
-    } catch (e) {
-      console.error('Failed to fetch file content:', e);
-      error.value = '파일 내용을 가져오는데 실패했습니다';
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  }
-
   // 파일 저장 (로컬)
   async function saveFile(filePath: string, content: string): Promise<boolean> {
     if (!token.value || !selectedRepo.value) {
@@ -342,7 +319,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/save-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.SAVE_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -360,7 +337,7 @@ export function useGitHub() {
 
       // Git 상태 업데이트
       await checkGitStatus();
-      
+
       return true;
     } catch (e) {
       console.error('Failed to save file:', e);
@@ -377,7 +354,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/create-folder`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.CREATE_FOLDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -414,7 +391,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/rename-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.RENAME_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -451,7 +428,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/rename-folder`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.RENAME_FOLDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -488,7 +465,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/create-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.CREATE_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -528,7 +505,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/delete-file`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.DELETE_FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -566,7 +543,7 @@ export function useGitHub() {
         repo: selectedRepo.value.name
       });
       
-      const res = await fetch(`${CORE_BASE}/github/repo/trash?${params}`);
+      const res = await fetch(`${API_ENDPOINTS.GITHUB.TRASH}?${params}`);
       
       if (res.ok) {
         const data = await res.json();
@@ -585,7 +562,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/trash/restore`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.RESTORE_TRASH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -626,7 +603,7 @@ export function useGitHub() {
         filename
       });
       
-      const res = await fetch(`${CORE_BASE}/github/repo/trash?${params}`, {
+      const res = await fetch(`${API_ENDPOINTS.GITHUB.TRASH}?${params}`, {
         method: 'DELETE'
       });
 
@@ -657,7 +634,7 @@ export function useGitHub() {
         repo: selectedRepo.value.name
       });
       
-      const res = await fetch(`${CORE_BASE}/github/repo/trash/empty?${params}`, {
+      const res = await fetch(`${API_ENDPOINTS.GITHUB.EMPTY_TRASH}?${params}`, {
         method: 'DELETE'
       });
 
@@ -684,7 +661,7 @@ export function useGitHub() {
     console.log('[checkGitStatus] Checking status for:', selectedRepo.value.owner, selectedRepo.value.name);
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/status`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.STATUS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -720,7 +697,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/pull`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.PULL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -773,7 +750,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/push`, {
+      const res = await fetch(API_ENDPOINTS.GITHUB.PUSH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -853,7 +830,7 @@ export function useGitHub() {
   async function disconnectRepo(): Promise<boolean> {
     if (selectedRepo.value && token.value) {
       try {
-        const res = await fetch(`${CORE_BASE}/github/disconnect`, {
+        const res = await fetch(`${API_BASE_URL}/github/disconnect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -905,7 +882,7 @@ export function useGitHub() {
     error.value = null;
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/create-repo`, {
+      const res = await fetch(`${API_BASE_URL}/github/create-repo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -969,7 +946,7 @@ export function useGitHub() {
     }
 
     try {
-      const res = await fetch(`${CORE_BASE}/github/repo/image`, {
+      const res = await fetch(`${API_BASE_URL}/github/repo/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -999,7 +976,7 @@ export function useGitHub() {
   // GitHub 이미지의 상대 경로를 로컬 URL로 변환 (에디터에서 이미지 표시용)
   function getImageUrl(relativePath: string): string {
     if (!selectedRepo.value) return relativePath;
-    return `${CORE_BASE}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${relativePath.replace('img/', '')}`;
+    return `${API_BASE_URL}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${relativePath.replace('img/', '')}`;
   }
 
   return {
@@ -1013,7 +990,7 @@ export function useGitHub() {
     error,
     isValidating,
     isLoggedIn,
-    
+
     // Git Clone State
     isCloned,
     isCloning,
@@ -1023,14 +1000,14 @@ export function useGitHub() {
     hasChanges,
     gitInstalled,
     isGitHubActive,
-    
+
     // Staging State
     stagedFiles,
     stagedCount,
-    
+
     // Trash State
     trashFiles,
-    
+
     // Actions
     initGitHub,
     setGitHubActive,
@@ -1038,9 +1015,9 @@ export function useGitHub() {
     validateToken,
     fetchRepos,
     selectRepo,
+    switchToGitHubEnv,
     cloneOrPull,
     fetchRepoFiles,
-    fetchFileContent,
     saveFile,
     createFile,
     createFolder,
@@ -1055,13 +1032,13 @@ export function useGitHub() {
     createRepo,
     uploadImage,
     getImageUrl,
-    
+
     // Staging Actions
     toggleStageFile,
     stageAll,
     unstageAll,
     isFileStaged,
-    
+
     // Trash Actions
     fetchTrashFiles,
     restoreFromTrash,

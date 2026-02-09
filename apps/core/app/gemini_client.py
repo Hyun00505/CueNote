@@ -18,81 +18,71 @@ logger = logging.getLogger("cuenote.core")
 # Gemini API 기본 설정
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
-# 사용 가능한 Gemini 모델 목록 (공식 가격표 기준)
-# https://ai.google.dev/gemini-api/docs/pricing
+# 사용 가능한 Gemini 모델 목록 (공식 문서 기준 2025)
+# https://ai.google.dev/gemini-api/docs/models
 GEMINI_MODELS = [
     # ─────────────────────────────────────────────────────────────────────────
-    # Gemini 2.5 시리즈
+    # Gemini 3 시리즈 (최신, Preview)
     # ─────────────────────────────────────────────────────────────────────────
+    {
+        "id": "gemini-3-pro-preview",
+        "name": "Gemini 3 Pro Preview",
+        "description": "최고 성능 멀티모달 모델, 고급 추론 (1M 컨텍스트)",
+        "free": False,
+        "context_window": 1048576,
+    },
+    {
+        "id": "gemini-3-flash-preview",
+        "name": "Gemini 3 Flash Preview",
+        "description": "빠르고 강력한 균형 모델 (1M 컨텍스트)",
+        "free": True,
+        "context_window": 1048576,
+    },
+    # ─────────────────────────────────────────────────────────────────────────
+    # Gemini 2.5 시리즈 (안정적)
+    # ─────────────────────────────────────────────────────────────────────────
+    {
+        "id": "gemini-2.5-pro",
+        "name": "Gemini 2.5 Pro",
+        "description": "복잡한 추론, 코딩, 수학에 최적화 (1M 컨텍스트)",
+        "free": False,
+        "context_window": 1048576,
+    },
     {
         "id": "gemini-2.5-flash",
         "name": "Gemini 2.5 Flash",
-        "description": "최신 고속 모델, 균형 잡힌 성능 (15 RPM)",
+        "description": "가성비 최고, 범용 모델 (1M 컨텍스트, 추천)",
         "free": True,
         "context_window": 1048576,
     },
     {
-        "id": "gemini-2.5-pro",
-        "name": "Gemini 2.5 Pro",
-        "description": "최고 성능 모델, 복잡한 작업에 적합",
-        "free": False,
+        "id": "gemini-2.5-flash-lite",
+        "name": "Gemini 2.5 Flash-Lite",
+        "description": "가장 빠르고 저렴한 모델, 대용량 처리용",
+        "free": True,
         "context_window": 1048576,
     },
     # ─────────────────────────────────────────────────────────────────────────
-    # Gemini 2.0 시리즈
+    # Gemini 2.0 시리즈 (2026년 3월 종료 예정)
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "gemini-2.0-flash",
         "name": "Gemini 2.0 Flash",
-        "description": "차세대 고속 모델 (15 RPM)",
+        "description": "고속 모델 (2026년 3월 종료 예정)",
         "free": True,
         "context_window": 1048576,
     },
     {
         "id": "gemini-2.0-flash-lite",
-        "name": "Gemini 2.0 Flash Lite",
-        "description": "초경량 모델, 간단한 작업용 (30 RPM)",
+        "name": "Gemini 2.0 Flash-Lite",
+        "description": "초경량 모델 (2026년 3월 종료 예정)",
         "free": True,
-        "context_window": 1048576,
-    },
-    # ─────────────────────────────────────────────────────────────────────────
-    # Gemini 1.5 시리즈 (가장 안정적)
-    # ─────────────────────────────────────────────────────────────────────────
-    {
-        "id": "gemini-1.5-flash",
-        "name": "Gemini 1.5 Flash",
-        "description": "안정적인 고속 모델 (15 RPM, 추천)",
-        "free": True,
-        "context_window": 1048576,
-    },
-    {
-        "id": "gemini-1.5-flash-8b",
-        "name": "Gemini 1.5 Flash 8B",
-        "description": "경량 모델, 빠른 처리 (15 RPM, 4M TPM)",
-        "free": True,
-        "context_window": 1048576,
-    },
-    {
-        "id": "gemini-1.5-pro",
-        "name": "Gemini 1.5 Pro",
-        "description": "고성능 모델, 복잡한 분석 (2 RPM, 50 RPD)",
-        "free": True,  # 무료 등급 있음 (제한적)
-        "context_window": 2097152,
-    },
-    # ─────────────────────────────────────────────────────────────────────────
-    # Gemini 3 시리즈 (프리뷰)
-    # ─────────────────────────────────────────────────────────────────────────
-    {
-        "id": "gemini-3-pro-preview",
-        "name": "Gemini 3 Pro Preview",
-        "description": "최신 프리뷰 모델, 가장 강력 (유료 전용)",
-        "free": False,
         "context_window": 1048576,
     },
 ]
 
-# 기본 모델 (가장 안정적이고 무료인 모델)
-DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
+# 기본 모델 (안정적이고 무료인 최신 모델)
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 def get_available_models() -> list[dict]:

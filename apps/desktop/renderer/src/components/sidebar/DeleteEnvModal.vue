@@ -1,26 +1,58 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="env-modal-overlay delete-confirm" @click.self="emit('close')">
+    <div
+      v-if="visible"
+      class="env-modal-overlay delete-confirm"
+      @click.self="emit('close')"
+    >
       <div class="env-modal delete-modal">
         <div class="delete-modal-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 8v4M12 16h.01"/>
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <path d="M12 8v4M12 16h.01" />
           </svg>
         </div>
         <div class="delete-modal-content">
           <h3>{{ t('env.remove') }}</h3>
-          <p class="delete-env-name">{{ envName }}</p>
+          <p class="delete-env-name">
+            {{ envName }}
+          </p>
           <p class="delete-description">
-            {{ t('env.removeQuestion') }}<br/>
+            {{ t('env.removeQuestion') }}<br>
             <span class="delete-note">{{ t('env.removeNote') }}</span>
           </p>
         </div>
         <div class="delete-modal-footer">
-          <button class="env-modal-btn cancel" @click="emit('close')">{{ t('common.cancel') }}</button>
-          <button class="env-modal-btn danger" @click="emit('confirm')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <button
+            class="env-modal-btn cancel"
+            @click="emit('close')"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            class="env-modal-btn danger"
+            @click="emit('confirm')"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
             {{ t('env.removeBtn') }}
           </button>

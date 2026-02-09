@@ -1,53 +1,113 @@
 <template>
-  <div class="sidebar-section trash-section" v-if="trashFiles.length > 0">
+  <div
+    v-if="trashFiles.length > 0"
+    class="sidebar-section trash-section"
+  >
     <div class="section-header-row">
-      <div class="section-label trash-label" @click="toggleTrash">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ rotated: !expanded }">
-          <path d="M6 9l6 6 6-6"/>
+      <div
+        class="section-label trash-label"
+        @click="toggleTrash"
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          :class="{ rotated: !expanded }"
+        >
+          <path d="M6 9l6 6 6-6" />
         </svg>
         Trash
         <span class="trash-count">{{ trashFiles.length }}</span>
       </div>
-      <button class="empty-trash-btn" @click="emit('empty-trash')" title="Empty trash">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/>
+      <button
+        class="empty-trash-btn"
+        title="Empty trash"
+        @click="emit('empty-trash')"
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
         </svg>
       </button>
     </div>
 
-    <ul class="file-list trash-list" v-if="expanded">
+    <ul
+      v-if="expanded"
+      class="file-list trash-list"
+    >
       <li
         v-for="file in trashFiles"
         :key="file"
         class="file-item trash-item"
       >
         <div class="trash-file-info">
-          <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-            <polyline points="14 2 14 8 20 8"/>
+          <svg
+            class="file-icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+            <polyline points="14 2 14 8 20 8" />
           </svg>
           <span class="file-name">{{ getFileName(file) }}</span>
         </div>
         <div class="trash-actions">
           <button 
             class="restore-btn" 
-            @click="emit('restore-file', file)"
             title="Restore"
+            @click="emit('restore-file', file)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
             </svg>
           </button>
           <button 
             class="permanent-delete-btn" 
-            @click="emit('permanent-delete', file)"
             title="Delete permanently"
+            @click="emit('permanent-delete', file)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line
+                x1="18"
+                y1="6"
+                x2="6"
+                y2="18"
+              />
+              <line
+                x1="6"
+                y1="6"
+                x2="18"
+                y2="18"
+              />
             </svg>
           </button>
         </div>

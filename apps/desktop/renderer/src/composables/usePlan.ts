@@ -1,7 +1,6 @@
 import { ref } from 'vue';
 import type { TodayPlan } from '../types';
-
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS } from '../config/api';
 
 const todayPlan = ref<TodayPlan | null>(null);
 const planLoading = ref(false);
@@ -12,7 +11,9 @@ export function usePlan() {
     planError.value = '';
     planLoading.value = true;
     try {
-      const res = await fetch(`${CORE_BASE}/ai/today-plan`, { method: 'POST' });
+      const res = await fetch(`${API_ENDPOINTS.TODOS}/today`, {
+        method: 'POST'
+      });
       const data = await res.json();
       todayPlan.value = data as TodayPlan;
     } catch (error) {

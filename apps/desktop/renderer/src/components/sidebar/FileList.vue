@@ -1,34 +1,98 @@
 <template>
   <!-- GitHub 모드일 때 -->
-  <div class="sidebar-section files-section" v-if="isGitHubMode">
+  <div
+    v-if="isGitHubMode"
+    class="sidebar-section files-section"
+  >
     <div class="section-header-row">
-      <div class="section-label">GitHub Notes</div>
+      <div class="section-label">
+        GitHub Notes
+      </div>
       <div class="section-actions">
-        <button class="new-folder-btn" @click="startCreateGitHubFolder" title="새 폴더">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            <line x1="12" y1="11" x2="12" y2="17"/>
-            <line x1="9" y1="14" x2="15" y2="14"/>
+        <button
+          class="new-folder-btn"
+          title="새 폴더"
+          @click="startCreateGitHubFolder"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            <line
+              x1="12"
+              y1="11"
+              x2="12"
+              y2="17"
+            />
+            <line
+              x1="9"
+              y1="14"
+              x2="15"
+              y2="14"
+            />
           </svg>
         </button>
-        <button class="new-file-btn" @click="startCreateGitHubFile" title="새 노트">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
+        <button
+          class="new-file-btn"
+          title="새 노트"
+          @click="startCreateGitHubFile"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 5v14M5 12h14" />
           </svg>
         </button>
-        <button class="collapse-btn" @click="triggerGitHubCollapse" title="모두 접기">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+          class="collapse-btn"
+          title="모두 접기"
+          @click="triggerGitHubCollapse"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="4 14 12 6 20 14" />
-            <line x1="12" y1="18" x2="12" y2="6" />
+            <line
+              x1="12"
+              y1="18"
+              x2="12"
+              y2="6"
+            />
           </svg>
         </button>
       </div>
     </div>
 
     <!-- 새 GitHub 폴더 입력 -->
-    <div v-if="isGitHubFolderInputMode" class="new-file-input-wrapper folder-input">
-      <svg class="file-icon folder" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    <div
+      v-if="isGitHubFolderInputMode"
+      class="new-file-input-wrapper folder-input"
+    >
+      <svg
+        class="file-icon folder"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
       </svg>
       <input
         ref="githubFolderInputRef"
@@ -39,14 +103,25 @@
         @keydown.enter="confirmCreateGitHubFolder"
         @keydown.escape="cancelGitHubFolderInput"
         @blur="cancelGitHubFolderInput"
-      />
+      >
     </div>
 
     <!-- 새 GitHub 파일 입력 -->
-    <div v-if="isGitHubFileInputMode" class="new-file-input-wrapper">
-      <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-        <polyline points="14 2 14 8 20 8"/>
+    <div
+      v-if="isGitHubFileInputMode"
+      class="new-file-input-wrapper"
+    >
+      <svg
+        class="file-icon"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
       </svg>
       <input
         ref="githubFileInputRef"
@@ -57,17 +132,26 @@
         @keydown.enter="confirmCreateGitHubFile"
         @keydown.escape="cancelGitHubFileInput"
         @blur="cancelGitHubFileInput"
-      />
+      >
     </div>
 
-    <div v-if="githubLoading" class="github-files-loading">
-      <span class="loading-spinner-small"></span>
+    <div
+      v-if="githubLoading"
+      class="github-files-loading"
+    >
+      <span class="loading-spinner-small" />
       <span>파일 불러오는 중...</span>
     </div>
 
     <!-- GitHub 파일 트리 -->
-    <div class="file-tree" v-else-if="githubFileTree.length > 0">
-      <template v-for="item in githubFileTree" :key="item.path">
+    <div
+      v-else-if="githubFileTree.length > 0"
+      class="file-tree"
+    >
+      <template
+        v-for="item in githubFileTree"
+        :key="item.path"
+      >
         <FileTreeItem
           :item="item"
           :active-file="activeFile"
@@ -95,41 +179,109 @@
       </template>
     </div>
 
-    <div v-else class="empty-files">
+    <div
+      v-else
+      class="empty-files"
+    >
       <p>마크다운 파일이 없습니다</p>
     </div>
   </div>
 
   <!-- 로컬 모드일 때 -->
-  <div class="sidebar-section files-section" v-else-if="vaultPath">
+  <div
+    v-else-if="vaultPath"
+    class="sidebar-section files-section"
+  >
     <div class="section-header-row">
-      <div class="section-label">Notes</div>
+      <div class="section-label">
+        Notes
+      </div>
       <div class="section-actions">
-        <button class="new-folder-btn" @click="startCreateFolder" title="새 폴더">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            <line x1="12" y1="11" x2="12" y2="17"/>
-            <line x1="9" y1="14" x2="15" y2="14"/>
+        <button
+          class="new-folder-btn"
+          title="새 폴더"
+          @click="startCreateFolder"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            <line
+              x1="12"
+              y1="11"
+              x2="12"
+              y2="17"
+            />
+            <line
+              x1="9"
+              y1="14"
+              x2="15"
+              y2="14"
+            />
           </svg>
         </button>
-        <button class="new-file-btn" @click="startCreateFile()" title="새 노트" :disabled="isCreating || isInputMode">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
+        <button
+          class="new-file-btn"
+          title="새 노트"
+          :disabled="isCreating || isInputMode"
+          @click="startCreateFile()"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 5v14M5 12h14" />
           </svg>
         </button>
-        <button class="collapse-btn" @click="triggerLocalCollapse" title="모두 접기">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+          class="collapse-btn"
+          title="모두 접기"
+          @click="triggerLocalCollapse"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <polyline points="4 14 12 6 20 14" />
-            <line x1="12" y1="18" x2="12" y2="6" />
+            <line
+              x1="12"
+              y1="18"
+              x2="12"
+              y2="6"
+            />
           </svg>
         </button>
       </div>
     </div>
 
     <!-- 새 폴더 입력 -->
-    <div v-if="isFolderInputMode" class="new-file-input-wrapper folder-input">
-      <svg class="file-icon folder" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    <div
+      v-if="isFolderInputMode"
+      class="new-file-input-wrapper folder-input"
+    >
+      <svg
+        class="file-icon folder"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
       </svg>
       <input
         ref="folderInputRef"
@@ -140,14 +292,25 @@
         @keydown.enter="handleCreateFolder"
         @keydown.escape="cancelCreateFolder"
         @blur="handleCreateFolder"
-      />
+      >
     </div>
 
     <!-- 새 파일 이름 입력 -->
-    <div v-if="isInputMode" class="new-file-input-wrapper">
-      <svg class="file-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-        <polyline points="14 2 14 8 20 8"/>
+    <div
+      v-if="isInputMode"
+      class="new-file-input-wrapper"
+    >
+      <svg
+        class="file-icon"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
       </svg>
       <input
         ref="inputRef"
@@ -158,19 +321,22 @@
         @keydown.enter="handleCreateFile"
         @keydown.escape="cancelCreate"
         @blur="handleCreateFile"
-      />
+      >
     </div>
 
     <!-- 파일 트리 -->
     <div 
-      class="file-tree" 
-      v-if="localFileTree.length > 0 || isInputMode || isFolderInputMode"
+      v-if="localFileTree.length > 0 || isInputMode || isFolderInputMode" 
+      class="file-tree"
+      :class="{ 'root-drag-over': isRootDragOver }"
       @dragover.prevent="onRootDragOver"
       @dragleave="onRootDragLeave"
       @drop.prevent="onRootDrop"
-      :class="{ 'root-drag-over': isRootDragOver }"
     >
-      <template v-for="item in localFileTree" :key="item.path">
+      <template
+        v-for="item in localFileTree"
+        :key="item.path"
+      >
         <FileTreeItem
           :item="item"
           :active-file="activeFile"
@@ -199,11 +365,25 @@
       </template>
     </div>
 
-    <div v-else-if="!isInputMode && !isFolderInputMode" class="empty-files">
+    <div
+      v-else-if="!isInputMode && !isFolderInputMode"
+      class="empty-files"
+    >
       <p>No notes yet</p>
-      <button class="create-first-btn" @click="startCreateFile()" :disabled="isCreating">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 5v14M5 12h14"/>
+      <button
+        class="create-first-btn"
+        :disabled="isCreating"
+        @click="startCreateFile()"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M12 5v14M5 12h14" />
         </svg>
         Create your first note
       </button>

@@ -150,7 +150,7 @@ const customHighlight = HighlightStyle.define([
   { tag: tags.bracket, color: '#71717a' },
 ]);
 
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS } from '../config/api';
 
 const activeFile = ref<string | null>(null);
 const editorError = ref('');
@@ -215,7 +215,7 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     editorError.value = '';
     activeFile.value = filePath;
     try {
-      const url = `${CORE_BASE}/vault/file?path=${encodeURIComponent(filePath)}`;
+      const url = `${API_ENDPOINTS.VAULT.FILE}?path=${encodeURIComponent(filePath)}`;
       const res = await fetch(url);
 
       if (!res.ok) {
@@ -240,7 +240,7 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     editorError.value = '';
     try {
       const content = editorView.state.doc.toString();
-      const res = await fetch(`${CORE_BASE}/vault/file`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.FILE, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: activeFile.value, content })
@@ -264,7 +264,7 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     editorError.value = '';
     try {
       // 빈 파일 생성
-      const res = await fetch(`${CORE_BASE}/vault/file`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.FILE, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: fileName, content: '' })
@@ -288,7 +288,7 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     saving,
     openFile,
     saveFile,
-    createNewFile
+    createNewFile,
+    editorView
   };
 }
-

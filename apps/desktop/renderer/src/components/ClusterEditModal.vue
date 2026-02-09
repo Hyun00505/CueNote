@@ -1,23 +1,74 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="modal-overlay" @click.self="handleClose">
+    <div
+      v-if="visible"
+      class="modal-overlay"
+      @click.self="handleClose"
+    >
       <div class="modal-container">
         <!-- 헤더 -->
         <div class="modal-header">
           <h2>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3" />
-              <circle cx="4" cy="8" r="2" />
-              <circle cx="20" cy="8" r="2" />
-              <circle cx="4" cy="16" r="2" />
-              <circle cx="20" cy="16" r="2" />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="3"
+              />
+              <circle
+                cx="4"
+                cy="8"
+                r="2"
+              />
+              <circle
+                cx="20"
+                cy="8"
+                r="2"
+              />
+              <circle
+                cx="4"
+                cy="16"
+                r="2"
+              />
+              <circle
+                cx="20"
+                cy="16"
+                r="2"
+              />
             </svg>
             {{ isCreateMode ? '새 클러스터 만들기' : '클러스터 편집' }}
           </h2>
-          <button class="close-btn" @click="handleClose">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
+          <button
+            class="close-btn"
+            @click="handleClose"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line
+                x1="18"
+                y1="6"
+                x2="6"
+                y2="18"
+              />
+              <line
+                x1="6"
+                y1="6"
+                x2="18"
+                y2="18"
+              />
             </svg>
           </button>
         </div>
@@ -29,16 +80,29 @@
             <span 
               class="color-dot" 
               :style="{ background: editedColor }"
-            ></span>
+            />
             <span class="cluster-name">{{ editedLabel || cluster?.label || (isCreateMode ? '새 클러스터' : '클러스터') }}</span>
-            <span class="note-count" v-if="!isCreateMode">{{ cluster?.noteCount || 0 }}개 노트</span>
-            <span class="note-count new" v-else>새로 생성</span>
+            <span
+              v-if="!isCreateMode"
+              class="note-count"
+            >{{ cluster?.noteCount || 0 }}개 노트</span>
+            <span
+              v-else
+              class="note-count new"
+            >새로 생성</span>
           </div>
 
           <!-- 라벨 수정 -->
           <div class="form-group">
             <label>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
@@ -49,18 +113,41 @@
               type="text" 
               :placeholder="cluster?.label || '클러스터 이름'"
               @keydown.enter="handleSave"
-            />
+            >
             <span class="hint">AI가 생성한 라벨을 수정할 수 있습니다</span>
           </div>
 
           <!-- 색상 선택 -->
           <div class="form-group">
             <label>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="13.5" cy="6.5" r="2.5" />
-                <circle cx="19" cy="13" r="2.5" />
-                <circle cx="13.5" cy="19.5" r="2.5" />
-                <circle cx="6.5" cy="13" r="2.5" />
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle
+                  cx="13.5"
+                  cy="6.5"
+                  r="2.5"
+                />
+                <circle
+                  cx="19"
+                  cy="13"
+                  r="2.5"
+                />
+                <circle
+                  cx="13.5"
+                  cy="19.5"
+                  r="2.5"
+                />
+                <circle
+                  cx="6.5"
+                  cy="13"
+                  r="2.5"
+                />
               </svg>
               색상
             </label>
@@ -71,22 +158,30 @@
                 class="color-btn"
                 :class="{ active: editedColor === color }"
                 :style="{ background: color }"
-                @click="editedColor = color"
                 :title="color"
+                @click="editedColor = color"
               >
-                <svg v-if="editedColor === color" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                <svg
+                  v-if="editedColor === color"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="3"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
               <!-- 커스텀 색상 (그라데이션 버튼) -->
               <div class="custom-color-btn">
                 <input 
-                  type="color" 
-                  v-model="editedColor"
+                  v-model="editedColor" 
+                  type="color"
                   class="custom-color-input"
                   title="커스텀 색상 선택"
-                />
-                <div class="gradient-overlay"></div>
+                >
+                <div class="gradient-overlay" />
               </div>
             </div>
           </div>
@@ -94,9 +189,21 @@
           <!-- 키워드 수정 -->
           <div class="form-group">
             <label>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                <line x1="7" y1="7" x2="7.01" y2="7" />
+                <line
+                  x1="7"
+                  y1="7"
+                  x2="7.01"
+                  y2="7"
+                />
               </svg>
               키워드
             </label>
@@ -108,10 +215,30 @@
                   class="keyword-tag"
                 >
                   {{ keyword }}
-                  <button class="remove-keyword" @click="removeKeyword(index)">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
+                  <button
+                    class="remove-keyword"
+                    @click="removeKeyword(index)"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <line
+                        x1="18"
+                        y1="6"
+                        x2="6"
+                        y2="18"
+                      />
+                      <line
+                        x1="6"
+                        y1="6"
+                        x2="18"
+                        y2="18"
+                      />
                     </svg>
                   </button>
                 </span>
@@ -121,7 +248,7 @@
                 type="text" 
                 placeholder="키워드 추가 (Enter)"
                 @keydown.enter.prevent="addKeyword"
-              />
+              >
             </div>
             <span class="hint">클러스터를 설명하는 키워드를 추가하세요</span>
           </div>
@@ -129,46 +256,110 @@
 
         <!-- 푸터 -->
         <div class="modal-footer">
-          <div class="footer-left" v-if="!isCreateMode">
+          <div
+            v-if="!isCreateMode"
+            class="footer-left"
+          >
             <!-- 삭제 버튼 (확인 전) -->
             <button 
               v-if="!showDeleteConfirm" 
               class="btn-danger-outline" 
-              @click="toggleDeleteConfirm"
               title="클러스터 삭제"
+              @click="toggleDeleteConfirm"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line
+                  x1="10"
+                  y1="11"
+                  x2="10"
+                  y2="17"
+                />
+                <line
+                  x1="14"
+                  y1="11"
+                  x2="14"
+                  y2="17"
+                />
               </svg>
               삭제
             </button>
             <!-- 삭제 확인 -->
-            <div v-else class="delete-confirm-group">
+            <div
+              v-else
+              class="delete-confirm-group"
+            >
               <span class="delete-confirm-text">정말 삭제?</span>
-              <button class="btn-danger" @click="handleDelete">삭제</button>
-              <button class="btn-cancel-sm" @click="toggleDeleteConfirm">취소</button>
+              <button
+                class="btn-danger"
+                @click="handleDelete"
+              >
+                삭제
+              </button>
+              <button
+                class="btn-cancel-sm"
+                @click="toggleDeleteConfirm"
+              >
+                취소
+              </button>
             </div>
           </div>
-          <div class="footer-left" v-else></div>
+          <div
+            v-else
+            class="footer-left"
+          />
           
-          <div class="btn-group" v-if="!showDeleteConfirm">
-            <button v-if="!isCreateMode" class="btn-secondary" @click="handleReset">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <div
+            v-if="!showDeleteConfirm"
+            class="btn-group"
+          >
+            <button
+              v-if="!isCreateMode"
+              class="btn-secondary"
+              @click="handleReset"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
               복원
             </button>
-            <button class="btn-cancel" @click="handleClose">취소</button>
+            <button
+              class="btn-cancel"
+              @click="handleClose"
+            >
+              취소
+            </button>
             <button 
               class="btn-primary" 
-              @click="handleSave" 
-              :disabled="isSaving || (isCreateMode && !editedLabel.trim())"
+              :disabled="isSaving || (isCreateMode && !editedLabel.trim())" 
+              @click="handleSave"
             >
-              <svg v-if="isSaving" class="spinning" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                v-if="isSaving"
+                class="spinning"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
               {{ isSaving ? (isCreateMode ? '생성 중...' : '저장 중...') : (isCreateMode ? '생성' : '저장') }}

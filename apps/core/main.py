@@ -28,5 +28,6 @@ if __name__ == "__main__":
         host="127.0.0.1",
         port=8787,
         reload=is_dev,  # 개발 모드에서만 reload 활성화
+        reload_dirs=["app"] if is_dev else None,  # app 폴더만 감시 (node_modules 등 제외)
         log_level="info"
     )

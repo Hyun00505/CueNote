@@ -124,14 +124,6 @@ class FetchRepoFilesPayload(BaseModel):
     path: str = ""
 
 
-class FetchFileContentPayload(BaseModel):
-    """파일 내용 조회 요청"""
-    token: str
-    owner: str
-    repo: str
-    path: str
-
-
 class SaveFilePayload(BaseModel):
     """파일 저장 요청"""
     token: str
@@ -685,38 +677,144 @@ def get_local_md_files(repo_path: Path) -> list[dict]:
 
 @router.post("/repo/files")
 async def get_repo_files(payload: FetchRepoFilesPayload):
-    """리포지토리 내 파일 목록 조회 (로컬 기반)"""
+    """리포지토리 내 파일 목록 조회 (로컬 우선, 없으면 GitHub API)"""
     repo_path = get_repo_local_path(payload.owner, payload.repo)
-    
-    if not repo_path.exists():
-        # 클론되지 않은 경우 빈 목록 반환
+
+    # 로컬에 클론이 있으면 로컬에서 파일 목록 가져오기
+    if repo_path.exists():
+        files = get_local_md_files(repo_path)
+        return {"files": files, "cloned": True}
+
+    # 로컬에 클론이 없으면 GitHub API에서 파일 목록 가져오기
+    if not payload.token:
         return {"files": [], "cloned": False}
-    
-    files = get_local_md_files(repo_path)
-    return {"files": files, "cloned": True}
 
-
-@router.post("/repo/file-content")
-async def get_file_content(payload: FetchFileContentPayload):
-    """파일 내용 조회 (로컬 파일)"""
-    repo_path = get_repo_local_path(payload.owner, payload.repo)
-    file_path = repo_path / payload.path
-    
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
-    
-    if not file_path.is_file():
-        raise HTTPException(status_code=400, detail="파일이 아닙니다")
-    
     try:
-        content = file_path.read_text(encoding='utf-8')
-        return {
-            "content": content,
-            "path": payload.path
-        }
+        async with httpx.AsyncClient() as client:
+            # 기본 브랜치 정보 가져오기
+            repo_res = await client.get(
+                f"{GITHUB_API_BASE}/repos/{payload.owner}/{payload.repo}",
+                headers=get_github_headers(payload.token),
+                timeout=30.0
+            )
+
+            if repo_res.status_code != 200:
+                logger.error("Failed to get repo info: %s", repo_res.text)
+                return {"files": [], "cloned": False}
+
+            repo_data = repo_res.json()
+            default_branch = repo_data.get("default_branch", "main")
+
+            # 전체 트리 가져오기
+            tree_res = await client.get(
+                f"{GITHUB_API_BASE}/repos/{payload.owner}/{payload.repo}/git/trees/{default_branch}?recursive=1",
+                headers=get_github_headers(payload.token),
+                timeout=30.0
+            )
+
+            if tree_res.status_code != 200:
+                logger.error("Failed to get tree: %s", tree_res.text)
+                return {"files": [], "cloned": False}
+
+            tree_data = tree_res.json()
+            tree_items = tree_data.get("tree", [])
+
+            # .md 파일만 필터링하고 트리 구조로 변환
+            files = convert_github_tree_to_files(tree_items)
+            return {"files": files, "cloned": False}
+
     except Exception as e:
-        logger.error("Failed to read file: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to fetch files from GitHub API: %s", e)
+        return {"files": [], "cloned": False}
+
+
+def convert_github_tree_to_files(tree_items: list) -> list:
+    """GitHub API 트리를 파일 목록 형식으로 변환 (.md 파일만)"""
+    exclude_dirs = {'.git', 'node_modules', '__pycache__', 'dist', 'build', '.vscode', '.idea', 'img', 'images', 'assets'}
+
+    # 먼저 모든 .md 파일과 폴더를 수집
+    md_files = []
+    folders = set()
+
+    for item in tree_items:
+        path = item.get("path", "")
+        item_type = item.get("type", "")
+
+        # 숨김 파일/폴더 제외
+        if any(part.startswith('.') for part in path.split('/')):
+            continue
+
+        # 제외 폴더 내 파일 스킵
+        path_parts = path.split('/')
+        if any(part in exclude_dirs for part in path_parts):
+            continue
+
+        if item_type == "blob" and path.lower().endswith('.md'):
+            md_files.append(path)
+            # 상위 폴더들도 추가
+            for i in range(len(path_parts) - 1):
+                folders.add('/'.join(path_parts[:i + 1]))
+
+    # 트리 구조 생성
+    root = []
+
+    def get_or_create_folder(parts: list, current_level: list) -> list:
+        """폴더 경로를 따라가며 폴더를 찾거나 생성"""
+        if not parts:
+            return current_level
+
+        folder_name = parts[0]
+        folder_path = '/'.join(parts[:1]) if len(parts) == 1 else None
+
+        # 현재 레벨에서 폴더 찾기
+        for item in current_level:
+            if item["type"] == "dir" and item["name"] == folder_name:
+                return get_or_create_folder(parts[1:], item["children"])
+
+        # 폴더가 없으면 생성
+        new_folder = {
+            "name": folder_name,
+            "path": '/'.join(parts[:1]),
+            "type": "dir",
+            "children": [],
+            "empty": True
+        }
+        current_level.append(new_folder)
+        return get_or_create_folder(parts[1:], new_folder["children"])
+
+    # 모든 md 파일을 트리에 추가
+    for file_path in sorted(md_files):
+        parts = file_path.split('/')
+        file_name = parts[-1]
+        folder_parts = parts[:-1]
+
+        # 폴더 경로를 따라가며 위치 찾기
+        if folder_parts:
+            parent = get_or_create_folder(folder_parts, root)
+        else:
+            parent = root
+
+        parent.append({
+            "name": file_name,
+            "path": file_path,
+            "type": "file",
+            "size": 0
+        })
+
+    # 폴더 경로 수정 및 정렬
+    def fix_folder_paths_and_sort(items: list, parent_path: str = "") -> list:
+        result = []
+        for item in items:
+            if item["type"] == "dir":
+                item_path = f"{parent_path}/{item['name']}" if parent_path else item['name']
+                item["path"] = item_path
+                item["children"] = fix_folder_paths_and_sort(item["children"], item_path)
+                item["empty"] = len(item["children"]) == 0
+            result.append(item)
+        # 폴더 먼저, 그 다음 파일 (이름순)
+        return sorted(result, key=lambda x: (0 if x["type"] == "dir" else 1, x["name"].lower()))
+
+    return fix_folder_paths_and_sort(root)
 
 
 @router.post("/repo/save-file")

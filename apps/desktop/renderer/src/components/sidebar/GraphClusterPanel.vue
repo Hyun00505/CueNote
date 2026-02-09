@@ -2,37 +2,92 @@
   <div class="sidebar-section cluster-section">
     <div class="cluster-header">
       <div class="cluster-title">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3" />
-          <circle cx="4" cy="8" r="2" />
-          <circle cx="20" cy="8" r="2" />
-          <circle cx="4" cy="16" r="2" />
-          <circle cx="20" cy="16" r="2" />
-          <line x1="6" y1="8" x2="9" y2="10" />
-          <line x1="18" y1="8" x2="15" y2="10" />
-          <line x1="6" y1="16" x2="9" y2="14" />
-          <line x1="18" y1="16" x2="15" y2="14" />
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="3"
+          />
+          <circle
+            cx="4"
+            cy="8"
+            r="2"
+          />
+          <circle
+            cx="20"
+            cy="8"
+            r="2"
+          />
+          <circle
+            cx="4"
+            cy="16"
+            r="2"
+          />
+          <circle
+            cx="20"
+            cy="16"
+            r="2"
+          />
+          <line
+            x1="6"
+            y1="8"
+            x2="9"
+            y2="10"
+          />
+          <line
+            x1="18"
+            y1="8"
+            x2="15"
+            y2="10"
+          />
+          <line
+            x1="6"
+            y1="16"
+            x2="9"
+            y2="14"
+          />
+          <line
+            x1="18"
+            y1="16"
+            x2="15"
+            y2="14"
+          />
         </svg>
         <span>AI 클러스터</span>
       </div>
       <div class="cluster-header-actions">
         <button 
           class="add-cluster-btn"
-          @click="emit('create-cluster')"
           title="새 클러스터 추가"
+          @click="emit('create-cluster')"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14M5 12h14"/>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 5v14M5 12h14" />
           </svg>
         </button>
         <button 
           class="refresh-graph-btn"
-          @click="emit('refresh-graph')"
           :disabled="isLoading"
           title="클러스터 다시 분석"
+          @click="emit('refresh-graph')"
         >
           <svg 
-            width="12" height="12" 
+            width="12"
+            height="12" 
             viewBox="0 0 24 24" 
             fill="none" 
             stroke="currentColor" 
@@ -46,7 +101,10 @@
     </div>
 
     <!-- 그래프 통계 -->
-    <div class="graph-stats" v-if="stats">
+    <div
+      v-if="stats"
+      class="graph-stats"
+    >
       <div class="stat-item">
         <span class="stat-value">{{ stats.totalNotes }}</span>
         <span class="stat-label">노트</span>
@@ -68,7 +126,7 @@
         :class="{ active: selectedClusterId === null }"
         @click="emit('filter-cluster', null)"
       >
-        <span class="cluster-dot all-gradient"></span>
+        <span class="cluster-dot all-gradient" />
         <span class="cluster-name">전체 보기</span>
         <span class="cluster-count">{{ stats?.totalNotes || 0 }}</span>
       </button>
@@ -83,10 +141,16 @@
           :class="{ active: selectedClusterId === cluster.id }"
           @click="emit('filter-cluster', cluster.id)"
         >
-          <span class="cluster-dot" :style="{ background: cluster.color }"></span>
+          <span
+            class="cluster-dot"
+            :style="{ background: cluster.color }"
+          />
           <div class="cluster-info">
             <span class="cluster-name">{{ cluster.label }}</span>
-            <span class="cluster-keywords" v-if="cluster.keywords.length">
+            <span
+              v-if="cluster.keywords.length"
+              class="cluster-keywords"
+            >
               {{ cluster.keywords.slice(0, 3).join(' · ') }}
             </span>
           </div>
@@ -94,10 +158,17 @@
         </button>
         <button 
           class="cluster-edit-btn"
-          @click.stop="emit('edit-cluster', cluster)"
           title="클러스터 편집"
+          @click.stop="emit('edit-cluster', cluster)"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
@@ -112,10 +183,31 @@
         @click="emit('filter-cluster', 'unclustered')"
       >
         <span class="cluster-dot unclustered-dot">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <line
+              x1="12"
+              y1="8"
+              x2="12"
+              y2="12"
+            />
+            <line
+              x1="12"
+              y1="16"
+              x2="12.01"
+              y2="16"
+            />
           </svg>
         </span>
         <span class="cluster-name">미분류</span>

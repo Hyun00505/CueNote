@@ -13,7 +13,31 @@
       "path": "C:\\Users\\SSAFY\\Desktop\\문서",
       "type": "local",
       "github": null
+    },
+    {
+      "id": "3a73399f6668",
+      "name": "CueNoteConnection",
+      "path": "github://Hyun00505/CueNoteConnection",
+      "type": "github",
+      "github": {
+        "owner": "Hyun00505",
+        "repo": "CueNoteConnection",
+        "full_name": "Hyun00505/CueNoteConnection",
+        "private": true
+      }
+    },
+    {
+      "id": "b08aa513e557",
+      "name": "TIL_2026",
+      "path": "github://Hyun00505/TIL_2026",
+      "type": "github",
+      "github": {
+        "owner": "Hyun00505",
+        "repo": "TIL_2026",
+        "full_name": "Hyun00505/TIL_2026",
+        "private": true
+      }
     }
   ],
-  "current_id": "cea4bd6c57c6"
+  "current_id": "3a73399f6668"
 }

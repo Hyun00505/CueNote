@@ -1,16 +1,32 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="emit('close')">
+  <div
+    v-if="visible"
+    class="modal-overlay"
+    @click.self="emit('close')"
+  >
     <div class="modal-content delete-confirm">
       <div class="modal-header">
         <h3>{{ t('schedule.deleteConfirm') }}</h3>
       </div>
       <div class="modal-body">
         <p>{{ t('schedule.deleteQuestion') }}</p>
-        <p class="delete-schedule-name">{{ scheduleName }}</p>
+        <p class="delete-schedule-name">
+          {{ scheduleName }}
+        </p>
       </div>
       <div class="modal-footer">
-        <button class="cancel-btn" @click="emit('close')">{{ t('common.cancel') }}</button>
-        <button class="delete-confirm-btn" @click="emit('confirm')">{{ t('common.delete') }}</button>
+        <button
+          class="cancel-btn"
+          @click="emit('close')"
+        >
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          class="delete-confirm-btn"
+          @click="emit('confirm')"
+        >
+          {{ t('common.delete') }}
+        </button>
       </div>
     </div>
   </div>

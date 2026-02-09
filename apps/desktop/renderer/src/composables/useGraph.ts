@@ -2,11 +2,12 @@
  * CueNote - 그래프 뷰 Composable
  * AI 기반 노트 클러스터링 및 그래프 시각화
  */
-import { ref, computed, onUnmounted, type Ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { GraphNode, GraphEdge, ClusterInfo, GraphData } from '../types';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 import { useSettings } from './useSettings';
 
-const BASE_URL = 'http://127.0.0.1:8787';
+const BASE_URL = API_BASE_URL;
 
 // 상태
 const graphData = ref<GraphData | null>(null);
@@ -190,7 +191,7 @@ export function useGraph() {
    */
   const updateCluster = async (clusterId: number, data: { label?: string; color?: string; keywords?: string[] }) => {
     try {
-      const response = await fetch(`${BASE_URL}/graph/cluster/${clusterId}`, {
+      const response = await fetch(`${API_BASE_URL}/graph/clusters/${clusterId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -350,10 +351,12 @@ export function useGraph() {
    */
   const loadLockedNotes = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/graph/locked-notes`);
+      const response = await fetch(`${API_BASE_URL}/graph/data`);
       if (response.ok) {
         const data = await response.json();
         lockedNotes.value = new Set(data.lockedNotes || []);
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (err) {
       console.error('Failed to load locked notes:', err);
@@ -445,7 +448,7 @@ export function useGraph() {
    */
   const createCluster = async (label: string, color: string, keywords: string[] = []) => {
     try {
-      const response = await fetch(`${BASE_URL}/graph/cluster/create`, {
+      const response = await fetch(`${API_BASE_URL}/graph/clusters/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label, color, keywords })
@@ -474,7 +477,7 @@ export function useGraph() {
    */
   const deleteCluster = async (clusterId: number) => {
     try {
-      const response = await fetch(`${BASE_URL}/graph/cluster/${clusterId}`, {
+      const response = await fetch(`${API_BASE_URL}/graph/clusters/${clusterId}`, {
         method: 'DELETE'
       });
 

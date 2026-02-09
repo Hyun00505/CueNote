@@ -1,25 +1,54 @@
 <template>
-  <div id="section-general" class="settings-category">
+  <div
+    id="section-general"
+    class="settings-category"
+  >
     <h2 class="category-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+        />
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+        />
       </svg>
-      일반 설정
+      {{ t('settings.generalTitle') }}
     </h2>
 
     <!-- Language Section -->
     <section class="settings-section">
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M2 12h20"/>
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+          <path d="M2 12h20" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
         </svg>
         {{ t('settings.language') }}
       </h3>
-      <p class="section-desc">{{ t('settings.languageDesc') }}</p>
-      
+      <p class="section-desc">
+        {{ t('settings.languageDesc') }}
+      </p>
+
       <div class="language-options">
         <button
           v-for="lang in ['ko', 'en'] as const"
@@ -30,8 +59,17 @@
         >
           <span class="lang-flag">{{ lang === 'ko' ? '🇰🇷' : '🇺🇸' }}</span>
           <span class="lang-name">{{ languageNames[lang] }}</span>
-          <svg v-if="currentLanguage === lang" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="lang-check">
-            <polyline points="20 6 9 17 4 12"/>
+          <svg
+            v-if="currentLanguage === lang"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            class="lang-check"
+          >
+            <polyline points="20 6 9 17 4 12" />
           </svg>
         </button>
       </div>
@@ -40,13 +78,26 @@
     <!-- Theme Section -->
     <section class="settings-section">
       <h3 class="section-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5"/>
-          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="5"
+          />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          />
         </svg>
         {{ t('settings.theme') }}
       </h3>
-      
+
       <div class="theme-grid">
         <button
           v-for="theme in themes"
@@ -55,14 +106,33 @@
           :class="{ active: currentTheme === theme.id }"
           @click="setTheme(theme.id)"
         >
-          <div class="theme-swatch" :style="{ background: theme.colors.bg }">
-            <div class="swatch-sidebar" :style="{ background: theme.colors.sidebar }"></div>
-            <div class="swatch-accent" :style="{ background: theme.colors.accent }"></div>
+          <div
+            class="theme-swatch"
+            :style="{ background: theme.colors.bg }"
+          >
+            <div
+              class="swatch-sidebar"
+              :style="{ background: theme.colors.sidebar }"
+            />
+            <div
+              class="swatch-accent"
+              :style="{ background: theme.colors.accent }"
+            />
           </div>
           <span class="theme-label">{{ theme.name }}</span>
-          <div class="theme-check" v-if="currentTheme === theme.id">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <polyline points="20 6 9 17 4 12"/>
+          <div
+            v-if="currentTheme === theme.id"
+            class="theme-check"
+          >
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
         </button>
@@ -78,12 +148,13 @@ import { useI18n } from '../../composables';
 const { t, currentLanguage, setLanguage, languageNames } = useI18n();
 
 // 테마 설정
-type ThemeId = 'dark' | 'dim' | 'github-dark';
+type ThemeId = 'dark' | 'dim' | 'github-dark' | 'light';
 
 const themes = computed(() => [
   { id: 'dark' as ThemeId, name: t('theme.dark'), colors: { bg: '#0f0f12', sidebar: '#16161a', accent: '#6b7280' } },
   { id: 'dim' as ThemeId, name: t('theme.dim'), colors: { bg: '#1c1c1c', sidebar: '#252525', accent: '#8b949e' } },
   { id: 'github-dark' as ThemeId, name: t('theme.github'), colors: { bg: '#0d1117', sidebar: '#161b22', accent: '#58a6ff' } },
+  { id: 'light' as ThemeId, name: t('theme.light'), colors: { bg: '#ffffff', sidebar: '#f3f4f6', accent: '#4b5563' } },
 ]);
 
 const currentTheme = ref<ThemeId>('dark');
@@ -96,9 +167,9 @@ function setTheme(theme: ThemeId) {
 
 function initTheme() {
   const savedTheme = localStorage.getItem('cuenote-theme');
-  const validThemes: ThemeId[] = ['dark', 'dim', 'github-dark'];
+  const validThemes: ThemeId[] = ['dark', 'dim', 'github-dark', 'light'];
   const theme = validThemes.includes(savedTheme as ThemeId) ? savedTheme as ThemeId : 'dark';
-  
+
   currentTheme.value = theme;
   document.documentElement.setAttribute('data-theme', theme);
   if (savedTheme !== theme) {
@@ -225,7 +296,7 @@ defineExpose({
 /* Theme Grid */
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 

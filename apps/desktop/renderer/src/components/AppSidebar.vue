@@ -1,33 +1,93 @@
 <template>
-  <aside 
-    class="sidebar" 
+  <aside
+    class="sidebar"
     :class="{ collapsed: isCollapsed }"
     :style="{ width: isCollapsed ? 'var(--sidebar-collapsed)' : `${sidebarWidth}px` }"
   >
     <!-- 리사이즈 핸들 -->
-    <div 
+    <div
       class="resize-handle"
       @mousedown="startResize"
-    ></div>
-    
+    />
+
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
-          <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="7" y="4" width="18" height="24" rx="2" fill="currentColor" opacity="0.15"/>
-            <rect x="7" y="4" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
-            <line x1="11" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
-            <line x1="11" y1="16" x2="18" y2="16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.3"/>
-            <line x1="11" y1="21" x2="19" y2="21" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.2"/>
+          <svg
+            class="logo-svg"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="7"
+              y="4"
+              width="18"
+              height="24"
+              rx="2"
+              fill="currentColor"
+              opacity="0.15"
+            />
+            <rect
+              x="7"
+              y="4"
+              width="18"
+              height="24"
+              rx="2"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.6"
+            />
+            <line
+              x1="11"
+              y1="11"
+              x2="21"
+              y2="11"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              opacity="0.4"
+            />
+            <line
+              x1="11"
+              y1="16"
+              x2="18"
+              y2="16"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              opacity="0.3"
+            />
+            <line
+              x1="11"
+              y1="21"
+              x2="19"
+              y2="21"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+              opacity="0.2"
+            />
           </svg>
         </div>
         <span class="logo-text">
           <span class="logo-cue">Cue</span><span class="logo-note">Note</span>
         </span>
       </div>
-      <button class="icon-btn" @click="$emit('toggle-collapse')" title="Toggle Sidebar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 6h16M4 12h16M4 18h16"/>
+      <button
+        class="icon-btn"
+        title="Toggle Sidebar"
+        @click="$emit('toggle-collapse')"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
     </div>
@@ -62,13 +122,21 @@
       <!-- 기본 Vault Section (그래프 뷰가 아닐 때) -->
       <template v-else>
         <div class="sidebar-section">
-          <div v-if="vaultPath && todoCount !== null" class="vault-stats">
+          <div
+            v-if="vaultPath && todoCount !== null"
+            class="vault-stats"
+          >
             <span class="stat">{{ vaultFiles.length }} notes</span>
             <span class="stat-dot">·</span>
             <span class="stat">{{ todoCount }} tasks</span>
           </div>
 
-          <p v-if="vaultError" class="error-msg">{{ vaultError }}</p>
+          <p
+            v-if="vaultError"
+            class="error-msg"
+          >
+            {{ vaultError }}
+          </p>
         </div>
       </template>
 
@@ -114,7 +182,7 @@
         @permanent-delete="handlePermanentDelete"
         @empty-trash="handleEmptyTrash"
       />
-      
+
       <!-- Trash Section - GitHub 모드 (그래프 뷰가 아닐 때만) -->
       <TrashSection
         v-if="isGitHubMode && githubTrashFiles.length > 0 && currentView !== 'graph'"
@@ -127,8 +195,11 @@
 
     <!-- Status Bar -->
     <div class="sidebar-footer">
-      <div class="status-indicator" :class="coreStatus === 'ok' ? 'online' : 'offline'">
-        <span class="status-dot"></span>
+      <div
+        class="status-indicator"
+        :class="coreStatus === 'ok' ? 'online' : 'offline'"
+      >
+        <span class="status-dot" />
         <span class="status-text">{{ coreStatus === 'ok' ? 'Core Online' : 'Offline' }}</span>
       </div>
     </div>
@@ -177,7 +248,7 @@
   <ClusterEditModal
     :visible="showClusterEditModal"
     :cluster="editingCluster"
-    :isCreateMode="isClusterCreateMode"
+    :is-create-mode="isClusterCreateMode"
     @close="closeClusterEdit"
     @save="handleClusterSave"
     @reset="handleClusterReset"
@@ -219,7 +290,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'toggle-collapse': [];
   'select-file': [file: string];
-  'select-github-file': [path: string, content: string];
+  'select-github-file': [path: string];
   'file-deleted': [file: string];
   'file-created': [file: string];
   'file-restored': [file: string];
@@ -275,14 +346,14 @@ function stopResize() {
 }
 
 // Composables
-const { 
-  vaultPath, 
+const {
+  vaultPath,
   vaultFiles,
   vaultFolders,
   trashFiles,
-  vaultError, 
-  todoCount, 
-  deleteFile, 
+  vaultError,
+  todoCount,
+  deleteFile,
   createFile,
   renameFile,
   restoreFile,
@@ -314,14 +385,13 @@ const {
   isValidating: githubValidating,
   isLoggedIn: isGitHubLoggedIn,
   isGitHubActive,
-  isCloning, // Destructure isCloning
+  isCloning,
   trashFiles: githubTrashFiles,
   initGitHub,
   setGitHubActive,
   validateToken: validateGitHubToken,
   fetchRepos: fetchGitHubRepos,
   selectRepo: selectGitHubRepo,
-  fetchFileContent: fetchGitHubFileContent,
   logout: logoutGitHub,
   createRepo: createGitHubRepo,
   disconnectRepo,
@@ -359,6 +429,24 @@ onMounted(async () => {
   }
   await fetchEnvironments();
   await initGitHub();
+
+  // 현재 환경이 GitHub이면 GitHub 모드 활성화
+  const env = currentEnvironment.value;
+  if (env?.type === 'github' && env.github) {
+    const { switchToGitHubEnv } = useGitHub();
+    await switchToGitHubEnv({
+      id: -1,
+      name: env.github.repo,
+      full_name: env.github.full_name,
+      owner: env.github.owner,
+      private: env.github.private || false,
+      html_url: `https://github.com/${env.github.owner}/${env.github.repo}`,
+      description: null,
+      default_branch: 'main'
+    });
+    // GitHub 환경의 파일 목록도 vault를 통해 갱신
+    await refreshFiles();
+  }
 });
 
 onUnmounted(() => {
@@ -369,43 +457,36 @@ onUnmounted(() => {
 // Environment handlers
 async function handleSelectEnvironment(id: string) {
   envSelectorRef.value?.closeDropdown();
-  
+
   if (id === currentId.value) return;
-  
+
   const success = await selectEnvironment(id);
-  
+
   if (success) {
     // 선택된 환경이 GitHub 타입이면 GitHub 활성화
     const env = environments.value.find(e => e.id === id);
     if (env?.type === 'github' && env.github) {
-        // 이미 연결된 리포지토리라면 활성화
-        const repo = githubRepos.value.find(r => 
-            r.owner === env.github?.owner && r.name === env.github?.repo
-        );
-        
-        if (repo) {
-            // useGitHub의 selectedRepo 업데이트 (동기화)
-            await selectGitHubRepo(repo); 
-        } else {
-            // 리포지토리 목록에 없더라도 환경 정보를 기반으로 GitHub 모드 활성화
-            const partialRepo: any = {
-                id: -1,
-                name: env.github.repo,
-                full_name: `${env.github.owner}/${env.github.repo}`,
-                owner: env.github.owner,
-                private: env.github.private || false,
-                html_url: `https://github.com/${env.github.owner}/${env.github.repo}`,
-                description: '',
-                default_branch: 'main'
-            };
-            await selectGitHubRepo(partialRepo);
-        }
+      // 이미 클론된 환경이므로 클론/풀 없이 GitHub 모드만 활성화
+      // selectGitHubRepo는 매번 클론/풀을 수행하므로 사용하지 않음
+      const { switchToGitHubEnv } = useGitHub();
+      await switchToGitHubEnv({
+        id: -1,
+        name: env.github.repo,
+        full_name: env.github.full_name,
+        owner: env.github.owner,
+        private: env.github.private || false,
+        html_url: `https://github.com/${env.github.owner}/${env.github.repo}`,
+        description: null,
+        default_branch: 'main'
+      });
+      // GitHub 환경의 파일 목록도 vault를 통해 갱신
+      await refreshFiles();
     } else {
-        // 로컬 환경이면 GitHub 비활성화
-        setGitHubActive(false);
-        await refreshFiles();
+      // 로컬 환경이면 GitHub 비활성화
+      setGitHubActive(false);
+      await refreshFiles();
     }
-    
+
     emit('environment-changed');
   }
 }
@@ -439,7 +520,7 @@ async function handleAddLocalEnvironment(name: string, path: string) {
 async function handleAddGitHubEnvironment(repoId: number) {
   const repo = githubRepos.value.find(r => r.id === repoId);
   if (!repo) return;
-  
+
   // GitHub 리포지토리를 선택하면 자동으로 환경으로 추가됨 (modify selectRepo in useGitHub)
   await selectGitHubRepo(repo);
   closeEnvModal();
@@ -464,10 +545,10 @@ function closeDeleteEnvModal() {
 
 async function confirmDeleteEnvironment() {
   if (!envToDelete.value) return;
-  
+
   // GitHub 환경인 경우 연결 해제 로직도 수행 가능하나, 
   // 여기서는 단순히 환경 목록에서 제거하고 필요한 경우 useGitHub 상태도 클리어
-  
+
   const success = await removeEnvironment(envToDelete.value.id);
   if (success) {
     await refreshFiles();
@@ -480,7 +561,7 @@ async function confirmDeleteEnvironment() {
 async function handleCreateRepo(payload: { name: string; description: string; isPrivate: boolean; initReadme: boolean }) {
   creatingRepo.value = true;
   createRepoError.value = null;
-  
+
   try {
     const repo = await createGitHubRepo(payload.name, payload.description, payload.isPrivate, payload.initReadme);
     if (repo) {
@@ -496,11 +577,10 @@ async function handleCreateRepo(payload: { name: string; description: string; is
 }
 
 // File handlers
-async function handleSelectGitHubFile(path: string) {
-  const content = await fetchGitHubFileContent(path);
-  if (content !== null) {
-    emit('select-github-file', path, content);
-  }
+// GitHub 파일 선택 - content 미리 로드 없이 경로만 전달
+// EditorView에서 /vault/file API로 직접 로드 (로컬 파일과 동일)
+function handleSelectGitHubFile(path: string) {
+  emit('select-github-file', path);
 }
 
 async function handleDeleteFile(file: string) {
@@ -528,13 +608,13 @@ async function handleCreateGitHubFile(path: string) {
   // .md 확장자 없는 파일명으로 제목 생성
   const title = path.replace(/\.md$/i, '').split('/').pop() || 'Untitled';
   const content = `# ${title}\n\n`;
-  
+
   const createdPath = await createFile(path, content);
   if (createdPath) {
     // 파일 목록 새로고침을 위해 환경 변경 이벤트 발생
     emit('environment-changed');
-    // 생성된 파일 선택 (백엔드에서 반환한 실제 경로 사용)
-    emit('select-github-file', createdPath, content);
+    // 생성된 파일 선택 (EditorView에서 /vault/file로 로드)
+    emit('select-github-file', createdPath);
   }
 }
 
@@ -594,7 +674,7 @@ async function handleRenameFolder(oldPath: string, newPath: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ old_path: oldPath, new_path: newPath })
     });
-    
+
     if (response.ok) {
       await refreshFiles();
       emit('environment-changed');

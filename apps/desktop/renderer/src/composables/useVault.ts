@@ -1,6 +1,5 @@
 import { ref } from 'vue';
-
-const CORE_BASE = 'http://127.0.0.1:8787';
+import { API_ENDPOINTS } from '../config/api';
 
 const vaultPath = ref<string | null>(null);
 const vaultFiles = ref<string[]>([]);
@@ -19,7 +18,7 @@ export function useVault() {
     vaultError.value = '';
     try {
       // 기본 vault 열기 (path 없이 호출하면 서버가 기본 data 폴더 사용)
-      const openRes = await fetch(`${CORE_BASE}/vault/open`, {
+      const openRes = await fetch(API_ENDPOINTS.VAULT.OPEN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
@@ -43,13 +42,17 @@ export function useVault() {
    */
   async function openVault() {
     vaultError.value = '';
+    if (!window.cuenote) {
+      console.error('CueNote API is not available');
+      return;
+    }
     const selected = await window.cuenote.selectVault();
     if (!selected) {
       return;
     }
     vaultPath.value = selected;
     try {
-      await fetch(`${CORE_BASE}/vault/open`, {
+      await fetch(API_ENDPOINTS.VAULT.OPEN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: selected })
@@ -67,8 +70,8 @@ export function useVault() {
     try {
       // 파일과 폴더 목록을 병렬로 가져오기
       const [filesRes, foldersRes] = await Promise.all([
-        fetch(`${CORE_BASE}/vault/files`),
-        fetch(`${CORE_BASE}/vault/folders`)
+        fetch(API_ENDPOINTS.VAULT.FILES),
+        fetch(API_ENDPOINTS.VAULT.FOLDERS)
       ]);
       
       const filesData = await filesRes.json();
@@ -85,7 +88,7 @@ export function useVault() {
 
   async function refreshTodoCount() {
     try {
-      const res = await fetch(`${CORE_BASE}/todos?checked=false`);
+      const res = await fetch(`${API_ENDPOINTS.TODOS}?checked=false`);
       const data = await res.json();
       todoCount.value = Array.isArray(data.todos) ? data.todos.length : 0;
     } catch (error) {
@@ -97,7 +100,7 @@ export function useVault() {
   async function deleteFile(path: string): Promise<boolean> {
     try {
       // Query parameter로 경로 전달 (DELETE body는 일부 환경에서 무시될 수 있음)
-      const res = await fetch(`${CORE_BASE}/vault/file?path=${encodeURIComponent(path)}`, {
+      const res = await fetch(`${API_ENDPOINTS.VAULT.FILE}?path=${encodeURIComponent(path)}`, {
         method: 'DELETE'
       });
       
@@ -123,7 +126,7 @@ export function useVault() {
       // 파일명이 주어진 경우 PUT으로 빈 파일 생성
       if (fileName) {
         const path = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
-        const res = await fetch(`${CORE_BASE}/vault/file`, {
+        const res = await fetch(API_ENDPOINTS.VAULT.FILE, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path, content: `# ${fileName.replace(/\.md$/, '')}\n\n` })
@@ -140,7 +143,7 @@ export function useVault() {
       }
       
       // 파일명이 없으면 기존 방식 (Untitled)
-      const res = await fetch(`${CORE_BASE}/vault/file`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.FILE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -164,7 +167,7 @@ export function useVault() {
 
   async function renameFile(oldPath: string, newPath: string): Promise<string | null> {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/file/rename`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.RENAME, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ old_path: oldPath, new_path: newPath })
@@ -190,7 +193,7 @@ export function useVault() {
   // 휴지통 관련 함수들
   async function refreshTrash() {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/trash`);
+      const res = await fetch(API_ENDPOINTS.VAULT.TRASH);
       const data = await res.json();
       trashFiles.value = Array.isArray(data.files) ? data.files : [];
     } catch (error) {
@@ -201,7 +204,7 @@ export function useVault() {
 
   async function restoreFile(filename: string): Promise<string | null> {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/trash/restore`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.RESTORE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename })
@@ -227,7 +230,7 @@ export function useVault() {
 
   async function permanentDelete(filename: string): Promise<boolean> {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/trash`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.TRASH, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename })
@@ -250,7 +253,7 @@ export function useVault() {
 
   async function emptyTrash(): Promise<boolean> {
     try {
-      const res = await fetch(`${CORE_BASE}/vault/trash/empty`, {
+      const res = await fetch(API_ENDPOINTS.VAULT.EMPTY_TRASH, {
         method: 'DELETE'
       });
       
