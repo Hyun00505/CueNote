@@ -14,7 +14,7 @@ CORE_DIR = Path(SPECPATH)
 
 # certifi CA 번들 + 패키지 데이터 파일 수집
 import certifi
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_all
 
 # 데이터 파일
 datas = [
@@ -26,6 +26,11 @@ datas += collect_data_files('trafilatura')
 datas += collect_data_files('tld')
 datas += collect_data_files('justext')
 datas += collect_data_files('dateparser')
+
+# sklearn은 C 확장 + 데이터 파일이 많아 collect_all 필요
+sklearn_datas, sklearn_binaries, sklearn_hiddenimports = collect_all('sklearn')
+scipy_datas, scipy_binaries, scipy_hiddenimports = collect_all('scipy')
+datas += sklearn_datas + scipy_datas
 
 # 숨겨진 imports (동적으로 임포트되는 모듈들)
 hiddenimports = [
@@ -209,9 +214,9 @@ excludes = [
 a = Analysis(
     ['main.py'],
     pathex=[str(CORE_DIR)],
-    binaries=[],
+    binaries=sklearn_binaries + scipy_binaries,
     datas=datas,
-    hiddenimports=hiddenimports,
+    hiddenimports=hiddenimports + sklearn_hiddenimports + scipy_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

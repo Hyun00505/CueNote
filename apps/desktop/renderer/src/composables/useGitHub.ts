@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
+import { useEnvironment } from './useEnvironment';
 const STORAGE_KEY = 'cuenote-github';
 
 export interface GitHubUser {
@@ -190,13 +191,13 @@ export function useGitHub() {
 
     selectedRepo.value = repo;
     saveSettings();
-    
+
     // 환경으로 추가 (백엔드에 등록)
-    const { addEnvironment } = await import('./useEnvironment').then(m => m.useEnvironment());
-    await addEnvironment(
-      repo.name, 
-      `github://${repo.owner}/${repo.name}`, 
-      'github', 
+    const { addEnvironment } = useEnvironment();
+    const envAdded = await addEnvironment(
+      repo.name,
+      `github://${repo.owner}/${repo.name}`,
+      'github',
       {
         owner: repo.owner,
         repo: repo.name,
@@ -204,7 +205,12 @@ export function useGitHub() {
         private: repo.private
       }
     );
-    
+
+    if (!envAdded) {
+      console.error('[GitHub] Failed to add environment');
+      return false;
+    }
+
     // 클론 또는 Pull
     const success = await cloneOrPull();
     if (success) {

@@ -351,7 +351,7 @@ export function useGraph() {
    */
   const loadLockedNotes = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/graph/data`);
+      const response = await fetch(`${API_BASE_URL}/graph/locked-notes`);
       if (response.ok) {
         const data = await response.json();
         lockedNotes.value = new Set(data.lockedNotes || []);

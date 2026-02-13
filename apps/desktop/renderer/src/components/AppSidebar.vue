@@ -519,12 +519,25 @@ async function handleAddLocalEnvironment(name: string, path: string) {
 
 async function handleAddGitHubEnvironment(repoId: number) {
   const repo = githubRepos.value.find(r => r.id === repoId);
-  if (!repo) return;
+  if (!repo) {
+    console.error('[GitHub] repo not found for id:', repoId);
+    return;
+  }
 
-  // GitHub 리포지토리를 선택하면 자동으로 환경으로 추가됨 (modify selectRepo in useGitHub)
-  await selectGitHubRepo(repo);
-  closeEnvModal();
-  emit('environment-changed');
+  try {
+    console.log('[GitHub] selectGitHubRepo 시작:', repo.full_name);
+    const success = await selectGitHubRepo(repo);
+    console.log('[GitHub] selectGitHubRepo 결과:', success);
+    
+    if (success) {
+      closeEnvModal();
+      emit('environment-changed');
+    } else {
+      console.warn('[GitHub] selectGitHubRepo returned false, error:', githubError.value);
+    }
+  } catch (e: any) {
+    console.error('[GitHub] handleAddGitHubEnvironment 에러:', e);
+  }
 }
 
 async function handleGitHubLogin(token: string) {

@@ -159,6 +159,14 @@ const saving = ref(false);
 let editorView: EditorView | null = null;
 let currentParent: HTMLDivElement | null = null;
 
+/** 챗봇 등 외부에서 현재 열린 노트 정보를 가져오기 위한 헬퍼 */
+export function getActiveNoteInfo(): { path: string | null; content: string | null } {
+  return {
+    path: activeFile.value,
+    content: editorView ? editorView.state.doc.toString() : null,
+  };
+}
+
 export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
   const { refreshTodoCount } = useVault();
 
@@ -282,6 +290,11 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     }
   }
 
+  function getEditorContent(): string | null {
+    if (!editorView) return null;
+    return editorView.state.doc.toString();
+  }
+
   return {
     activeFile,
     editorError,
@@ -289,6 +302,7 @@ export function useEditor(editorEl: Ref<HTMLDivElement | null>) {
     openFile,
     saveFile,
     createNewFile,
+    getEditorContent,
     editorView
   };
 }

@@ -57,4 +57,7 @@ export const API_ENDPOINTS = {
     TOOLS: `${API_BASE_URL}/mcp/tools`,
     TOOLS_CALL: `${API_BASE_URL}/mcp/tools/call`,
   },
+  CHATBOT: {
+    CHAT: `${API_BASE_URL}/chatbot/chat`,
+  },
 } as const;

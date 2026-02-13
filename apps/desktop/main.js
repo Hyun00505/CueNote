@@ -218,13 +218,33 @@ app.whenReady().then(async () => {
 
   // IPC 핸들러 등록
   ipcMain.handle('cuenote:select-vault', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory']
-    });
-    if (result.canceled) {
+    try {
+      console.log('[IPC] cuenote:select-vault called');
+
+      // mainWindow가 null이거나 destroyed된 경우 체크
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        console.error('[IPC] mainWindow is not available');
+        return null;
+      }
+
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Git 저장소 폴더 선택',
+        buttonLabel: '선택',
+        // Mac에서 더 나은 접근성을 위해
+        defaultPath: process.platform === 'darwin' ? process.env.HOME : undefined
+      });
+
+      console.log('[IPC] dialog result:', result);
+
+      if (result.canceled) {
+        return null;
+      }
+      return result.filePaths[0] || null;
+    } catch (error) {
+      console.error('[IPC] Error in select-vault:', error);
       return null;
     }
-    return result.filePaths[0] || null;
   });
 
   // 외부 링크 열기

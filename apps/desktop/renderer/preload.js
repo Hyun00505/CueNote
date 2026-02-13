@@ -1,7 +1,12 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
+console.log('[Preload] Loading preload.js');
+
 contextBridge.exposeInMainWorld('cuenote', {
-  selectVault: () => ipcRenderer.invoke('cuenote:select-vault'),
+  selectVault: () => {
+    console.log('[Preload] selectVault called');
+    return ipcRenderer.invoke('cuenote:select-vault');
+  },
   openExternal: (url) => ipcRenderer.invoke('cuenote:open-external', url),
   
   // 폰트 관련 API

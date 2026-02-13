@@ -1,1 +1,24 @@
-{"environments": [], "current_id": null}
+{
+  "environments": [
+    {
+      "id": "8c26b1d73977",
+      "name": "기본 노트",
+      "path": "/Users/kimhyunbin/Desktop/github_bunhine0452/CueNote/data",
+      "type": "local",
+      "github": null
+    },
+    {
+      "id": "7b0604c142f9",
+      "name": "Notes",
+      "path": "github://bunhine0452/Notes",
+      "type": "github",
+      "github": {
+        "owner": "bunhine0452",
+        "repo": "Notes",
+        "full_name": "bunhine0452/Notes",
+        "private": true
+      }
+    }
+  ],
+  "current_id": "7b0604c142f9"
+}

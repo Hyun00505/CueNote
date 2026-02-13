@@ -85,3 +85,18 @@ export type GraphData = {
   clusters: ClusterInfo[];
   totalNotes: number;
 };
+
+// 챗봇 관련 타입
+export type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant' | 'tool_call' | 'tool_result';
+  content: string;
+  toolCall?: ToolCallInfo;
+  toolResult?: Record<string, unknown>;
+  timestamp: number;
+};
+
+export type ToolCallInfo = {
+  name: string;
+  arguments: Record<string, unknown>;
+};

@@ -144,12 +144,15 @@
         />
       </div>
     </main>
+
+    <!-- AI 챗봇 -->
+    <AIChatbot />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView, GraphView } from './components';
+import { AppSidebar, MainHeader, EditorView, DashboardView, SettingsView, GraphView, AIChatbot } from './components';
 import { useVault, useHealth, useFonts, useGraph, useGitHub } from './composables';
 import type { ViewType, ClusterInfo } from './types';
 import { API_ENDPOINTS } from './config/api';

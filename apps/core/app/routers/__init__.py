@@ -10,6 +10,7 @@ from .schedules import router as schedules_router
 from .graph import router as graph_router
 from .github import router as github_router
 from .mcp import router as mcp_router
+from .chatbot import router as chatbot_router
 
 __all__ = [
     "vault_router", 
@@ -20,5 +21,6 @@ __all__ = [
     "schedules_router",
     "graph_router",
     "github_router",
-    "mcp_router"
+    "mcp_router",
+    "chatbot_router"
 ]

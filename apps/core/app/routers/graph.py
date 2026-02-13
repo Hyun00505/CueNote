@@ -44,216 +44,229 @@ async def get_graph_data(payload: GraphDataPayload):
     - 변경된 노트만 재계산
     - 클러스터 라벨 캐싱
     """
-    start_time = time.time()
+    try:
+        start_time = time.time()
+
+        # 1. 모든 노트 읽기
+        vault_path = get_current_vault_path()
+        notes = get_all_notes()
+
+        if not notes:
+            return GraphDataResponse(
+                nodes=[],
+                edges=[],
+                clusters=[],
+                totalNotes=0
+            )
+
+        logger.info(f"Processing {len(notes)} notes for graph view")
+
+        # 2. 캐시 초기화
+        cache = GraphCache(vault_path)
     
-    # 1. 모든 노트 읽기
-    vault_path = get_current_vault_path()
-    notes = get_all_notes()
+        # 오래된 캐시 정리
+        current_paths = {n["path"] for n in notes}
+        cache.cleanup_old_entries(current_paths)
     
-    if not notes:
-        return GraphDataResponse(
-            nodes=[],
-            edges=[],
-            clusters=[],
-            totalNotes=0
-        )
+        # 3. 임베딩 생성 (캐시 활용)
+        embeddings, emb_cached, emb_computed = get_embeddings_batch_optimized(notes, cache)
     
-    logger.info(f"Processing {len(notes)} notes for graph view")
+        # 4. 클러스터링
+        num_clusters = min(payload.maxClusters, max(2, len(notes) // 3))
+        cluster_labels = perform_clustering(embeddings, num_clusters)
     
-    # 2. 캐시 초기화
-    cache = GraphCache(vault_path)
+        # 5. 유사도 행렬 계산
+        similarity_matrix = compute_similarity_matrix(embeddings)
     
-    # 오래된 캐시 정리
-    current_paths = {n["path"] for n in notes}
-    cache.cleanup_old_entries(current_paths)
+        # 6. 클러스터별 컨텐츠 수집 (라벨 생성용)
+        cluster_contents: dict[int, list[str]] = {}
+        for i, label in enumerate(cluster_labels):
+            if label not in cluster_contents:
+                cluster_contents[label] = []
+            cluster_contents[label].append(notes[i]["content"])
     
-    # 3. 임베딩 생성 (캐시 활용)
-    embeddings, emb_cached, emb_computed = get_embeddings_batch_optimized(notes, cache)
+        # 7. AI로 클러스터 라벨 생성 (캐싱 포함)
+        try:
+            cluster_label_map, label_cached, label_generated = await generate_cluster_labels_optimized(
+                cluster_contents,
+                payload.provider,
+                payload.api_key,
+                payload.model,
+                cache
+            )
+        except Exception as e:
+            logger.warning(f"Failed to generate AI labels, using defaults: {e}")
+            # AI 라벨 생성 실패 시 기본 라벨 사용
+            cluster_label_map = {
+                cluster_id: (f"주제 {cluster_id + 1}", [])
+                for cluster_id in cluster_contents.keys()
+            }
+            label_cached, label_generated = 0, 0
     
-    # 4. 클러스터링
-    num_clusters = min(payload.maxClusters, max(2, len(notes) // 3))
-    cluster_labels = perform_clustering(embeddings, num_clusters)
+        # 8. 커스텀 설정 로드
+        customizations = cache.get_cluster_customizations()
+        note_overrides = cache.get_note_overrides()
+        locked_notes = cache.get_locked_notes()
     
-    # 5. 유사도 행렬 계산
-    similarity_matrix = compute_similarity_matrix(embeddings)
+        # 9. 노트 오버라이드 적용 (사용자가 수동으로 클러스터 변경한 경우)
+        # 잠금된 노트: AI 클러스터링 결과 무시, 기존 오버라이드 유지
+        # 오버라이드된 노트: AI 클러스터링보다 우선
+        final_cluster_labels = cluster_labels.copy()
+        max_cluster_id = max(cluster_labels) if cluster_labels else 0
     
-    # 6. 클러스터별 컨텐츠 수집 (라벨 생성용)
-    cluster_contents: dict[int, list[str]] = {}
-    for i, label in enumerate(cluster_labels):
-        if label not in cluster_contents:
-            cluster_contents[label] = []
-        cluster_contents[label].append(notes[i]["content"])
-    
-    # 7. AI로 클러스터 라벨 생성 (캐싱 포함)
-    cluster_label_map, label_cached, label_generated = await generate_cluster_labels_optimized(
-        cluster_contents,
-        payload.provider,
-        payload.api_key,
-        payload.model,
-        cache
-    )
-    
-    # 8. 커스텀 설정 로드
-    customizations = cache.get_cluster_customizations()
-    note_overrides = cache.get_note_overrides()
-    locked_notes = cache.get_locked_notes()
-    
-    # 9. 노트 오버라이드 적용 (사용자가 수동으로 클러스터 변경한 경우)
-    # 잠금된 노트: AI 클러스터링 결과 무시, 기존 오버라이드 유지
-    # 오버라이드된 노트: AI 클러스터링보다 우선
-    final_cluster_labels = cluster_labels.copy()
-    max_cluster_id = max(cluster_labels) if cluster_labels else 0
-    
-    for i, note in enumerate(notes):
-        note_path = note["path"]
+        for i, note in enumerate(notes):
+            note_path = note["path"]
         
-        if note_path in note_overrides:
-            override_cluster = note_overrides[note_path]
-            final_cluster_labels[i] = override_cluster
-            # 오버라이드된 클러스터 ID가 현재 범위를 벗어나면 최대값 업데이트
-            if override_cluster > max_cluster_id:
-                max_cluster_id = override_cluster
-        elif note_path in locked_notes:
-            # 잠금되어 있지만 오버라이드가 없는 경우: 현재 AI 클러스터 유지하고 오버라이드로 저장
-            cache.set_note_override(note_path, cluster_labels[i])
+            if note_path in note_overrides:
+                override_cluster = note_overrides[note_path]
+                final_cluster_labels[i] = override_cluster
+                # 오버라이드된 클러스터 ID가 현재 범위를 벗어나면 최대값 업데이트
+                if override_cluster > max_cluster_id:
+                    max_cluster_id = override_cluster
+            elif note_path in locked_notes:
+                # 잠금되어 있지만 오버라이드가 없는 경우: 현재 AI 클러스터 유지하고 오버라이드로 저장
+                cache.set_note_override(note_path, cluster_labels[i])
     
-    # 10. AI 클러스터 할당 정보 저장 (노트별 클러스터 ID)
-    ai_assignments = {}
-    for i, note in enumerate(notes):
-        ai_assignments[note["path"]] = cluster_labels[i]  # AI가 분류한 원본 클러스터
-    cache.set_ai_cluster_assignments(ai_assignments)
+        # 10. AI 클러스터 할당 정보 저장 (노트별 클러스터 ID)
+        ai_assignments = {}
+        for i, note in enumerate(notes):
+            ai_assignments[note["path"]] = cluster_labels[i]  # AI가 분류한 원본 클러스터
+        cache.set_ai_cluster_assignments(ai_assignments)
     
-    # AI 클러스터 라벨 정보 저장 (클러스터 ID -> (라벨, 키워드))
-    ai_cluster_labels_info: dict[int, tuple[str, list[str]]] = {}
-    for cluster_id, (label, keywords) in cluster_label_map.items():
-        ai_cluster_labels_info[cluster_id] = (label, keywords)
-    cache.set_ai_cluster_labels(ai_cluster_labels_info)
+        # AI 클러스터 라벨 정보 저장 (클러스터 ID -> (라벨, 키워드))
+        ai_cluster_labels_info: dict[int, tuple[str, list[str]]] = {}
+        for cluster_id, (label, keywords) in cluster_label_map.items():
+            ai_cluster_labels_info[cluster_id] = (label, keywords)
+        cache.set_ai_cluster_labels(ai_cluster_labels_info)
     
-    # 11. 캐시 저장
-    cache.save()
+        # 11. 캐시 저장
+        cache.save()
     
-    # 12. 클러스터별 최종 노트 수 계산 (오버라이드 반영)
-    final_cluster_contents: dict[int, list[str]] = {}
-    for i, label in enumerate(final_cluster_labels):
-        if label not in final_cluster_contents:
-            final_cluster_contents[label] = []
-        final_cluster_contents[label].append(notes[i]["content"])
+        # 12. 클러스터별 최종 노트 수 계산 (오버라이드 반영)
+        final_cluster_contents: dict[int, list[str]] = {}
+        for i, label in enumerate(final_cluster_labels):
+            if label not in final_cluster_contents:
+                final_cluster_contents[label] = []
+            final_cluster_contents[label].append(notes[i]["content"])
     
-    # 13. 노드 생성 (커스텀 설정 적용)
-    nodes = []
-    for i, note in enumerate(notes):
-        cluster_id = final_cluster_labels[i]
-        ai_label, _ = cluster_label_map.get(cluster_id, (f"주제 {cluster_id + 1}", []))
+        # 13. 노드 생성 (커스텀 설정 적용)
+        nodes = []
+        for i, note in enumerate(notes):
+            cluster_id = final_cluster_labels[i]
+            ai_label, _ = cluster_label_map.get(cluster_id, (f"주제 {cluster_id + 1}", []))
         
-        # 커스텀 설정 적용
-        custom = customizations.get(str(cluster_id), {})
-        final_label = custom.get("label") or ai_label
-        final_color = custom.get("color") or CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]
+            # 커스텀 설정 적용
+            custom = customizations.get(str(cluster_id), {})
+            final_label = custom.get("label") or ai_label
+            final_color = custom.get("color") or CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]
         
-        nodes.append(GraphNode(
-            id=note["path"],
-            label=note["title"],
-            cluster=cluster_id,
-            clusterLabel=final_label,
-            size=max(1, note["wordCount"] // 100),
-            color=final_color
-        ))
+            nodes.append(GraphNode(
+                id=note["path"],
+                label=note["title"],
+                cluster=cluster_id,
+                clusterLabel=final_label,
+                size=max(1, note["wordCount"] // 100),
+                color=final_color
+            ))
     
-    # 14. 엣지 생성 (유사도 기반 + 사용자 커스텀)
-    custom_edges = cache.get_custom_edges()
-    edges = []
+        # 14. 엣지 생성 (유사도 기반 + 사용자 커스텀)
+        custom_edges = cache.get_custom_edges()
+        edges = []
     
-    # 14-1. 유사도 기반 엣지 (사용자가 삭제한 엣지 제외)
-    for i in range(len(notes)):
-        for j in range(i + 1, len(notes)):
-            similarity = similarity_matrix[i][j]
-            if similarity >= payload.minSimilarity:
-                source, target = notes[i]["path"], notes[j]["path"]
-                # 사용자가 삭제한 엣지는 제외
-                if not cache.is_edge_removed(source, target):
+        # 14-1. 유사도 기반 엣지 (사용자가 삭제한 엣지 제외)
+        for i in range(len(notes)):
+            for j in range(i + 1, len(notes)):
+                similarity = similarity_matrix[i][j]
+                if similarity >= payload.minSimilarity:
+                    source, target = notes[i]["path"], notes[j]["path"]
+                    # 사용자가 삭제한 엣지는 제외
+                    if not cache.is_edge_removed(source, target):
+                        edges.append(GraphEdge(
+                            source=source,
+                            target=target,
+                            weight=similarity,
+                            type="similarity"
+                        ))
+    
+        # 14-2. 사용자가 추가한 커스텀 엣지
+        note_paths = {n["path"] for n in notes}
+        for edge in custom_edges.get("added", []):
+            if len(edge) == 2 and edge[0] in note_paths and edge[1] in note_paths:
+                # 이미 유사도 기반으로 추가되지 않은 경우에만 추가
+                existing = any(
+                    (e.source == edge[0] and e.target == edge[1]) or 
+                    (e.source == edge[1] and e.target == edge[0]) 
+                    for e in edges
+                )
+                if not existing:
                     edges.append(GraphEdge(
-                        source=source,
-                        target=target,
-                        weight=similarity,
-                        type="similarity"
+                        source=edge[0],
+                        target=edge[1],
+                        weight=1.0,  # 사용자 추가 엣지는 최대 가중치
+                        type="custom"
                     ))
     
-    # 14-2. 사용자가 추가한 커스텀 엣지
-    note_paths = {n["path"] for n in notes}
-    for edge in custom_edges.get("added", []):
-        if len(edge) == 2 and edge[0] in note_paths and edge[1] in note_paths:
-            # 이미 유사도 기반으로 추가되지 않은 경우에만 추가
-            existing = any(
-                (e.source == edge[0] and e.target == edge[1]) or 
-                (e.source == edge[1] and e.target == edge[0]) 
-                for e in edges
-            )
-            if not existing:
-                edges.append(GraphEdge(
-                    source=edge[0],
-                    target=edge[1],
-                    weight=1.0,  # 사용자 추가 엣지는 최대 가중치
-                    type="custom"
-                ))
+        # 15. 클러스터 정보 생성 (커스텀 설정 적용)
+        clusters = []
     
-    # 15. 클러스터 정보 생성 (커스텀 설정 적용)
-    clusters = []
-    
-    # 15-1. 노트가 있는 클러스터
-    for cluster_id, contents in final_cluster_contents.items():
-        ai_label, ai_keywords = cluster_label_map.get(cluster_id, (f"주제 {cluster_id + 1}", []))
+        # 15-1. 노트가 있는 클러스터
+        for cluster_id, contents in final_cluster_contents.items():
+            ai_label, ai_keywords = cluster_label_map.get(cluster_id, (f"주제 {cluster_id + 1}", []))
         
-        # 커스텀 설정 적용
-        custom = customizations.get(str(cluster_id), {})
-        final_label = custom.get("label") or ai_label
-        final_color = custom.get("color") or CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]
-        # 빈 배열 []도 유효한 사용자 설정으로 처리 (키워드를 지운 경우)
-        custom_keywords = custom.get("keywords")
-        final_keywords = custom_keywords if custom_keywords is not None else ai_keywords
+            # 커스텀 설정 적용
+            custom = customizations.get(str(cluster_id), {})
+            final_label = custom.get("label") or ai_label
+            final_color = custom.get("color") or CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]
+            # 빈 배열 []도 유효한 사용자 설정으로 처리 (키워드를 지운 경우)
+            custom_keywords = custom.get("keywords")
+            final_keywords = custom_keywords if custom_keywords is not None else ai_keywords
         
-        clusters.append(ClusterInfo(
-            id=cluster_id,
-            label=final_label,
-            color=final_color,
-            noteCount=len(contents),
-            keywords=final_keywords or []
-        ))
+            clusters.append(ClusterInfo(
+                id=cluster_id,
+                label=final_label,
+                color=final_color,
+                noteCount=len(contents),
+                keywords=final_keywords or []
+            ))
     
-    # 15-2. 사용자가 만든 빈 클러스터 (노트가 없는 커스텀 클러스터)
-    existing_cluster_ids = set(final_cluster_contents.keys())
-    for cluster_id_str, custom in customizations.items():
-        try:
-            cluster_id = int(cluster_id_str)
-        except ValueError:
-            continue
+        # 15-2. 사용자가 만든 빈 클러스터 (노트가 없는 커스텀 클러스터)
+        existing_cluster_ids = set(final_cluster_contents.keys())
+        for cluster_id_str, custom in customizations.items():
+            try:
+                cluster_id = int(cluster_id_str)
+            except ValueError:
+                continue
         
-        # 이미 추가된 클러스터는 스킵
-        if cluster_id in existing_cluster_ids:
-            continue
+            # 이미 추가된 클러스터는 스킵
+            if cluster_id in existing_cluster_ids:
+                continue
         
-        # 사용자가 만든 빈 클러스터 추가
-        clusters.append(ClusterInfo(
-            id=cluster_id,
-            label=custom.get("label", f"클러스터 {cluster_id + 1}"),
-            color=custom.get("color", CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]),
-            noteCount=0,
-            keywords=custom.get("keywords", [])
-        ))
+            # 사용자가 만든 빈 클러스터 추가
+            clusters.append(ClusterInfo(
+                id=cluster_id,
+                label=custom.get("label", f"클러스터 {cluster_id + 1}"),
+                color=custom.get("color", CLUSTER_COLORS[cluster_id % len(CLUSTER_COLORS)]),
+                noteCount=0,
+                keywords=custom.get("keywords", [])
+            ))
     
-    elapsed = time.time() - start_time
-    logger.info(
-        f"Graph generated in {elapsed:.2f}s: "
-        f"{len(nodes)} nodes, {len(edges)} edges, {len(clusters)} clusters | "
-        f"Embeddings: {emb_cached} cached, {emb_computed} computed | "
-        f"Labels: {label_cached} cached, {label_generated} generated"
-    )
-    
-    return GraphDataResponse(
-        nodes=nodes,
-        edges=edges,
-        clusters=clusters,
-        totalNotes=len(notes)
-    )
+        elapsed = time.time() - start_time
+        logger.info(
+            f"Graph generated in {elapsed:.2f}s: "
+            f"{len(nodes)} nodes, {len(edges)} edges, {len(clusters)} clusters | "
+            f"Embeddings: {emb_cached} cached, {emb_computed} computed | "
+            f"Labels: {label_cached} cached, {label_generated} generated"
+        )
+
+        return GraphDataResponse(
+            nodes=nodes,
+            edges=edges,
+            clusters=clusters,
+            totalNotes=len(notes)
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate graph data: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"그래프 데이터 생성 중 오류 발생: {str(e)}")
 
 
 @router.post("/cluster", response_model=ClusterNotesResponse)
