@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     STATUS: `${API_BASE_URL}/github/status`,
     PULL: `${API_BASE_URL}/github/pull`,
     PUSH: `${API_BASE_URL}/github/push`,
+    GENERATE_COMMIT_MSG: `${API_BASE_URL}/github/generate-commit-message`,
     TRASH: `${API_BASE_URL}/github/repo/trash`,
     RESTORE_TRASH: `${API_BASE_URL}/github/repo/trash/restore`,
     EMPTY_TRASH: `${API_BASE_URL}/github/repo/trash/empty`,

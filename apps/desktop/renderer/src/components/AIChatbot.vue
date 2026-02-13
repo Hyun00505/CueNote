@@ -25,8 +25,8 @@
       <div v-if="isOpen" class="chatbot-panel" :style="panelStyle">
         <!-- 리사이즈 핸들 (좌상단 모서리) -->
         <div class="resize-handle" @mousedown.prevent="startResize" />
-        <!-- 헤더 -->
-        <div class="chatbot-header">
+        <!-- 헤더 (드래그 핸들) -->
+        <div class="chatbot-header" @mousedown="startDrag">
           <div class="header-left">
             <div class="header-avatar">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -39,11 +39,30 @@
               <span class="header-status">{{ isLoading ? '응답 중...' : '온라인' }}</span>
             </div>
           </div>
-          <button class="header-action" @click="handleClear" title="대화 초기화">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-            </svg>
-          </button>
+          <div class="header-actions">
+            <!-- 투명도 슬라이더 -->
+            <div class="opacity-control" @mousedown.stop>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a10 10 0 0 1 0 20" fill="currentColor" opacity="0.3" />
+              </svg>
+              <input
+                type="range"
+                class="opacity-slider"
+                v-model.number="panelOpacity"
+                min="30"
+                max="100"
+                step="5"
+                title="투명도"
+              />
+              <span class="opacity-value">{{ panelOpacity }}%</span>
+            </div>
+            <button class="header-action" @click.stop="handleClear" title="대화 초기화">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- 메시지 영역 -->
@@ -148,15 +167,34 @@ const panelWidth = ref(380);
 const panelHeight = ref(520);
 const isResizing = ref(false);
 
+// 드래그 관련
+const isDragging = ref(false);
+const panelX = ref<number | null>(null); // null = 기본 위치 (right:24px)
+const panelY = ref<number | null>(null); // null = 기본 위치 (bottom:90px)
+
+// 투명도
+const panelOpacity = ref(100);
+
 const MIN_W = 320;
 const MAX_W = 700;
 const MIN_H = 400;
 const MAX_H = 800;
 
-const panelStyle = computed(() => ({
-  width: `${panelWidth.value}px`,
-  height: `${panelHeight.value}px`,
-}));
+const panelStyle = computed(() => {
+  const base: Record<string, string> = {
+    width: `${panelWidth.value}px`,
+    height: `${panelHeight.value}px`,
+    opacity: `${panelOpacity.value / 100}`,
+  };
+  if (panelX.value !== null && panelY.value !== null) {
+    // 드래그된 위치 사용
+    base.left = `${panelX.value}px`;
+    base.top = `${panelY.value}px`;
+    base.right = 'auto';
+    base.bottom = 'auto';
+  }
+  return base;
+});
 
 function startResize(e: MouseEvent) {
   isResizing.value = true;
@@ -182,6 +220,44 @@ function startResize(e: MouseEvent) {
   }
 
   document.body.style.cursor = 'nwse-resize';
+  document.body.style.userSelect = 'none';
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ─── 드래그로 위치 이동 ───
+function startDrag(e: MouseEvent) {
+  // 버튼이나 인터랙티브 요소 클릭 시 드래그 무시
+  const target = e.target as HTMLElement;
+  if (target.closest('button') || target.closest('input') || target.closest('.opacity-control')) return;
+
+  isDragging.value = true;
+
+  // 현재 패널의 실제 위치 계산
+  const panelEl = document.querySelector('.chatbot-panel') as HTMLElement;
+  if (!panelEl) return;
+  const rect = panelEl.getBoundingClientRect();
+
+  const offsetX = e.clientX - rect.left;
+  const offsetY = e.clientY - rect.top;
+
+  function onMove(ev: MouseEvent) {
+    const x = ev.clientX - offsetX;
+    const y = ev.clientY - offsetY;
+    // 화면 밖으로 나가지 않도록 제한
+    panelX.value = Math.max(0, Math.min(window.innerWidth - panelWidth.value, x));
+    panelY.value = Math.max(0, Math.min(window.innerHeight - 60, y));
+  }
+
+  function onUp() {
+    isDragging.value = false;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  document.body.style.cursor = 'grabbing';
   document.body.style.userSelect = 'none';
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
@@ -373,23 +449,35 @@ watch(
   opacity: 1 !important;
 }
 
-/* ─── 헤더 ─── */
+/* ─── 헤더 (드래그 핸들) ─── */
 .chatbot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: linear-gradient(180deg,
     rgba(137, 180, 250, 0.08) 0%,
     rgba(137, 180, 250, 0) 100%
   );
   border-bottom: 1px solid var(--border-primary, #313244);
+  cursor: grab;
+  user-select: none;
+}
+
+.chatbot-header:active {
+  cursor: grabbing;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .header-avatar {
@@ -417,6 +505,51 @@ watch(
 .header-status {
   font-size: 11px;
   color: #a6e3a1;
+}
+
+/* ─── 투명도 컨트롤 ─── */
+.opacity-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  cursor: default;
+  color: var(--text-tertiary, #585b70);
+}
+
+.opacity-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 50px;
+  height: 3px;
+  background: rgba(137, 180, 250, 0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #89b4fa;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.opacity-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+.opacity-value {
+  font-size: 10px;
+  min-width: 28px;
+  text-align: right;
+  color: var(--text-tertiary, #585b70);
 }
 
 .header-action {

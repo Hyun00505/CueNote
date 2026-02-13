@@ -181,6 +181,11 @@ type TranslationKeys = {
   'calendar.noSchedulesToday': string;
   'calendar.schedulesCount': string;
   'calendar.allDay': string;
+  'calendar.quickAdd': string;
+  'calendar.nextUp': string;
+  'calendar.allDoneToday': string;
+  'calendar.nMore': string;
+  'calendar.markComplete': string;
 
   // Days short
   'days.sunShort': string;
@@ -508,6 +513,11 @@ const ko: TranslationKeys = {
   'calendar.noSchedulesToday': '오늘 일정이 없습니다',
   'calendar.schedulesCount': '개의 일정',
   'calendar.allDay': '종일',
+  'calendar.quickAdd': '일정 입력...',
+  'calendar.nextUp': '다음 일정',
+  'calendar.allDoneToday': '오늘 일정을 모두 완료했어요!',
+  'calendar.nMore': '더보기',
+  'calendar.markComplete': '완료',
 
   // Days short
   'days.sunShort': '일',
@@ -834,6 +844,11 @@ const en: TranslationKeys = {
   'calendar.noSchedulesToday': 'No schedules today',
   'calendar.schedulesCount': ' schedules',
   'calendar.allDay': 'All day',
+  'calendar.quickAdd': 'Enter schedule...',
+  'calendar.nextUp': 'Next Up',
+  'calendar.allDoneToday': 'All done for today!',
+  'calendar.nMore': 'more',
+  'calendar.markComplete': 'Complete',
 
   // Days short
   'days.sunShort': 'Sun',

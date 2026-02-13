@@ -60,6 +60,7 @@ const isPushing = ref(false);
 const gitChanges = ref<GitChange[]>([]);
 const hasChanges = computed(() => gitChanges.value.length > 0);
 const gitInstalled = ref(true);
+const isGeneratingCommitMsg = ref(false);
 
 // 스테이징 선택 상태
 const stagedFiles = ref<Set<string>>(new Set());
@@ -985,6 +986,53 @@ export function useGitHub() {
     return `${API_BASE_URL}/github/repo/image/${selectedRepo.value.owner}/${selectedRepo.value.name}/${relativePath.replace('img/', '')}`;
   }
 
+  // AI 커밋 메시지 생성
+  async function generateCommitMessage(provider: string, apiKey: string, model: string): Promise<string | null> {
+    if (!token.value || !selectedRepo.value) {
+      error.value = '리포지토리를 먼저 선택해주세요';
+      return null;
+    }
+
+    const filesToCommit = Array.from(stagedFiles.value);
+    if (filesToCommit.length === 0) {
+      error.value = '커밋할 파일을 선택해주세요';
+      return null;
+    }
+
+    isGeneratingCommitMsg.value = true;
+    error.value = null;
+
+    try {
+      const res = await fetch(API_ENDPOINTS.GITHUB.GENERATE_COMMIT_MSG, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token.value,
+          owner: selectedRepo.value.owner,
+          repo: selectedRepo.value.name,
+          files: filesToCommit,
+          provider,
+          api_key: apiKey,
+          model
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'AI 커밋 메시지 생성에 실패했습니다');
+      }
+
+      const data = await res.json();
+      return data.message || null;
+    } catch (e: any) {
+      console.error('Failed to generate commit message:', e);
+      error.value = e.message || 'AI 커밋 메시지 생성에 실패했습니다';
+      return null;
+    } finally {
+      isGeneratingCommitMsg.value = false;
+    }
+  }
+
   return {
     // State
     token,
@@ -1006,6 +1054,7 @@ export function useGitHub() {
     hasChanges,
     gitInstalled,
     isGitHubActive,
+    isGeneratingCommitMsg,
 
     // Staging State
     stagedFiles,
@@ -1038,6 +1087,7 @@ export function useGitHub() {
     createRepo,
     uploadImage,
     getImageUrl,
+    generateCommitMessage,
 
     // Staging Actions
     toggleStageFile,

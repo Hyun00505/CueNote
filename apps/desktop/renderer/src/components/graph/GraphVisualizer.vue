@@ -50,15 +50,14 @@
             :class="{ 
               selected: selectedNode?.id === node.id,
               dimmed: hoveredNode && hoveredNode.id !== node.id && !isConnected(hoveredNode.id, node.id),
-              locked: isNoteLocked(node.id),
-              'link-source': linkSourceNode?.id === node.id,
-              'link-candidate': linkEditMode && linkSourceNode?.id !== node.id,
-              'has-connection': linkEditMode === 'remove' && linkSourceNode && hasEdgeBetween(linkSourceNode.id, node.id)
+              'search-match': searchMatches.has(node.id),
+              'search-dimmed': searchMatches.size > 0 && !searchMatches.has(node.id)
             }"
             :transform="`translate(${node.x}, ${node.y})`"
             @mouseenter="handleNodeHover(node)"
             @mouseleave="handleNodeHover(null)"
             @click="handleNodeClick(node)"
+            @dblclick="handleNodeDblClick(node)"
             @contextmenu.prevent="handleNodeContextMenu($event, node)"
           >
             <circle
@@ -67,26 +66,6 @@
               :fill="node.color"
               :filter="selectedNode?.id === node.id ? 'url(#glow)' : undefined"
             />
-            <!-- 잠금 아이콘 -->
-            <g
-              v-if="isNoteLocked(node.id)"
-              class="lock-icon"
-              :transform="`translate(${getNodeRadius(node) - 4}, ${-getNodeRadius(node) + 4})`"
-            >
-              <circle
-                r="8"
-                fill="var(--bg-primary)"
-                stroke="var(--accent-primary, #8b5cf6)"
-                stroke-width="1.5"
-              />
-              <path 
-                d="M-3 1h6v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4z M-2 1v-2a2 2 0 0 1 4 0v2" 
-                fill="none" 
-                stroke="var(--accent-primary, #8b5cf6)" 
-                stroke-width="1.2"
-                stroke-linecap="round"
-              />
-            </g>
             <text
               class="node-label"
               :y="getNodeRadius(node) + 14"
@@ -117,14 +96,12 @@ const props = defineProps<{
   height: number;
   selectedNode: GraphNode | null;
   hoveredNode: GraphNode | null;
-  linkEditMode: 'add' | 'remove' | null;
-  linkSourceNode: GraphNode | null;
-  isNoteLocked: (id: string) => boolean;
-  hasEdgeBetween: (id1: string, id2: string) => boolean;
+  searchMatches: Set<string>;
 }>();
 
 const emit = defineEmits<{
   (e: 'node-click', node: GraphNode): void;
+  (e: 'node-dblclick', node: GraphNode): void;
   (e: 'node-hover', node: GraphNode | null): void;
   (e: 'node-contextmenu', event: MouseEvent, node: GraphNode): void;
 }>();
@@ -269,7 +246,23 @@ const initDrag = () => {
   nodes.call(dragBehavior as any);
 };
 
-// Zoom control methods exposed
+// 특정 노드로 카메라 이동
+const focusNode = (node: GraphNode) => {
+  if (!svgRef.value || !zoomBehavior) return;
+  
+  const svg = d3Selection.select(svgRef.value);
+  const targetX = node.x || props.width / 2;
+  const targetY = node.y || props.height / 2;
+  
+  const transform = d3Zoom.zoomIdentity
+    .translate(props.width / 2, props.height / 2)
+    .scale(1.5)
+    .translate(-targetX, -targetY);
+  
+  (svg as any).transition().duration(500).call(zoomBehavior.transform, transform);
+};
+
+// Zoom control methods
 const zoomIn = () => {
   if (!svgRef.value || !zoomBehavior) return;
   const svg = d3Selection.select(svgRef.value);
@@ -289,10 +282,11 @@ const resetZoom = () => {
 };
 
 const handleNodeClick = (node: GraphNode) => emit('node-click', node);
+const handleNodeDblClick = (node: GraphNode) => emit('node-dblclick', node);
 const handleNodeHover = (node: GraphNode | null) => emit('node-hover', node);
 const handleNodeContextMenu = (event: MouseEvent, node: GraphNode) => emit('node-contextmenu', event, node);
 
-defineExpose({ zoomIn, zoomOut, resetZoom, initSimulation, initDrag, initZoom });
+defineExpose({ zoomIn, zoomOut, resetZoom, focusNode, initSimulation, initDrag, initZoom });
 
 watch([() => props.nodes, () => props.edges], async () => {
   initSimulation();
@@ -348,6 +342,16 @@ onUnmounted(() => {
   opacity: 0.2;
 }
 
+.node.search-dimmed {
+  opacity: 0.15;
+}
+
+.node.search-match .node-circle {
+  stroke: #fbbf24;
+  stroke-width: 3px;
+  filter: url(#glow);
+}
+
 .node-circle {
   transition: all 0.2s;
   stroke: rgba(255, 255, 255, 0.1);
@@ -375,44 +379,5 @@ onUnmounted(() => {
 .node.selected .node-label {
   fill: var(--text-primary);
   font-weight: 500;
-}
-
-/* 노드 연결 편집 모드 스타일 */
-.node.link-source .node-circle {
-  stroke: var(--accent-primary, #8b5cf6);
-  stroke-width: 3px;
-  filter: url(#glow);
-}
-
-.node.link-candidate {
-  cursor: crosshair;
-}
-
-.node.link-candidate .node-circle {
-  stroke: var(--text-muted);
-  stroke-width: 2px;
-  stroke-dasharray: 4 2;
-}
-
-.node.link-candidate:hover .node-circle {
-  stroke: #22c55e;
-  stroke-width: 3px;
-  stroke-dasharray: none;
-}
-
-.node.has-connection .node-circle {
-  stroke: #ef4444;
-  stroke-width: 2px;
-}
-
-/* 잠금된 노드 스타일 */
-.node.locked .node-circle {
-  stroke: var(--accent-primary, #8b5cf6);
-  stroke-width: 2px;
-  stroke-dasharray: 4 2;
-}
-
-.lock-icon {
-  pointer-events: none;
 }
 </style>

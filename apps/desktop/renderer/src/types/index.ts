@@ -55,6 +55,7 @@ export type GraphNode = {
   clusterLabel: string;
   size: number;
   color: string;
+  preview: string;
   x?: number;
   y?: number;
   // d3-force 시뮬레이션용
@@ -84,6 +85,15 @@ export type GraphData = {
   edges: GraphEdge[];
   clusters: ClusterInfo[];
   totalNotes: number;
+};
+
+export type RelatedNote = {
+  path: string;
+  title: string;
+  similarity: number;
+  clusterLabel: string;
+  color: string;
+  preview: string;
 };
 
 // 챗봇 관련 타입

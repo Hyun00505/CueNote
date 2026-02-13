@@ -7,31 +7,68 @@
       <div class="bg-noise" />
     </div>
 
+    <!-- 오늘의 포커스 카드 -->
+    <TodayFocusCard
+      :schedules="todaySchedules"
+      :show-empty="false"
+      @go-today="scrollToToday"
+    />
+
     <div class="calendar-body">
-      <!-- 캘린더 그리드 -->
+      <!-- 캘린더 그리드 (전체 너비) -->
       <CalendarGrid
         ref="calendarGridRef"
         :calendar-months="calendarMonths"
         :all-schedules="rangeSchedules"
-        @select-date="selectDate"
+        @select-date="handleSelectDate"
         @load-more="loadMoreMonths"
         @fetch-range-schedules="fetchSchedulesByDateRange"
-      />
-
-      <!-- 일정 상세 패널 -->
-      <SchedulePanel
-        :schedules="selectedSchedules"
-        :selected-date="selectedDate"
-        :loading="loading"
-        :error="error"
-        @add-schedule="openAddModal"
-        @edit-schedule="openEditModal"
-        @delete-schedule="openDeleteConfirm"
-        @toggle-complete="toggleComplete"
-        @ai-extract="showExtractModal = true"
-        @go-today="scrollToToday"
+        @quick-add="handleQuickAdd"
+        @schedule-click="handleScheduleClick"
       />
     </div>
+
+    <!-- 슬라이드 오버 일정 패널 -->
+    <Teleport to="body">
+      <Transition name="slide-panel">
+        <div
+          v-if="showSchedulePanel"
+          class="panel-overlay"
+          @click.self="showSchedulePanel = false"
+        >
+          <div class="panel-slide">
+            <button class="panel-close-btn" @click="showSchedulePanel = false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <SchedulePanel
+              :schedules="selectedSchedules"
+              :selected-date="selectedDate"
+              :loading="loading"
+              :error="error"
+              @add-schedule="openAddModal"
+              @edit-schedule="openEditModal"
+              @delete-schedule="openDeleteConfirm"
+              @toggle-complete="handleToggleComplete"
+              @ai-extract="showExtractModal = true"
+              @go-today="scrollToToday"
+            />
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 일정 팝오버 -->
+    <SchedulePopover
+      :visible="showPopover"
+      :schedule="popoverSchedule"
+      :anchor-rect="popoverAnchor"
+      @close="showPopover = false"
+      @edit="openEditModal"
+      @delete="openDeleteConfirm"
+      @toggle-complete="handleToggleComplete"
+    />
 
     <!-- 일정 추가/수정 모달 -->
     <Teleport to="body">
@@ -79,7 +116,9 @@ import {
   SchedulePanel,
   ScheduleFormModal,
   ScheduleDeleteModal,
-  AIExtractModal
+  AIExtractModal,
+  TodayFocusCard,
+  SchedulePopover,
 } from './dashboard';
 import type { ScheduleItem } from '../types';
 
@@ -96,6 +135,7 @@ const {
   loading,
   error,
   rangeSchedules,
+  todaySchedules,
   goToToday,
   selectDate,
   loadMoreMonths,
@@ -103,6 +143,8 @@ const {
   updateSchedule,
   deleteSchedule,
   toggleComplete,
+  quickCreateSchedule,
+  fetchTodaySchedules,
   extractSchedulesFromNote,
   createSchedulesBatch,
   fetchSchedulesByDateRange,
@@ -118,8 +160,14 @@ const calendarGridRef = ref<InstanceType<typeof CalendarGrid> | null>(null);
 const showModal = ref(false);
 const showDeleteConfirm = ref(false);
 const showExtractModal = ref(false);
+const showSchedulePanel = ref(false);
 const editingSchedule = ref<ScheduleItem | null>(null);
 const deleteTarget = ref<ScheduleItem | null>(null);
+
+// 팝오버 상태
+const showPopover = ref(false);
+const popoverSchedule = ref<ScheduleItem | null>(null);
+const popoverAnchor = ref<{ top: number; left: number; width: number; height: number } | null>(null);
 
 // AI 추출 상태
 const extractedSchedules = ref<ScheduleItem[]>([]);
@@ -127,11 +175,44 @@ const extractLoading = ref(false);
 const extractError = ref('');
 const extractConfidence = ref(0);
 
+// 날짜 선택 → 슬라이드 패널 열기
+function handleSelectDate(date: string) {
+  selectDate(date);
+  showSchedulePanel.value = true;
+  showPopover.value = false;
+}
+
+// 일정 블록 클릭 → 팝오버
+function handleScheduleClick(schedule: ScheduleItem, event: MouseEvent) {
+  const rect = (event.target as HTMLElement).getBoundingClientRect();
+  popoverSchedule.value = schedule;
+  popoverAnchor.value = {
+    top: rect.top,
+    left: rect.left,
+    width: rect.width,
+    height: rect.height,
+  };
+  showPopover.value = true;
+}
+
+// 빠른 일정 추가
+async function handleQuickAdd(data: { title: string; date: string; startTime: string; endTime: string }) {
+  await quickCreateSchedule(data.title, data.date, data.startTime, data.endTime);
+  await fetchTodaySchedules();
+}
+
+// 완료 토글 (패널/팝오버 공용)
+async function handleToggleComplete(id: string) {
+  await toggleComplete(id);
+  await fetchTodaySchedules();
+}
+
 // 오늘로 스크롤
 function scrollToToday() {
   goToToday();
+  showSchedulePanel.value = false;
   setTimeout(() => {
-    calendarGridRef.value?.scrollToToday(true); // 버튼 클릭시에는 부드럽게 애니메이션
+    calendarGridRef.value?.scrollToToday(true);
   }, 50);
 }
 
@@ -144,6 +225,7 @@ function openAddModal() {
 function openEditModal(schedule: ScheduleItem) {
   editingSchedule.value = schedule;
   showModal.value = true;
+  showPopover.value = false;
 }
 
 function closeModal() {
@@ -154,11 +236,13 @@ function closeModal() {
 function openDeleteConfirm(schedule: ScheduleItem) {
   deleteTarget.value = schedule;
   showDeleteConfirm.value = true;
+  showPopover.value = false;
 }
 
 async function handleDeleteConfirm() {
   if (deleteTarget.value?.id) {
     await deleteSchedule(deleteTarget.value.id);
+    await fetchTodaySchedules();
   }
   showDeleteConfirm.value = false;
   deleteTarget.value = null;
@@ -178,6 +262,7 @@ async function handleSaveSchedule(data: {
   } else {
     await createSchedule(data);
   }
+  await fetchTodaySchedules();
   closeModal();
 }
 
@@ -209,6 +294,7 @@ async function saveExtractedSchedules(indexes: number[]) {
   const schedulesToSave = indexes.map(i => extractedSchedules.value[i]);
   if (schedulesToSave.length > 0) {
     await createSchedulesBatch(schedulesToSave);
+    await fetchTodaySchedules();
   }
   closeExtractModal();
 }
@@ -218,7 +304,7 @@ onMounted(() => {
   init();
   // 오늘 날짜로 스크롤 (DOM 완전히 렌더링 후)
   setTimeout(() => {
-    calendarGridRef.value?.scrollToToday(false); // 초기 로드시에는 애니메이션 없이
+    calendarGridRef.value?.scrollToToday(false);
   }, 150);
 });
 
@@ -293,22 +379,93 @@ defineExpose({
   mix-blend-mode: overlay;
 }
 
-/* 본문 */
+/* 본문 - 전체 너비 */
 .calendar-body {
   position: relative;
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 380px;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
   z-index: 1;
 }
 
-/* 반응형 */
-@media (max-width: 900px) {
-  .calendar-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
+/* 슬라이드 패널 오버레이 */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 900;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.panel-slide {
+  position: relative;
+  width: 400px;
+  max-width: 90vw;
+  height: 100%;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--surface-3);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.panel-close-btn:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+/* 슬라이드 전환 애니메이션 */
+.slide-panel-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.slide-panel-enter-active .panel-slide {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-panel-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.slide-panel-leave-active .panel-slide {
+  transition: transform 0.2s ease;
+}
+
+.slide-panel-enter-from {
+  opacity: 0;
+}
+
+.slide-panel-enter-from .panel-slide {
+  transform: translateX(100%);
+}
+
+.slide-panel-leave-to {
+  opacity: 0;
+}
+
+.slide-panel-leave-to .panel-slide {
+  transform: translateX(100%);
 }
 </style>

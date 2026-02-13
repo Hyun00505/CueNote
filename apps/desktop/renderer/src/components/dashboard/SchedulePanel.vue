@@ -347,7 +347,7 @@ const emit = defineEmits<{
   'add-schedule': [];
   'edit-schedule': [schedule: ScheduleItem];
   'delete-schedule': [schedule: ScheduleItem];
-  'toggle-complete': [id: number];
+  'toggle-complete': [id: string];
   'ai-extract': [];
   'go-today': [];
 }>();

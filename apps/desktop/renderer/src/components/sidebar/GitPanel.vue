@@ -147,6 +147,7 @@
       <template v-else>
         <!-- 커밋 메시지 입력 -->
         <div class="commit-section">
+        <div class="commit-input-wrapper">
           <textarea
             v-model="commitMessage"
             class="commit-input"
@@ -154,6 +155,37 @@
             rows="3"
             :disabled="isPushing || stagedCount === 0"
           />
+          <button
+            class="ai-generate-btn"
+            :disabled="isGeneratingCommitMsg || stagedCount === 0"
+            title="AI 커밋 메시지 생성"
+            @click="handleGenerateCommitMsg"
+          >
+            <svg
+              v-if="isGeneratingCommitMsg"
+              class="spinning"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            <svg
+              v-else
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
+            </svg>
+          </button>
+        </div>
           
           <div class="commit-actions">
             <button 
@@ -341,6 +373,7 @@
 import { ref, computed, watch } from 'vue';
 import { useGitHub } from '../../composables/useGitHub';
 import { useI18n } from '../../composables';
+import { useSettings } from '../../composables/useSettings';
 
 const props = defineProps<{
   isGitHubMode: boolean;
@@ -370,10 +403,14 @@ const {
   toggleStageFile,
   stageAll,
   unstageAll,
-  isFileStaged
+  isFileStaged,
+  // AI
+  isGeneratingCommitMsg,
+  generateCommitMessage
 } = useGitHub();
 
 const { t } = useI18n();
+const { settings } = useSettings();
 
 const isExpanded = ref(true);
 const commitMessage = ref('');
@@ -464,6 +501,19 @@ async function handlePush() {
   if (success) {
     commitMessage.value = '';
     emit('commit-success');
+  }
+}
+
+async function handleGenerateCommitMsg() {
+  if (stagedCount.value === 0 || isGeneratingCommitMsg.value) return;
+  
+  const provider = settings.value.llm.provider;
+  const apiKey = settings.value.llm.apiKey || settings.value.llm.apiKeys?.[provider as keyof typeof settings.value.llm.apiKeys] || '';
+  const model = settings.value.llm.model;
+  
+  const msg = await generateCommitMessage(provider, apiKey, model);
+  if (msg) {
+    commitMessage.value = msg;
   }
 }
 
@@ -654,6 +704,42 @@ watch(() => props.isGitHubMode, async (isActive) => {
 /* 커밋 섹션 */
 .commit-section {
   margin-bottom: 16px;
+}
+
+.commit-input-wrapper {
+  position: relative;
+}
+
+.ai-generate-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.ai-generate-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(203, 166, 247, 0.2), rgba(137, 180, 250, 0.2));
+  color: #cba6f7;
+}
+
+.ai-generate-btn:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.ai-generate-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .commit-input {

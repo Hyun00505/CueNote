@@ -35,6 +35,8 @@ export function useTiptapEditor() {
       extensions: [
         StarterKit.configure({
           codeBlock: false,
+          link: false,
+          underline: false,
         }),
         Placeholder.configure({
           placeholder: '내용을 입력하세요...',

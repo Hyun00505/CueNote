@@ -23,10 +23,7 @@
       @sidebar-width-change="handleSidebarWidthChange"
       @filter-cluster="handleFilterCluster"
       @refresh-graph="handleRefreshGraph"
-      @update-cluster="handleUpdateCluster"
-      @reset-cluster="handleResetCluster"
-      @create-cluster="handleCreateCluster"
-      @delete-cluster="handleDeleteCluster"
+      @search-graph="handleSearchGraph"
       @environment-changed="handleEnvironmentChanged"
     />
 
@@ -383,48 +380,16 @@ async function handleRefreshGraph() {
   }
 }
 
-// 클러스터 설정 업데이트
-const { updateCluster, resetClusterSettings, createCluster, deleteCluster, clearGraphData, unclusteredCount } = useGraph();
+// 클러스터/그래프 상태
+const { clearGraphData, unclusteredCount, graphData } = useGraph();
 
-async function handleUpdateCluster(data: { id: number; label: string; color: string; keywords: string[] }) {
-  await updateCluster(data.id, {
-    label: data.label,
-    color: data.color,
-    keywords: data.keywords
-  });
-
-  // 로컬 상태가 즉시 업데이트되므로 새로고침 불필요
-  // 사이드바 클러스터 목록도 자동 반영
-  updateGraphClustersFromLocal();
-}
-
-async function handleResetCluster(_clusterId: number) {
-  // 전체 클러스터 설정 초기화 (개별 클러스터 초기화는 추후 구현)
-  await resetClusterSettings();
-  await handleRefreshGraph();
-}
-
-async function handleCreateCluster(data: { label: string; color: string; keywords: string[] }) {
-  const newCluster = await createCluster(data.label, data.color, data.keywords);
-  if (newCluster) {
-    // 로컬 상태가 즉시 업데이트되므로 새로고침 불필요
-    updateGraphClustersFromLocal();
-  }
-}
-
-async function handleDeleteCluster(clusterId: number) {
-  const success = await deleteCluster(clusterId);
-  if (success) {
-    // 삭제된 클러스터 필터링 중이었다면 전체 보기로 전환
-    if (selectedClusterId.value === clusterId) {
-      selectedClusterId.value = null;
-    }
-    updateGraphClustersFromLocal();
+function handleSearchGraph(query: string) {
+  if (graphViewRef.value?.searchInGraph) {
+    graphViewRef.value.searchInGraph(query);
   }
 }
 
 // 로컬 그래프 데이터에서 사이드바 클러스터 목록 업데이트
-const { graphData } = useGraph();
 function updateGraphClustersFromLocal() {
   if (graphData.value) {
     graphClusters.value = [...graphData.value.clusters];

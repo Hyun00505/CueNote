@@ -348,6 +348,7 @@ class GraphNode(BaseModel):
     clusterLabel: str = Field(default="", description="클러스터 라벨/태그")
     size: int = Field(default=1, description="노드 크기 (단어 수 기반)")
     color: str = Field(default="#888888", description="노드 색상 (클러스터 기반)")
+    preview: str = Field(default="", description="노트 미리보기 (처음 150자)")
     x: Optional[float] = Field(default=None, description="X 좌표")
     y: Optional[float] = Field(default=None, description="Y 좌표")
 
@@ -386,73 +387,11 @@ class GraphDataResponse(BaseModel):
     totalNotes: int = Field(default=0, description="전체 노트 수")
 
 
-class ClusterNotesPayload(BaseModel):
-    """노트 클러스터링 요청"""
-    notePaths: list[str] = Field(default_factory=list, description="클러스터링할 노트 경로 (빈 배열: 전체)")
-    provider: str = Field(default="ollama", description="LLM 제공자")
-    api_key: str = Field(default="", description="Gemini API 키")
-    model: str = Field(default="", description="사용할 모델명")
-    numClusters: int = Field(default=5, description="클러스터 수")
-
-
-class ClusterNotesResponse(BaseModel):
-    """노트 클러스터링 응답"""
-    clusters: list[ClusterInfo] = Field(default_factory=list, description="클러스터 정보")
-    noteAssignments: dict[str, int] = Field(default_factory=dict, description="노트별 클러스터 할당")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 클러스터 커스텀 설정 스키마
-# ─────────────────────────────────────────────────────────────────────────────
-
-class ClusterCustomization(BaseModel):
-    """개별 클러스터 커스텀 설정"""
-    id: int = Field(..., description="클러스터 ID")
-    label: Optional[str] = Field(None, description="사용자 지정 라벨 (None이면 AI 라벨 사용)")
-    color: Optional[str] = Field(None, description="사용자 지정 색상 (None이면 기본 색상 사용)")
-    keywords: Optional[list[str]] = Field(None, description="사용자 지정 키워드")
-
-
-class NoteClusterOverride(BaseModel):
-    """노트의 클러스터 수동 지정"""
-    notePath: str = Field(..., description="노트 파일 경로")
-    clusterId: int = Field(..., description="할당할 클러스터 ID")
-
-
-class SaveClusterSettingsPayload(BaseModel):
-    """클러스터 설정 저장 요청"""
-    customizations: list[ClusterCustomization] = Field(default_factory=list, description="클러스터별 커스텀 설정")
-    noteOverrides: list[NoteClusterOverride] = Field(default_factory=list, description="노트 클러스터 수동 지정")
-
-
-class ClusterSettingsResponse(BaseModel):
-    """클러스터 설정 응답"""
-    customizations: list[ClusterCustomization] = Field(default_factory=list, description="클러스터별 커스텀 설정")
-    noteOverrides: list[NoteClusterOverride] = Field(default_factory=list, description="노트 클러스터 수동 지정")
-
-
-class UpdateClusterPayload(BaseModel):
-    """단일 클러스터 업데이트"""
-    id: int = Field(..., description="클러스터 ID")
-    label: Optional[str] = Field(None, description="새 라벨")
-    color: Optional[str] = Field(None, description="새 색상")
-    keywords: Optional[list[str]] = Field(None, description="새 키워드")
-
-
-class MoveNoteToClusterPayload(BaseModel):
-    """노트를 다른 클러스터로 이동"""
-    notePath: str = Field(..., description="노트 파일 경로")
-    targetClusterId: int = Field(..., description="대상 클러스터 ID")
-
-
-class LockNoteClusterPayload(BaseModel):
-    """노트 클러스터 잠금/해제"""
-    notePath: str = Field(..., description="노트 파일 경로")
-    locked: bool = Field(..., description="잠금 여부")
-
-
-class CustomEdgePayload(BaseModel):
-    """사용자 정의 엣지 추가/삭제"""
-    source: str = Field(..., description="소스 노트 경로")
-    target: str = Field(..., description="타겟 노트 경로")
-    action: str = Field(..., description="add 또는 remove")
+class RelatedNoteItem(BaseModel):
+    """관련 노트 추천 항목"""
+    path: str = Field(..., description="노트 파일 경로")
+    title: str = Field(..., description="노트 제목")
+    similarity: float = Field(..., description="유사도 (0-1)")
+    clusterLabel: str = Field(default="", description="소속 클러스터 라벨")
+    color: str = Field(default="#888888", description="클러스터 색상")
+    preview: str = Field(default="", description="노트 미리보기 (처음 150자)")
