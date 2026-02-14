@@ -37,6 +37,39 @@
           class="badge"
         >{{ changesCount }}</span>
         <button
+          v-if="isCloned && stagedCount > 0"
+          class="action-btn ai-commit-btn"
+          :disabled="isGeneratingCommitMsg"
+          title="AI 커밋 메시지 생성"
+          @click.stop="handleGenerateCommitMsg"
+        >
+          <svg
+            v-if="isGeneratingCommitMsg"
+            class="spinning"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+          <svg
+            v-else
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path d="M9.5 2l1.2 3.6H14.5l-3 2.2 1.2 3.6-3-2.2-3 2.2 1.2-3.6-3-2.2h3.8z" />
+            <path d="M19 9l.8 2.4h2.5l-2 1.5.8 2.4-2-1.5-2 1.5.8-2.4-2-1.5h2.5z" />
+            <path d="M14.5 17l.6 1.8h1.9l-1.5 1.1.6 1.8-1.5-1.1-1.5 1.1.6-1.8-1.5-1.1h1.9z" />
+          </svg>
+        </button>
+        <button
           class="action-btn"
           :disabled="isPulling"
           title="Pull"
@@ -147,7 +180,6 @@
       <template v-else>
         <!-- 커밋 메시지 입력 -->
         <div class="commit-section">
-        <div class="commit-input-wrapper">
           <textarea
             v-model="commitMessage"
             class="commit-input"
@@ -155,37 +187,6 @@
             rows="3"
             :disabled="isPushing || stagedCount === 0"
           />
-          <button
-            class="ai-generate-btn"
-            :disabled="isGeneratingCommitMsg || stagedCount === 0"
-            title="AI 커밋 메시지 생성"
-            @click="handleGenerateCommitMsg"
-          >
-            <svg
-              v-if="isGeneratingCommitMsg"
-              class="spinning"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-            </svg>
-            <svg
-              v-else
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
-            </svg>
-          </button>
-        </div>
           
           <div class="commit-actions">
             <button 
@@ -706,41 +707,7 @@ watch(() => props.isGitHubMode, async (isActive) => {
   margin-bottom: 16px;
 }
 
-.commit-input-wrapper {
-  position: relative;
-}
-
-.ai-generate-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 1;
-}
-
-.ai-generate-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(203, 166, 247, 0.2), rgba(137, 180, 250, 0.2));
-  color: #cba6f7;
-}
-
-.ai-generate-btn:active:not(:disabled) {
-  transform: scale(0.9);
-}
-
-.ai-generate-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
+/* AI 커밋 메시지 버튼 (헤더) — action-btn 스타일 상속 */
 
 .commit-input {
   width: 100%;

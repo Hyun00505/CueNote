@@ -5,6 +5,7 @@
 import { ref, computed } from 'vue';
 import type { GraphNode, GraphEdge, ClusterInfo, GraphData, RelatedNote } from '../types';
 import { API_BASE_URL } from '../config/api';
+import { useSettings } from './useSettings';
 
 // 전역 상태
 const graphData = ref<GraphData | null>(null);
@@ -21,23 +22,24 @@ const minSimilarity = ref(0.1);
 const showOnlyCluster = ref<number | null | 'unclustered'>(null);
 
 export function useGraph() {
+  const { settings: llmSettings } = useSettings();
+
   // 그래프 데이터 로드
   async function loadGraphData() {
     isLoading.value = true;
     error.value = null;
     
     try {
-      // LLM 설정 가져오기
-      const settingsRes = await fetch(`${API_BASE_URL}/llm/settings`);
-      const settings = settingsRes.ok ? await settingsRes.json() : {};
+      // LLM 설정을 로컬 useSettings에서 읽기
+      const llm = llmSettings.value.llm;
       
       const response = await fetch(`${API_BASE_URL}/graph/data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          provider: settings.provider || 'ollama',
-          api_key: settings.api_key || '',
-          model: settings.model || '',
+          provider: llm.provider || 'ollama',
+          api_key: llm.apiKey || '',
+          model: llm.model || '',
           minSimilarity: minSimilarity.value,
           maxClusters: 8
         })

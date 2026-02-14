@@ -203,12 +203,28 @@ function startResize(e: MouseEvent) {
   const startW = panelWidth.value;
   const startH = panelHeight.value;
 
+  // 드래그된 상태라면 현재 위치를 기준으로 우하단 고정점 계산
+  const hasDraggedPos = panelX.value !== null && panelY.value !== null;
+  const startPanelX = panelX.value ?? 0;
+  const startPanelY = panelY.value ?? 0;
+  // 우하단 고정점 (리사이즈 시 이 점이 고정됨)
+  const anchorRight = startPanelX + startW;
+  const anchorBottom = startPanelY + startH;
+
   function onMove(ev: MouseEvent) {
     // 좌상단 핸들: 왼쪽으로 드래그 → 넓어짐, 위로 드래그 → 높아짐
     const dx = startX - ev.clientX;
     const dy = startY - ev.clientY;
-    panelWidth.value = Math.min(MAX_W, Math.max(MIN_W, startW + dx));
-    panelHeight.value = Math.min(MAX_H, Math.max(MIN_H, startH + dy));
+    const newW = Math.min(MAX_W, Math.max(MIN_W, startW + dx));
+    const newH = Math.min(MAX_H, Math.max(MIN_H, startH + dy));
+    panelWidth.value = newW;
+    panelHeight.value = newH;
+
+    // 드래그된 상태(left/top 사용)면 우하단 고정점 유지를 위해 위치 업데이트
+    if (hasDraggedPos) {
+      panelX.value = anchorRight - newW;
+      panelY.value = anchorBottom - newH;
+    }
   }
 
   function onUp() {

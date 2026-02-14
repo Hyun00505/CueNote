@@ -1364,13 +1364,22 @@ async function handlePaste(e: ClipboardEvent) {
   const items = e.clipboardData?.items;
   if (!items) return;
 
+  // 먼저 이미지가 있는지 확인
+  const imageFiles: File[] = [];
   for (const item of Array.from(items)) {
     if (item.type.startsWith('image/')) {
       const file = item.getAsFile();
       if (file) {
-        e.preventDefault(); // 기본 붙여넣기 방지
-        await handleImageUpload(file);
+        imageFiles.push(file);
       }
+    }
+  }
+
+  // 이미지가 있으면 기본 붙여넣기를 먼저 방지한 후 업로드
+  if (imageFiles.length > 0) {
+    e.preventDefault(); // 기본 붙여넣기 방지 (HTML/텍스트 삽입 차단)
+    for (const file of imageFiles) {
+      await handleImageUpload(file);
     }
   }
 }
@@ -1379,12 +1388,12 @@ async function handlePaste(e: ClipboardEvent) {
 async function handleImageUpload(file: File) {
   if (!editor.value) return;
 
-  // placeholder 삽입
-  const { state } = editor.value;
-  const { from } = state.selection;
+  // placeholder 이미지 노드 삽입 (Tiptap setImage 커맨드 사용)
   const id = `uploading-${Date.now()}`;
 
-  editor.value.chain().insertContent('![Uploading image...](' + id + ')').run();
+  // setImage를 사용하여 실제 이미지 노드로 placeholder 삽입
+  // 이렇게 하면 마크다운 텍스트가 삽입되지 않음
+  editor.value.chain().focus().setImage({ src: id, alt: 'Uploading image...' }).run();
 
   try {
     let imageUrl = '';
@@ -1433,44 +1442,48 @@ async function handleImageUpload(file: File) {
       imageUrl = `${CORE_BASE}/vault/image/${data.filename}`;
     }
 
-    // placeholder를 실제 이미지로 교체
-    // 단순히 텍스트 치환을 하면 다른 'uploading-...' 텍스트도 바뀔 수 있으므로 주의 필요
-    // 여기서는 간단히 전체 내용에서 치환 (더 정교하게 하려면 노드 위치를 추적해야 함)
-    const currentHtml = editor.value.getHTML();
-    // 이미지 마크다운을 HTML img 태그로 변환된 상태에서 src 치환은 아래와 같이 동작하지 않을 수 있음
-    // Tiptap에서는 이미지를 node로 관리하므로, transaction을 사용하는 것이 가장 좋음
+    // placeholder 이미지의 src를 실제 URL로 교체
+    // ProseMirror 문서를 순회하여 정확한 노드를 찾아 교체
+    const { doc, tr } = editor.value.state;
+    let replaced = false;
+    doc.descendants((node, pos) => {
+      if (replaced) return false;
+      if (node.type.name === 'image' && node.attrs.src === id) {
+        tr.setNodeMarkup(pos, undefined, {
+          ...node.attrs,
+          src: imageUrl,
+          alt: '',
+        });
+        replaced = true;
+        return false;
+      }
+    });
 
-    // 간단한 방법: 마크다운 텍스트 치환은 어려우므로, 이미지를 삽입하는 방식으로 변경
-    // 업로드 중 텍스트를 찾아서 교체 (이전 커서 위치 근처일 가능성 높음)
-
-    // 에디터 내용을 다시 설정하는 것은 위험하므로 (커서 위치 등), 
-    // undo/redo 스택을 사용하여 교체하거나, 
-    // 가장 쉬운 방법: 업로드 완료 후 커서 위치에 이미지 삽입 (placeholder 없이)
-
-    // 여기서는 placeholder를 사용했으므로, 해당 텍스트를 찾아서 교체 시도
-    let content = editor.value.getHTML();
-    // ![Uploading image...](id) -> <img src="id" alt="Uploading image...">
-    // Tiptap이 자동으로 변환했을 것임
-
-    // 이미지 태그의 src가 id인 것을 찾아서 실제 url로 변경
-    // DOM 조작이 필요할 수 있음
-
-    // Tiptap chain 명령어로 교체 시도 (전체 문서 갱신이 안전)
-    // 하지만 전체 갱신은 깜빡임이 있을 수 있음.
-
-    // 여기서는 간단히: 업로드 성공 시 해당 이미지 태그의 src를 수정
-    // HTML string replace
-    const newHtml = content.replace(`src="${id}"`, `src="${imageUrl}"`);
-    editor.value.commands.setContent(newHtml, { emitUpdate: false });
+    if (replaced) {
+      editor.value.view.dispatch(tr);
+    }
 
   } catch (error) {
     console.error('Image upload failed:', error);
     editorError.value = '이미지 업로드 실패';
 
-    // 실패 시 placeholder 제거
-    const content = editor.value.getHTML();
-    const newHtml = content.replace(new RegExp(`<img[^>]*src="${id}"[^>]*>`, 'g'), ''); // 이미지 태그 제거
-    editor.value.commands.setContent(newHtml, { emitUpdate: false });
+    // 실패 시 placeholder 이미지 노드 제거
+    if (editor.value) {
+      const { doc, tr } = editor.value.state;
+      let removed = false;
+      doc.descendants((node, pos) => {
+        if (removed) return false;
+        if (node.type.name === 'image' && node.attrs.src === id) {
+          tr.delete(pos, pos + node.nodeSize);
+          removed = true;
+          return false;
+        }
+      });
+
+      if (removed) {
+        editor.value.view.dispatch(tr);
+      }
+    }
   }
 }
 

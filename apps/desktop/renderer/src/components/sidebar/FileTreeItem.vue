@@ -50,7 +50,7 @@
         :value="editingFolderName"
         class="folder-name-edit-input"
         @input="onFolderEditInput"
-        @keydown.enter="emit('folder-rename-confirm')"
+        @keydown.enter="handleFolderRenameEnter"
         @keydown.escape="emit('folder-rename-cancel')"
         @blur="emit('folder-rename-confirm')"
         @click.stop
@@ -173,7 +173,7 @@
         :value="editingName"
         class="file-name-edit-input"
         @input="onEditInput"
-        @keydown.enter="emit('rename-confirm')"
+        @keydown.enter="handleFileRenameEnter"
         @keydown.escape="emit('rename-cancel')"
         @blur="emit('rename-confirm')"
         @click.stop
@@ -455,6 +455,12 @@ function onEditInput(event: Event) {
   emit('update-editing-name', target.value);
 }
 
+// 파일 이름 변경 Enter 키 핸들러 (IME 조합 중이면 무시)
+function handleFileRenameEnter(e: KeyboardEvent) {
+  if (e.isComposing) return;
+  emit('rename-confirm');
+}
+
 // 편집 시작 시 input에 포커스
 watch(() => props.editingFile, async (newVal) => {
   if (newVal === props.item.path) {
@@ -473,6 +479,12 @@ function startFolderRename() {
 function onFolderEditInput(event: Event) {
   const target = event.target as HTMLInputElement;
   emit('update-editing-folder-name', target.value);
+}
+
+// 폴더 이름 변경 Enter 키 핸들러 (IME 조합 중이면 무시)
+function handleFolderRenameEnter(e: KeyboardEvent) {
+  if (e.isComposing) return;
+  emit('folder-rename-confirm');
 }
 
 // 폴더 편집 시작 시 input에 포커스
