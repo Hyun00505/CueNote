@@ -54,8 +54,9 @@ async function startCoreServer() {
     return true;
   }
   
-  // 프로덕션 모드: 번들된 exe 실행
-  const coreExe = path.join(corePath, 'cuenote-core.exe');
+  // 프로덕션 모드: 번들된 바이너리 실행 (Windows: .exe, macOS: 확장자 없음)
+  const coreExeName = process.platform === 'win32' ? 'cuenote-core.exe' : 'cuenote-core';
+  const coreExe = path.join(corePath, coreExeName);
   
   if (!fs.existsSync(coreExe)) {
     console.error('Core executable not found:', coreExe);
@@ -68,7 +69,7 @@ async function startCoreServer() {
     coreProcess = spawn(coreExe, [], {
       cwd: corePath,
       stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true
+      windowsHide: process.platform === 'win32'
     });
     
     coreProcess.stdout.on('data', (data) => {
@@ -217,13 +218,33 @@ app.whenReady().then(async () => {
 
   // IPC 핸들러 등록
   ipcMain.handle('cuenote:select-vault', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory']
-    });
-    if (result.canceled) {
+    try {
+      console.log('[IPC] cuenote:select-vault called');
+
+      // mainWindow가 null이거나 destroyed된 경우 체크
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        console.error('[IPC] mainWindow is not available');
+        return null;
+      }
+
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Git 저장소 폴더 선택',
+        buttonLabel: '선택',
+        // Mac에서 더 나은 접근성을 위해
+        defaultPath: process.platform === 'darwin' ? process.env.HOME : undefined
+      });
+
+      console.log('[IPC] dialog result:', result);
+
+      if (result.canceled) {
+        return null;
+      }
+      return result.filePaths[0] || null;
+    } catch (error) {
+      console.error('[IPC] Error in select-vault:', error);
       return null;
     }
-    return result.filePaths[0] || null;
   });
 
   // 외부 링크 열기

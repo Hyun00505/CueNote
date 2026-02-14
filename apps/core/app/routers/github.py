@@ -15,11 +15,31 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from ..config import logger
+from ..config import logger, IS_FROZEN
 
 router = APIRouter(prefix="/github", tags=["github"])
 
 GITHUB_API_BASE = "https://api.github.com"
+
+
+def _get_augmented_env() -> dict:
+    """macOS 번들 앱에서 git을 찾을 수 있도록 PATH를 보강한 환경 반환"""
+    env = os.environ.copy()
+    if sys.platform == "darwin" and IS_FROZEN:
+        extra_paths = [
+            "/usr/local/bin",
+            "/opt/homebrew/bin",
+            str(Path.home() / ".nvm" / "current" / "bin"),
+            str(Path.home() / ".volta" / "bin"),
+            "/opt/local/bin",
+        ]
+        current_path = env.get("PATH", "")
+        for p in extra_paths:
+            if p not in current_path and Path(p).exists():
+                current_path = p + ":" + current_path
+        env["PATH"] = current_path
+    return env
+
 
 # Git 클론 저장 경로 (앱 데이터 폴더)
 def get_git_repos_dir() -> Path:
@@ -48,13 +68,15 @@ def get_repo_local_path(owner: str, repo: str) -> Path:
 
 
 def check_git_installed() -> bool:
-    """Git 설치 여부 확인"""
+    """Git 설치 여부 확인 (macOS 번들 앱에서도 작동)"""
     try:
+        env = _get_augmented_env()
         result = subprocess.run(
             ['git', '--version'],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -62,9 +84,9 @@ def check_git_installed() -> bool:
 
 
 def run_git_command(args: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[bool, str, str]:
-    """Git 명령 실행"""
+    """Git 명령 실행 (macOS 번들 앱에서도 작동)"""
     try:
-        full_env = os.environ.copy()
+        full_env = _get_augmented_env()
         if env:
             full_env.update(env)
         
@@ -149,6 +171,17 @@ class CommitPayload(BaseModel):
     repo: str
     message: str
     files: Optional[list[str]] = None  # 선택된 파일 목록 (None이면 전체)
+
+
+class GenerateCommitMsgPayload(BaseModel):
+    """AI 커밋 메시지 생성 요청"""
+    token: str
+    owner: str
+    repo: str
+    files: list[str]  # staged 파일 목록
+    provider: str = "ollama"
+    api_key: str = ""
+    model: str = ""
 
 
 class DeleteFilePayload(BaseModel):
@@ -320,26 +353,16 @@ async def clone_repo(payload: CloneRepoPayload):
             args.extend(['--branch', payload.branch])
         args.extend([clone_url, str(repo_path)])
         
+        # run_git_command는 이미 augmented PATH를 사용
         success, stdout, stderr = run_git_command(
-            args[1:],  # 'clone' is added by run_git_command
+            args,
             cwd=get_git_repos_dir(),
             env={'GIT_TERMINAL_PROMPT': '0'}
         )
         
-        # clone은 git 명령어에 이미 포함되어야 함
-        result = subprocess.run(
-            ['git'] + args,
-            cwd=str(get_git_repos_dir()),
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=300,  # 5분 타임아웃
-            env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
-        )
-        
-        if result.returncode != 0:
-            logger.error("Clone failed: %s", result.stderr)
-            raise HTTPException(status_code=500, detail=f"클론 실패: {result.stderr}")
+        if not success:
+            logger.error("Clone failed: %s", stderr)
+            raise HTTPException(status_code=500, detail=f"클론 실패: {stderr}")
         
         # 파일 목록 가져오기
         files = get_local_md_files(repo_path)
@@ -1324,3 +1347,114 @@ async def get_github_image(owner: str, repo: str, file_path: str):
     media_type = mime_types.get(ext, 'application/octet-stream')
     
     return FileResponse(full_path, media_type=media_type)
+
+
+@router.post("/generate-commit-message")
+async def generate_commit_message(payload: GenerateCommitMsgPayload):
+    """AI를 사용하여 변경사항 기반 커밋 메시지 자동 생성"""
+    repo_path = get_repo_local_path(payload.owner, payload.repo)
+    
+    if not repo_path.exists():
+        raise HTTPException(status_code=404, detail="클론된 리포지토리가 없습니다")
+    
+    if not payload.files:
+        raise HTTPException(status_code=400, detail="커밋할 파일을 선택해주세요")
+    
+    try:
+        # 각 파일의 diff 수집
+        diffs = []
+        for file_path in payload.files:
+            full_file = repo_path / file_path
+            
+            # 새 파일 (untracked)
+            if not _is_tracked(repo_path, file_path):
+                # 새 파일 내용 미리보기
+                if full_file.exists() and full_file.suffix.lower() == '.md':
+                    try:
+                        content = full_file.read_text(encoding='utf-8')[:500]
+                        diffs.append(f"[새 파일] {file_path}:\n{content}")
+                    except Exception:
+                        diffs.append(f"[새 파일] {file_path}")
+                else:
+                    diffs.append(f"[새 파일] {file_path}")
+                continue
+            
+            # 삭제된 파일
+            if not full_file.exists():
+                diffs.append(f"[삭제됨] {file_path}")
+                continue
+            
+            # 수정된 파일: git diff
+            success, stdout, stderr = run_git_command(
+                ['-c', 'core.quotePath=false', 'diff', 'HEAD', '--', file_path],
+                cwd=repo_path
+            )
+            if success and stdout.strip():
+                # diff가 너무 길면 잘라냄
+                diff_text = stdout[:1500] if len(stdout) > 1500 else stdout
+                diffs.append(f"[수정됨] {file_path}:\n{diff_text}")
+            else:
+                diffs.append(f"[수정됨] {file_path}")
+        
+        if not diffs:
+            return {"message": "변경사항 없음"}
+        
+        # LLM으로 커밋 메시지 생성
+        from .chatbot import call_llm_text
+        
+        diff_summary = "\n\n---\n\n".join(diffs)
+        # diff가 너무 크면 잘라냄
+        if len(diff_summary) > 4000:
+            diff_summary = diff_summary[:4000] + "\n... (이하 생략)"
+        
+        prompt = f"""당신은 Git 커밋 메시지를 작성하는 전문가입니다.
+아래는 노트 앱의 변경사항(diff)입니다. 이 변경사항을 분석하여 간결하고 명확한 커밋 메시지를 한국어로 작성해주세요.
+
+## 규칙:
+1. 어떤 노트가 수정/추가/삭제되었는지 요약
+2. 주요 내용 변경사항을 간결하게 설명
+3. 커밋 메시지만 출력 (다른 설명 없이)
+4. 한 줄 제목 + 빈 줄 + 상세 설명 형식
+5. 제목은 50자 이내
+6. 파일 확장자(.md)는 제외하고 노트 이름만 사용
+
+## 변경사항:
+{diff_summary}
+
+커밋 메시지:"""
+        
+        commit_msg = call_llm_text(
+            prompt,
+            payload.provider,
+            payload.api_key,
+            payload.model
+        )
+        
+        # 불필요한 마크다운 코드블록 제거
+        commit_msg = commit_msg.strip()
+        if commit_msg.startswith('```'):
+            lines = commit_msg.split('\n')
+            # 첫 줄과 마지막 줄의 ``` 제거
+            if lines[0].startswith('```'):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == '```':
+                lines = lines[:-1]
+            commit_msg = '\n'.join(lines).strip()
+        
+        return {
+            "success": True,
+            "message": commit_msg
+        }
+        
+    except Exception as e:
+        logger.error("Failed to generate commit message: %s", e)
+        raise HTTPException(status_code=500, detail=f"커밋 메시지 생성 실패: {str(e)}")
+
+
+def _is_tracked(repo_path: Path, file_path: str) -> bool:
+    """파일이 git에서 추적되고 있는지 확인"""
+    success, stdout, stderr = run_git_command(
+        ['ls-files', '--error-unmatch', file_path],
+        cwd=repo_path
+    )
+    return success

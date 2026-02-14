@@ -100,9 +100,9 @@
         type="text"
         class="file-name-input"
         placeholder="폴더 이름"
-        @keydown.enter="confirmCreateGitHubFolder"
+        @keydown.enter="handleGitHubFolderEnter"
         @keydown.escape="cancelGitHubFolderInput"
-        @blur="cancelGitHubFolderInput"
+        @blur="confirmCreateGitHubFolder"
       >
     </div>
 
@@ -129,9 +129,9 @@
         type="text"
         class="file-name-input"
         placeholder="파일이름.md"
-        @keydown.enter="confirmCreateGitHubFile"
+        @keydown.enter="handleGitHubFileEnter"
         @keydown.escape="cancelGitHubFileInput"
-        @blur="cancelGitHubFileInput"
+        @blur="confirmCreateGitHubFile"
       >
     </div>
 
@@ -289,7 +289,7 @@
         type="text"
         class="file-name-input"
         placeholder="폴더 이름 입력..."
-        @keydown.enter="handleCreateFolder"
+        @keydown.enter="handleLocalFolderEnter"
         @keydown.escape="cancelCreateFolder"
         @blur="handleCreateFolder"
       >
@@ -318,7 +318,7 @@
         type="text"
         class="file-name-input"
         placeholder="노트 이름 입력..."
-        @keydown.enter="handleCreateFile"
+        @keydown.enter="handleLocalFileEnter"
         @keydown.escape="cancelCreate"
         @blur="handleCreateFile"
       >
@@ -616,6 +616,18 @@ function startCreateFileIn(folderPath: string) {
   startCreateFile(folderPath);
 }
 
+// 로컬 파일 Enter 키 핸들러 (IME 조합 중이면 무시)
+function handleLocalFileEnter(e: KeyboardEvent) {
+  if (e.isComposing) return;
+  handleCreateFile();
+}
+
+// 로컬 폴더 Enter 키 핸들러 (IME 조합 중이면 무시)
+function handleLocalFolderEnter(e: KeyboardEvent) {
+  if (e.isComposing) return;
+  handleCreateFolder();
+}
+
 // 파일 생성 확정
 async function handleCreateFile() {
   const name = newFileName.value.trim();
@@ -708,8 +720,15 @@ async function startCreateGitHubFile() {
   githubFileInputRef.value?.focus();
 }
 
+// GitHub 파일 Enter 키 핸들러 (IME 조합 중이면 무시)
+function handleGitHubFileEnter(e: KeyboardEvent) {
+  if (e.isComposing) return; // 한글 등 IME 조합 중이면 무시
+  confirmCreateGitHubFile();
+}
+
 // GitHub 파일 생성 확정
 function confirmCreateGitHubFile() {
+  if (!isGitHubFileInputMode.value) return; // 중복 호출 방지
   const name = newGitHubFileName.value.trim();
   if (!name) {
     isGitHubFileInputMode.value = false;
@@ -737,8 +756,15 @@ async function startCreateGitHubFolder() {
   githubFolderInputRef.value?.focus();
 }
 
+// GitHub 폴더 Enter 키 핸들러 (IME 조합 중이면 무시)
+function handleGitHubFolderEnter(e: KeyboardEvent) {
+  if (e.isComposing) return; // 한글 등 IME 조합 중이면 무시
+  confirmCreateGitHubFolder();
+}
+
 // GitHub 폴더 생성 확정
 function confirmCreateGitHubFolder() {
+  if (!isGitHubFolderInputMode.value) return; // 중복 호출 방지
   const name = newGitHubFolderName.value.trim();
   if (!name) {
     isGitHubFolderInputMode.value = false;

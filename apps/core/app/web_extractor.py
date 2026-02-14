@@ -7,15 +7,26 @@ from urllib.parse import urljoin, urlparse
 from typing import Optional
 
 import httpx
-import trafilatura
-from trafilatura.settings import use_config
+
+try:
+    import trafilatura
+    from trafilatura.settings import use_config
+    _traf_available = True
+except ImportError as e:
+    trafilatura = None  # type: ignore
+    _traf_available = False
+    logger = __import__('logging').getLogger("cuenote.core")
+    logger.warning("trafilatura not available: %s", e)
 
 from .config import logger
 
 # trafilatura 설정
-_traf_config = use_config()
-_traf_config.set("DEFAULT", "MIN_OUTPUT_SIZE", "200")
-_traf_config.set("DEFAULT", "MIN_EXTRACTED_SIZE", "100")
+if _traf_available:
+    _traf_config = use_config()
+    _traf_config.set("DEFAULT", "MIN_OUTPUT_SIZE", "200")
+    _traf_config.set("DEFAULT", "MIN_EXTRACTED_SIZE", "100")
+else:
+    _traf_config = None
 
 
 async def fetch_url(url: str, timeout: float = 15.0) -> str:
@@ -77,6 +88,11 @@ def extract_content(html: str, url: str) -> dict:
         }
     """
     # trafilatura로 본문 추출
+    if not _traf_available or trafilatura is None:
+        logger.warning("trafilatura not available, returning basic extraction")
+        title = _extract_title(html)
+        return {"title": title, "text": "(trafilatura 모듈 로드 실패로 본문 추출 불가)", "images": []}
+
     text = trafilatura.extract(
         html,
         include_images=True,

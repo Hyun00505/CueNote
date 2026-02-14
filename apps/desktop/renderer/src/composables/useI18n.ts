@@ -181,6 +181,11 @@ type TranslationKeys = {
   'calendar.noSchedulesToday': string;
   'calendar.schedulesCount': string;
   'calendar.allDay': string;
+  'calendar.quickAdd': string;
+  'calendar.nextUp': string;
+  'calendar.allDoneToday': string;
+  'calendar.nMore': string;
+  'calendar.markComplete': string;
 
   // Days short
   'days.sunShort': string;
@@ -228,6 +233,16 @@ type TranslationKeys = {
   'ai.selectedText': string;
   'ai.noSelectionHint': string;
   'ai.enterPrompt': string;
+  'ai.searchPlaceholder': string;
+  'ai.descProofread': string;
+  'ai.descImprove': string;
+  'ai.descExpand': string;
+  'ai.descShorten': string;
+  'ai.descSummarize': string;
+  'ai.descTranslate': string;
+  'ai.descProfessional': string;
+  'ai.descCasual': string;
+  'ai.descAcademic': string;
 
   // Proofread Panel
   'proofread.title': string;
@@ -498,6 +513,11 @@ const ko: TranslationKeys = {
   'calendar.noSchedulesToday': '오늘 일정이 없습니다',
   'calendar.schedulesCount': '개의 일정',
   'calendar.allDay': '종일',
+  'calendar.quickAdd': '일정 입력...',
+  'calendar.nextUp': '다음 일정',
+  'calendar.allDoneToday': '오늘 일정을 모두 완료했어요!',
+  'calendar.nMore': '더보기',
+  'calendar.markComplete': '완료',
 
   // Days short
   'days.sunShort': '일',
@@ -545,6 +565,16 @@ const ko: TranslationKeys = {
   'ai.selectedText': '선택된 텍스트',
   'ai.noSelectionHint': '텍스트를 선택하지 않으면 새 글을 생성합니다',
   'ai.enterPrompt': '요청 내용을 입력해주세요',
+  'ai.searchPlaceholder': '기능 검색...',
+  'ai.descProofread': '한국어/영어 맞춤법과 문법을 검사합니다',
+  'ai.descImprove': '문장을 더 자연스럽고 읽기 좋게 다듬습니다',
+  'ai.descExpand': '선택한 텍스트를 더 상세하게 확장합니다',
+  'ai.descShorten': '핵심만 남기고 텍스트를 줄입니다',
+  'ai.descSummarize': '긴 텍스트를 핵심 요약으로 변환합니다',
+  'ai.descTranslate': '선택한 언어로 텍스트를 번역합니다',
+  'ai.descProfessional': '비즈니스에 적합한 격식체로 변환합니다',
+  'ai.descCasual': '친근하고 편안한 말투로 변환합니다',
+  'ai.descAcademic': '논문이나 리포트에 적합한 문체로 변환합니다',
 
   // Proofread Panel
   'proofread.title': '맞춤법 검사',
@@ -814,6 +844,11 @@ const en: TranslationKeys = {
   'calendar.noSchedulesToday': 'No schedules today',
   'calendar.schedulesCount': ' schedules',
   'calendar.allDay': 'All day',
+  'calendar.quickAdd': 'Enter schedule...',
+  'calendar.nextUp': 'Next Up',
+  'calendar.allDoneToday': 'All done for today!',
+  'calendar.nMore': 'more',
+  'calendar.markComplete': 'Complete',
 
   // Days short
   'days.sunShort': 'Sun',
@@ -861,6 +896,16 @@ const en: TranslationKeys = {
   'ai.selectedText': 'Selected Text',
   'ai.noSelectionHint': 'No selection - will generate new text',
   'ai.enterPrompt': 'Please enter your request',
+  'ai.searchPlaceholder': 'Search actions...',
+  'ai.descProofread': 'Check spelling and grammar for Korean/English',
+  'ai.descImprove': 'Polish and refine your writing',
+  'ai.descExpand': 'Expand the selected text with more detail',
+  'ai.descShorten': 'Condense text while keeping the key points',
+  'ai.descSummarize': 'Convert long text into a concise summary',
+  'ai.descTranslate': 'Translate text to the selected language',
+  'ai.descProfessional': 'Convert to formal business tone',
+  'ai.descCasual': 'Convert to friendly, casual tone',
+  'ai.descAcademic': 'Convert to academic writing style',
 
   // Proofread Panel
   'proofread.title': 'Spell Check',

@@ -1,43 +1,24 @@
 {
   "environments": [
     {
-      "id": "cea4bd6c57c6",
+      "id": "8c26b1d73977",
       "name": "기본 노트",
-      "path": "C:\\Users\\SSAFY\\Desktop\\git\\CueNote\\data",
+      "path": "/Users/kimhyunbin/Desktop/github_bunhine0452/CueNote/data",
       "type": "local",
       "github": null
     },
     {
-      "id": "bcc9fdef4aa1",
-      "name": "문서",
-      "path": "C:\\Users\\SSAFY\\Desktop\\문서",
-      "type": "local",
-      "github": null
-    },
-    {
-      "id": "3a73399f6668",
-      "name": "CueNoteConnection",
-      "path": "github://Hyun00505/CueNoteConnection",
+      "id": "7b0604c142f9",
+      "name": "Notes",
+      "path": "github://bunhine0452/Notes",
       "type": "github",
       "github": {
-        "owner": "Hyun00505",
-        "repo": "CueNoteConnection",
-        "full_name": "Hyun00505/CueNoteConnection",
-        "private": true
-      }
-    },
-    {
-      "id": "b08aa513e557",
-      "name": "TIL_2026",
-      "path": "github://Hyun00505/TIL_2026",
-      "type": "github",
-      "github": {
-        "owner": "Hyun00505",
-        "repo": "TIL_2026",
-        "full_name": "Hyun00505/TIL_2026",
+        "owner": "bunhine0452",
+        "repo": "Notes",
+        "full_name": "bunhine0452/Notes",
         "private": true
       }
     }
   ],
-  "current_id": "3a73399f6668"
+  "current_id": "7b0604c142f9"
 }

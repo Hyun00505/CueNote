@@ -1,5 +1,5 @@
 export { useVault } from './useVault';
-export { useEditor } from './useEditor';
+export { useEditor, getActiveNoteInfo } from './useEditor';
 export { usePlan } from './usePlan';
 export { useHealth } from './useHealth';
 export { useSettings, type LLMProvider, type LLMModel, type AppSettings } from './useSettings';
@@ -10,3 +10,4 @@ export { useFonts } from './useFonts';
 export { useShortcuts, formatShortcut } from './useShortcuts';
 export { useGraph } from './useGraph';
 export { useGitHub } from './useGitHub';
+export { useChatbot } from './useChatbot';

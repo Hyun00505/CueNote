@@ -37,6 +37,39 @@
           class="badge"
         >{{ changesCount }}</span>
         <button
+          v-if="isCloned && stagedCount > 0"
+          class="action-btn ai-commit-btn"
+          :disabled="isGeneratingCommitMsg"
+          title="AI 커밋 메시지 생성"
+          @click.stop="handleGenerateCommitMsg"
+        >
+          <svg
+            v-if="isGeneratingCommitMsg"
+            class="spinning"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+          <svg
+            v-else
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path d="M9.5 2l1.2 3.6H14.5l-3 2.2 1.2 3.6-3-2.2-3 2.2 1.2-3.6-3-2.2h3.8z" />
+            <path d="M19 9l.8 2.4h2.5l-2 1.5.8 2.4-2-1.5-2 1.5.8-2.4-2-1.5h2.5z" />
+            <path d="M14.5 17l.6 1.8h1.9l-1.5 1.1.6 1.8-1.5-1.1-1.5 1.1.6-1.8-1.5-1.1h1.9z" />
+          </svg>
+        </button>
+        <button
           class="action-btn"
           :disabled="isPulling"
           title="Pull"
@@ -341,6 +374,7 @@
 import { ref, computed, watch } from 'vue';
 import { useGitHub } from '../../composables/useGitHub';
 import { useI18n } from '../../composables';
+import { useSettings } from '../../composables/useSettings';
 
 const props = defineProps<{
   isGitHubMode: boolean;
@@ -370,10 +404,14 @@ const {
   toggleStageFile,
   stageAll,
   unstageAll,
-  isFileStaged
+  isFileStaged,
+  // AI
+  isGeneratingCommitMsg,
+  generateCommitMessage
 } = useGitHub();
 
 const { t } = useI18n();
+const { settings } = useSettings();
 
 const isExpanded = ref(true);
 const commitMessage = ref('');
@@ -464,6 +502,19 @@ async function handlePush() {
   if (success) {
     commitMessage.value = '';
     emit('commit-success');
+  }
+}
+
+async function handleGenerateCommitMsg() {
+  if (stagedCount.value === 0 || isGeneratingCommitMsg.value) return;
+  
+  const provider = settings.value.llm.provider;
+  const apiKey = settings.value.llm.apiKey || settings.value.llm.apiKeys?.[provider as keyof typeof settings.value.llm.apiKeys] || '';
+  const model = settings.value.llm.model;
+  
+  const msg = await generateCommitMessage(provider, apiKey, model);
+  if (msg) {
+    commitMessage.value = msg;
   }
 }
 
@@ -655,6 +706,8 @@ watch(() => props.isGitHubMode, async (isActive) => {
 .commit-section {
   margin-bottom: 16px;
 }
+
+/* AI 커밋 메시지 버튼 (헤더) — action-btn 스타일 상속 */
 
 .commit-input {
   width: 100%;

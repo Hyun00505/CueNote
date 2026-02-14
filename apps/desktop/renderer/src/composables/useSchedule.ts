@@ -10,6 +10,7 @@ const scheduleCounts = ref<ScheduleCountByDate[]>([]);
 const selectedDate = ref<string>('');
 const loading = ref(false);
 const error = ref<string | null>(null);
+const todaySchedules = ref<ScheduleItem[]>([]);
 
 // 여러 달 표시를 위한 상태
 const visibleMonthsCount = ref(6); // 표시할 달 수
@@ -340,12 +341,39 @@ export function useSchedule() {
     return [];
   }
 
+  // 오늘 일정 조회
+  async function fetchTodaySchedules() {
+    const todayStr = formatDate(new Date());
+    try {
+      const res = await fetch(`${API_BASE}/schedules?date=${todayStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        todaySchedules.value = data.schedules || [];
+      }
+    } catch (e) {
+      console.error('오늘 일정 조회 실패:', e);
+    }
+  }
+
+  // 빠른 일정 생성 (제목 + 날짜만)
+  async function quickCreateSchedule(title: string, date: string, startTime: string = '', endTime: string = '') {
+    return createSchedule({
+      title,
+      description: '',
+      date,
+      startTime,
+      endTime,
+      color: '#c9a76c',
+    });
+  }
+
   // 초기화
   function init() {
     const todayStr = formatDate(today);
     selectedDate.value = todayStr;
     fetchAllVisibleCounts();
     fetchSchedulesByDate(todayStr);
+    fetchTodaySchedules();
   }
 
   return {
@@ -360,6 +388,7 @@ export function useSchedule() {
     visibleMonthsCount,
     startMonthOffset,
     rangeSchedules,
+    todaySchedules,
     
     // 액션
     goToToday,
@@ -368,6 +397,8 @@ export function useSchedule() {
     fetchAllVisibleCounts,
     fetchSchedulesByDate,
     fetchSchedulesByDateRange,
+    fetchTodaySchedules,
+    quickCreateSchedule,
     createSchedule,
     updateSchedule,
     deleteSchedule,

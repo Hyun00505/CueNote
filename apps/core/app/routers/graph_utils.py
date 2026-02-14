@@ -9,12 +9,12 @@ import sys
 from typing import Optional
 from pathlib import Path
 
-from ..config import logger, PROJECT_ROOT
+from ..config import logger, DATA_DIR, VAULT_PATH
 from .graph_cache import GraphCache
 
 # 환경 설정 파일 경로 (vault.py와 동일)
-ENV_CONFIG_PATH = PROJECT_ROOT / "apps" / "core" / "data" / "environments.json"
-DEFAULT_VAULT_PATH = PROJECT_ROOT / "data"
+ENV_CONFIG_PATH = DATA_DIR / "environments.json"
+DEFAULT_VAULT_PATH = VAULT_PATH
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -305,3 +305,51 @@ JSON만 출력하세요:"""
             generated_count += 1
     
     return labels, cached_count, generated_count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 노트 미리보기 & 검색
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_note_preview(content: str, max_length: int = 150) -> str:
+    """노트 내용에서 미리보기 텍스트 추출"""
+    # 마크다운 문법 제거
+    text = re.sub(r'^#+\s+', '', content, flags=re.MULTILINE)  # 헤딩
+    text = re.sub(r'!\[.*?\]\(.*?\)', '', text)  # 이미지
+    text = re.sub(r'\[([^\]]+)\]\(.*?\)', r'\1', text)  # 링크
+    text = re.sub(r'[*_~`>]', '', text)  # 강조/인용 등
+    text = re.sub(r'\n{2,}', '\n', text)  # 빈 줄 정리
+    text = text.strip()
+    
+    if len(text) > max_length:
+        return text[:max_length].rsplit(' ', 1)[0] + '…'
+    return text
+
+
+def search_notes_in_graph(notes: list[dict], query: str) -> list[dict]:
+    """노트 목록에서 제목/내용으로 검색"""
+    if not query or not query.strip():
+        return notes
+    
+    query_lower = query.lower().strip()
+    results = []
+    
+    for note in notes:
+        title = note.get("title", "").lower()
+        content = note.get("content", "").lower()
+        path = note.get("path", "").lower()
+        
+        # 매칭 점수 계산
+        score = 0
+        if query_lower in title:
+            score += 3  # 제목 매칭 높은 점수
+        if query_lower in path:
+            score += 2  # 경로 매칭
+        if query_lower in content:
+            score += 1  # 내용 매칭
+        
+        if score > 0:
+            results.append({**note, "_score": score})
+    
+    results.sort(key=lambda x: x["_score"], reverse=True)
+    return results

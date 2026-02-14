@@ -47,11 +47,25 @@ def _row_to_schedule(row: tuple) -> dict:
 async def get_schedules(
     date: Optional[str] = Query(default=None, description="특정 날짜 (YYYY-MM-DD)"),
     month: Optional[str] = Query(default=None, description="월별 조회 (YYYY-MM)"),
+    start_date: Optional[str] = Query(default=None, description="시작 날짜 (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(default=None, description="끝 날짜 (YYYY-MM-DD)"),
 ):
     """일정 목록을 조회합니다."""
     conn = get_conn()
     try:
-        if date:
+        if start_date and end_date:
+            # 날짜 범위 조회 (주간/일간 뷰용)
+            rows = conn.execute(
+                """
+                SELECT id, title, description, date, start_time, end_time,
+                       color, completed, created_at, updated_at
+                FROM schedules
+                WHERE date BETWEEN ? AND ?
+                ORDER BY date ASC, start_time ASC, created_at ASC
+                """,
+                (start_date, end_date),
+            ).fetchall()
+        elif date:
             # 특정 날짜의 일정
             rows = conn.execute(
                 """

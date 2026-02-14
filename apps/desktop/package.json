@@ -1,6 +1,6 @@
 {
   "name": "cuenote",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI-Powered Local-First Markdown Note-Taking App",
   "author": "CueNote Team",
   "license": "MIT",
@@ -8,9 +8,10 @@
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
-    "build:renderer": "vite build",
+    "build:renderer": "vite build && cp renderer/preload.js dist/preload.js",
     "build:electron": "pnpm build:renderer && electron-builder --win",
     "build:all": "pnpm build:renderer && electron-builder --win",
+    "build:mac": "pnpm build:renderer && electron-builder --mac",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
@@ -62,7 +63,7 @@
   "build": {
     "appId": "com.cuenote.app",
     "productName": "CueNote",
-    "icon": "../../assets/icon.png",
+    "icon": "../../assets/icon.ico",
     "directories": {
       "output": "release"
     },
@@ -88,12 +89,13 @@
       }
     ],
     "win": {
-      "icon": "../../assets/icon.png",
+      "icon": "../../assets/icon.ico",
       "target": [
         {
           "target": "nsis",
           "arch": [
-            "x64"
+            "x64",
+            "ia32"
           ]
         }
       ]
@@ -102,9 +104,34 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
+      "installerIcon": "../../assets/icon.ico",
+      "uninstallerIcon": "../../assets/icon.ico",
+      "installerSidebar": "assets/installer-sidebar.bmp",
+      "include": "assets/installer.nsh",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "CueNote"
+      "shortcutName": "CueNote",
+      "uninstallDisplayName": "CueNote",
+      "artifactName": "CueNote-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "icon": "../../assets/icon.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ],
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "CueNote",
+      "artifactName": "CueNote-Setup-${version}.${ext}"
     }
   }
 }

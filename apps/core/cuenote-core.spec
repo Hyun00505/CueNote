@@ -12,11 +12,25 @@ block_cipher = None
 # 현재 디렉토리
 CORE_DIR = Path(SPECPATH)
 
-# 데이터 파일 (DB, 설정 등)
+# certifi CA 번들 + 패키지 데이터 파일 수집
+import certifi
+from PyInstaller.utils.hooks import collect_data_files, collect_all
+
+# 데이터 파일
 datas = [
-    # data 폴더 포함
-    (str(CORE_DIR / 'data'), 'data'),
+    # certifi CA 번들
+    (certifi.where(), 'certifi'),
 ]
+# trafilatura/tld/justext/dateparser 패키지 데이터 수집
+datas += collect_data_files('trafilatura')
+datas += collect_data_files('tld')
+datas += collect_data_files('justext')
+datas += collect_data_files('dateparser')
+
+# sklearn은 C 확장 + 데이터 파일이 많아 collect_all 필요
+sklearn_datas, sklearn_binaries, sklearn_hiddenimports = collect_all('sklearn')
+scipy_datas, scipy_binaries, scipy_hiddenimports = collect_all('scipy')
+datas += sklearn_datas + scipy_datas
 
 # 숨겨진 imports (동적으로 임포트되는 모듈들)
 hiddenimports = [
@@ -152,13 +166,46 @@ hiddenimports = [
     'email.mime.base',
     'typing_extensions',
     'annotated_types',
+
+    # Web Extraction (URL 추출)
+    'trafilatura',
+    'trafilatura.settings',
+    'trafilatura.core',
+    'trafilatura.utils',
+    'trafilatura.metadata',
+    'trafilatura.external',
+    'courlan',
+    'htmldate',
+    'justext',
+    'lxml',
+    'lxml.html',
+    'lxml.etree',
+    'tld',
+    'charset_normalizer',
+    'certifi',
+    'urllib3',
+
+    # Graph / Clustering (그래프 페이지)
+    'sklearn',
+    'sklearn.feature_extraction',
+    'sklearn.feature_extraction.text',
+    'sklearn.metrics',
+    'sklearn.metrics.pairwise',
+    'sklearn.cluster',
+    'sklearn.utils',
+    'sklearn.utils._cython_blas',
+    'sklearn.neighbors',
+    'sklearn.neighbors._typedefs',
+    'sklearn.neighbors._partition_nodes',
+    'sklearn.tree',
+    'sklearn.tree._utils',
+    'threadpoolctl',
 ]
 
 # 제외할 모듈 (용량 줄이기)
 excludes = [
     'tkinter',
     'matplotlib',
-    'scipy',
     'numpy.distutils',
     'test',
     'tests',
@@ -167,15 +214,13 @@ excludes = [
 a = Analysis(
     ['main.py'],
     pathex=[str(CORE_DIR)],
-    binaries=[],
+    binaries=sklearn_binaries + scipy_binaries,
     datas=datas,
-    hiddenimports=hiddenimports,
+    hiddenimports=hiddenimports + sklearn_hiddenimports + scipy_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=excludes,
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
@@ -192,7 +237,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,  # 콘솔 창 표시 (디버깅용, 배포 시 False로)
+    console=False,  # 배포용: 콘솔 창 숨김
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

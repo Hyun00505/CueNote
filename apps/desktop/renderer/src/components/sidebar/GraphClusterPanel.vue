@@ -10,75 +10,19 @@
           stroke="currentColor"
           stroke-width="2"
         >
-          <circle
-            cx="12"
-            cy="12"
-            r="3"
-          />
-          <circle
-            cx="4"
-            cy="8"
-            r="2"
-          />
-          <circle
-            cx="20"
-            cy="8"
-            r="2"
-          />
-          <circle
-            cx="4"
-            cy="16"
-            r="2"
-          />
-          <circle
-            cx="20"
-            cy="16"
-            r="2"
-          />
-          <line
-            x1="6"
-            y1="8"
-            x2="9"
-            y2="10"
-          />
-          <line
-            x1="18"
-            y1="8"
-            x2="15"
-            y2="10"
-          />
-          <line
-            x1="6"
-            y1="16"
-            x2="9"
-            y2="14"
-          />
-          <line
-            x1="18"
-            y1="16"
-            x2="15"
-            y2="14"
-          />
+          <circle cx="12" cy="12" r="3" />
+          <circle cx="4" cy="8" r="2" />
+          <circle cx="20" cy="8" r="2" />
+          <circle cx="4" cy="16" r="2" />
+          <circle cx="20" cy="16" r="2" />
+          <line x1="6" y1="8" x2="9" y2="10" />
+          <line x1="18" y1="8" x2="15" y2="10" />
+          <line x1="6" y1="16" x2="9" y2="14" />
+          <line x1="18" y1="16" x2="15" y2="14" />
         </svg>
         <span>AI 클러스터</span>
       </div>
       <div class="cluster-header-actions">
-        <button 
-          class="add-cluster-btn"
-          title="새 클러스터 추가"
-          @click="emit('create-cluster')"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
         <button 
           class="refresh-graph-btn"
           :disabled="isLoading"
@@ -98,6 +42,30 @@
           </svg>
         </button>
       </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="graph-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input 
+        v-model="localSearchQuery"
+        type="text"
+        placeholder="노트 검색..."
+        @input="handleSearch"
+      />
+      <button 
+        v-if="localSearchQuery"
+        class="search-clear"
+        @click="clearSearch"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
     </div>
 
     <!-- 그래프 통계 -->
@@ -131,49 +99,28 @@
         <span class="cluster-count">{{ stats?.totalNotes || 0 }}</span>
       </button>
       
-      <div
+      <button
         v-for="cluster in clusters"
         :key="cluster.id"
-        class="cluster-item-wrapper"
+        class="cluster-item"
+        :class="{ active: selectedClusterId === cluster.id }"
+        @click="emit('filter-cluster', cluster.id)"
       >
-        <button
-          class="cluster-item"
-          :class="{ active: selectedClusterId === cluster.id }"
-          @click="emit('filter-cluster', cluster.id)"
-        >
+        <span
+          class="cluster-dot"
+          :style="{ background: cluster.color }"
+        />
+        <div class="cluster-info">
+          <span class="cluster-name">{{ cluster.label }}</span>
           <span
-            class="cluster-dot"
-            :style="{ background: cluster.color }"
-          />
-          <div class="cluster-info">
-            <span class="cluster-name">{{ cluster.label }}</span>
-            <span
-              v-if="cluster.keywords.length"
-              class="cluster-keywords"
-            >
-              {{ cluster.keywords.slice(0, 3).join(' · ') }}
-            </span>
-          </div>
-          <span class="cluster-count">{{ cluster.noteCount }}</span>
-        </button>
-        <button 
-          class="cluster-edit-btn"
-          title="클러스터 편집"
-          @click.stop="emit('edit-cluster', cluster)"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+            v-if="cluster.keywords.length"
+            class="cluster-keywords"
           >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-          </svg>
-        </button>
-      </div>
+            {{ cluster.keywords.slice(0, 3).join(' · ') }}
+          </span>
+        </div>
+        <span class="cluster-count">{{ cluster.noteCount }}</span>
+      </button>
       
       <!-- 미분류 노트 -->
       <button
@@ -183,43 +130,21 @@
         @click="emit('filter-cluster', 'unclustered')"
       >
         <span class="cluster-dot unclustered-dot">
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-            />
-            <line
-              x1="12"
-              y1="8"
-              x2="12"
-              y2="12"
-            />
-            <line
-              x1="12"
-              y1="16"
-              x2="12.01"
-              y2="16"
-            />
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </span>
         <span class="cluster-name">미분류</span>
         <span class="cluster-count unclustered">{{ unclusteredCount }}</span>
       </button>
     </div>
-
-    <!-- 연결 민감도는 10%로 고정 (사용자가 직접 연결 관리) -->
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import type { ClusterInfo } from '../../types';
 
 const props = defineProps<{
@@ -233,9 +158,24 @@ const props = defineProps<{
 const emit = defineEmits<{
   'filter-cluster': [clusterId: number | null | 'unclustered'];
   'refresh-graph': [];
-  'edit-cluster': [cluster: ClusterInfo];
-  'create-cluster': [];
+  'search': [query: string];
 }>();
+
+const localSearchQuery = ref('');
+
+let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+const handleSearch = () => {
+  if (searchDebounce) clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    emit('search', localSearchQuery.value);
+  }, 300);
+};
+
+const clearSearch = () => {
+  localSearchQuery.value = '';
+  emit('search', '');
+};
 </script>
 
 <style scoped>
@@ -272,26 +212,6 @@ const emit = defineEmits<{
   gap: 4px;
 }
 
-.add-cluster-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.add-cluster-btn:hover {
-  background: var(--accent-glow);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-}
-
 .refresh-graph-btn {
   display: flex;
   align-items: center;
@@ -323,6 +243,60 @@ const emit = defineEmits<{
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* 검색 */
+.graph-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  transition: border-color 0.2s;
+}
+
+.graph-search:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.graph-search svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.graph-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.graph-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.search-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* Graph Stats */
@@ -464,42 +438,4 @@ const emit = defineEmits<{
   border-radius: 8px;
   flex-shrink: 0;
 }
-
-/* 클러스터 아이템 래퍼 */
-.cluster-item-wrapper {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
-  margin-bottom: 2px;
-}
-
-.cluster-item-wrapper .cluster-item {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.cluster-edit-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.15s ease;
-}
-
-.cluster-item-wrapper:hover .cluster-edit-btn {
-  opacity: 1;
-}
-
-.cluster-edit-btn:hover {
-  background: var(--accent-glow);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-}
-
 </style>

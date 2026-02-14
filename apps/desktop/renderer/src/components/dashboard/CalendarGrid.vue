@@ -211,7 +211,7 @@
                 class="quick-item" 
                 :class="{ 'is-completed': schedule.completed }"
                 :style="{ '--item-color': schedule.color || '#c9a76c' }"
-                @click="emit('select-date', currentDateStr)"
+                @click="handleScheduleClick(schedule, $event)"
               >
                 <div class="quick-item-indicator" />
                 <div class="quick-item-content">
@@ -328,7 +328,7 @@
                 class="allday-schedule-item"
                 :class="{ 'is-completed': schedule.completed }"
                 :style="{ '--item-color': schedule.color || '#c9a76c' }"
-                @click="emit('select-date', currentDateStr)"
+                @click="handleScheduleClick(schedule, $event)"
               >
                 <div class="allday-item-indicator" />
                 <span class="allday-item-title">{{ schedule.title }}</span>
@@ -413,7 +413,7 @@
                     class="timeline-event"
                     :class="{ 'is-completed': schedule.completed }"
                     :style="{ '--event-color': schedule.color || '#c9a76c' }"
-                    @click="emit('select-date', currentDateStr)"
+                    @click="handleScheduleClick(schedule, $event)"
                   >
                     <div class="event-accent" />
                     <div class="event-content">
@@ -550,7 +550,7 @@
                 ...getScheduleStyle(schedule),
                 '--schedule-color': schedule.color || '#c9a76c'
               }"
-              @click.stop="selectDateAndSwitchToDay(day.dateStr)"
+              @click.stop="handleScheduleClick(schedule, $event)"
             >
               <span class="schedule-title">{{ schedule.title }}</span>
               <span
@@ -641,7 +641,7 @@
 
         <!-- 날짜 그리드 -->
         <div class="days-grid">
-          <button
+          <div
             v-for="day in monthData.days"
             :key="day.dateStr"
             class="day-cell"
@@ -653,13 +653,57 @@
               'is-saturday': day.date.getDay() === 6,
               'all-completed': day.scheduleCount > 0 && day.completedCount === day.scheduleCount,
             }"
-            @click="selectDateAndSwitchToDay(day.dateStr)"
+            @click="emit('select-date', day.dateStr)"
           >
-            <span class="day-number">{{ day.day }}</span>
+            <div class="day-cell-header">
+              <span class="day-number">{{ day.day }}</span>
+              <button
+                v-if="day.isCurrentMonth"
+                class="day-add-btn"
+                :title="t('calendar.addSchedule') || '일정 추가'"
+                @click.stop="openQuickAdd(day.dateStr)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            </div>
 
-            <!-- 일정 인디케이터 -->
+            <!-- 인라인 빠른 추가 -->
+            <div v-if="quickAddVisible && quickAddDate === day.dateStr" class="day-quick-add" @click.stop>
+              <input
+                ref="quickAddInputRef"
+                v-model="quickAddTitle"
+                class="day-quick-input"
+                :placeholder="t('calendar.quickAdd') || '일정 입력...'"
+                @keydown.enter="handleInlineQuickSave(day.dateStr)"
+                @keydown.escape="closeQuickAdd"
+                @blur="closeQuickAdd"
+                autofocus
+              />
+            </div>
+
+            <!-- 일정 미리보기 -->
+            <div v-if="day.scheduleCount > 0" class="day-schedule-preview">
+              <div
+                v-for="schedule in getSchedulePreview(day.dateStr)"
+                :key="schedule.id"
+                class="preview-item"
+                :class="{ 'is-completed': schedule.completed }"
+                :style="{ '--preview-color': schedule.color || '#c9a76c' }"
+                @click.stop="handleScheduleClick(schedule, $event)"
+              >
+                <span class="preview-dot" />
+                <span class="preview-title">{{ schedule.title }}</span>
+              </div>
+              <div v-if="getMoreCount(day.dateStr) > 0" class="preview-more">
+                +{{ getMoreCount(day.dateStr) }} {{ t('calendar.nMore') || '더보기' }}
+              </div>
+            </div>
+
+            <!-- 일정 도트 인디케이터 (미리보기 아래) -->
             <div
-              v-if="day.scheduleCount > 0"
+              v-if="day.scheduleCount > 0 && getSchedulePreview(day.dateStr).length === 0"
               class="event-indicators"
             >
               <div class="event-dots">
@@ -681,7 +725,7 @@
               v-if="day.isToday"
               class="today-ring"
             />
-          </button>
+          </div>
         </div>
       </div>
 
@@ -760,6 +804,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, h } from 'vue';
 import { useI18n } from '../../composables';
+import type { ScheduleItem } from '../../types';
 
 interface CalendarDay {
   day: number;
@@ -781,17 +826,6 @@ interface MonthData {
 
 type ViewMode = 'day' | 'week' | 'month' | 'year';
 
-interface ScheduleItem {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  color: string;
-  completed: boolean;
-}
-
 const props = defineProps<{
   calendarMonths: MonthData[];
   allSchedules?: ScheduleItem[];
@@ -801,6 +835,8 @@ const emit = defineEmits<{
   'select-date': [dateStr: string];
   'load-more': [direction: 'up' | 'down'];
   'fetch-range-schedules': [startDate: string, endDate: string];
+  'quick-add': [data: { title: string; date: string; startTime: string; endTime: string }];
+  'schedule-click': [schedule: ScheduleItem, event: MouseEvent];
 }>();
 
 const { t, currentLanguage } = useI18n();
@@ -810,6 +846,62 @@ const scrollRef = ref<HTMLElement | null>(null);
 const monthRefs = ref<Record<string, HTMLElement | null>>({});
 const viewMode = ref<ViewMode>('month');
 const currentDate = ref(new Date());
+
+// Quick-add 상태
+const quickAddVisible = ref(false);
+const quickAddDate = ref('');
+const quickAddTime = ref('');
+const quickAddTitle = ref('');
+const quickAddInputRef = ref<HTMLInputElement | null>(null);
+
+function openQuickAdd(dateStr: string, startTime: string = '') {
+  quickAddDate.value = dateStr;
+  quickAddTime.value = startTime;
+  quickAddTitle.value = '';
+  quickAddVisible.value = true;
+}
+
+function closeQuickAdd() {
+  quickAddVisible.value = false;
+  quickAddDate.value = '';
+  quickAddTime.value = '';
+}
+
+function handleQuickAddSave(data: { title: string; date: string; startTime: string; endTime: string }) {
+  emit('quick-add', data);
+  closeQuickAdd();
+}
+
+function handleInlineQuickSave(dateStr: string) {
+  if (!quickAddTitle.value.trim()) {
+    closeQuickAdd();
+    return;
+  }
+  emit('quick-add', {
+    title: quickAddTitle.value.trim(),
+    date: dateStr,
+    startTime: quickAddTime.value || '',
+    endTime: '',
+  });
+  quickAddTitle.value = '';
+  closeQuickAdd();
+}
+
+function handleScheduleClick(schedule: ScheduleItem, event: MouseEvent) {
+  event.stopPropagation();
+  emit('schedule-click', schedule, event);
+}
+
+// 날짜별 스케줄 미리보기 가져오기 (최대 2개)
+function getSchedulePreview(dateStr: string): ScheduleItem[] {
+  const schedules = getSchedulesForDate(dateStr);
+  return schedules.slice(0, 2);
+}
+
+function getMoreCount(dateStr: string): number {
+  const schedules = getSchedulesForDate(dateStr);
+  return Math.max(0, schedules.length - 2);
+}
 const currentYear = computed(() => currentDate.value.getFullYear());
 
 // 뷰 모드 아이콘 컴포넌트
@@ -2020,7 +2112,7 @@ defineExpose({ scrollToToday });
 .days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(6, minmax(48px, 1fr));
+  grid-template-rows: repeat(6, minmax(80px, 1fr));
   gap: 4px;
   flex: 1;
 }
@@ -2029,9 +2121,9 @@ defineExpose({ scrollToToday });
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 6px;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 4px 6px;
   background: var(--surface-1);
   border: 1px solid transparent;
   border-radius: 10px;
@@ -2039,7 +2131,7 @@ defineExpose({ scrollToToday });
   transition: all 0.2s ease;
   font-family: inherit;
   overflow: hidden;
-  min-height: 48px;
+  min-height: 80px;
 }
 
 .day-cell:hover {
@@ -2096,10 +2188,132 @@ defineExpose({ scrollToToday });
 }
 
 .day-number {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   z-index: 1;
+}
+
+/* Day cell header with add button */
+.day-cell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.day-add-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.day-cell:hover .day-add-btn {
+  opacity: 1;
+}
+
+.day-add-btn:hover {
+  background: rgba(201, 167, 108, 0.2);
+  color: #c9a76c;
+}
+
+/* Schedule preview in month cells */
+.day-schedule-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  z-index: 1;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  min-width: 0;
+}
+
+.preview-item:hover {
+  background: rgba(201, 167, 108, 0.12);
+}
+
+.preview-item.is-completed {
+  opacity: 0.5;
+}
+
+.preview-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--preview-color, #c9a76c);
+  flex-shrink: 0;
+}
+
+.preview-item.is-completed .preview-dot {
+  background: #34d399;
+}
+
+.preview-title {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-item.is-completed .preview-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.preview-more {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+/* Inline quick-add in day cell */
+.day-quick-add {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.day-quick-input {
+  width: 100%;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-family: inherit;
+  background: var(--surface-3);
+  border: 1px solid rgba(201, 167, 108, 0.3);
+  border-radius: 4px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.day-quick-input:focus {
+  border-color: rgba(201, 167, 108, 0.5);
+  box-shadow: 0 0 0 2px rgba(201, 167, 108, 0.1);
+}
+
+.day-quick-input::placeholder {
+  color: var(--text-muted);
+  font-size: 10px;
 }
 
 .event-indicators {

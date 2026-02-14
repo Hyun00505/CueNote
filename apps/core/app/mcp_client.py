@@ -13,10 +13,82 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from .config import logger, PROJECT_ROOT
+from .config import logger, DATA_DIR, IS_FROZEN
 
-# MCP 설정 파일 경로
-MCP_CONFIG_PATH = PROJECT_ROOT / "mcp_servers.json"
+# MCP 설정 파일 경로 (DATA_DIR은 프로덕션/개발 모드 모두에서 유효)
+MCP_CONFIG_PATH = DATA_DIR / "mcp_servers.json"
+
+
+def _get_default_filesystem_path() -> str:
+    """OS별 기본 filesystem 서버 경로를 반환합니다."""
+    if sys.platform == "win32":
+        return os.environ.get("USERPROFILE", "C:/Users")
+    else:
+        return str(Path.home())
+
+
+def _get_default_config() -> dict:
+    """기본 MCP 서버 설정을 반환합니다."""
+    return {
+        "servers": {
+            "sequential-thinking": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+                "env": {},
+                "enabled": True,
+                "description": "단계적 사고 엔진. 복잡한 주제를 분석하고 구조화된 노트를 생성합니다.",
+            },
+            "memory": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-memory"],
+                "env": {},
+                "enabled": True,
+                "description": "지식 그래프 기반의 영구 메모리. AI가 대화 간 맥락을 기억하고 노트 관계를 파악합니다.",
+            },
+            "filesystem": {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem",
+                    _get_default_filesystem_path(),
+                ],
+                "env": {},
+                "enabled": True,
+                "description": "로컬 파일 시스템에 안전하게 접근합니다. 노트 파일 읽기/쓰기/검색에 활용됩니다.",
+            },
+        }
+    }
+
+
+def _ensure_config_exists() -> None:
+    """MCP 설정 파일이 없으면 기본 설정을 생성합니다."""
+    if not MCP_CONFIG_PATH.exists():
+        logger.info("Creating default MCP config at: %s", MCP_CONFIG_PATH)
+        MCP_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _save_config(_get_default_config())
+
+
+def _augment_path_for_node() -> dict:
+    """macOS 번들 앱에서 Node.js를 찾을 수 있도록 PATH를 보강합니다."""
+    env = os.environ.copy()
+
+    if sys.platform == "darwin" and IS_FROZEN:
+        # macOS .app 번들은 셸 환경을 상속받지 않아 npx/node를 찾지 못할 수 있음
+        extra_paths = [
+            "/usr/local/bin",
+            "/opt/homebrew/bin",  # Apple Silicon Homebrew
+            str(Path.home() / ".nvm" / "current" / "bin"),  # nvm
+            str(Path.home() / ".volta" / "bin"),  # volta
+            str(Path.home() / ".nodenv" / "shims"),  # nodenv
+            "/opt/local/bin",  # MacPorts
+        ]
+        current_path = env.get("PATH", "")
+        for p in extra_paths:
+            if p not in current_path and Path(p).exists():
+                current_path = p + ":" + current_path
+        env["PATH"] = current_path
+
+    return env
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -25,6 +97,7 @@ MCP_CONFIG_PATH = PROJECT_ROOT / "mcp_servers.json"
 
 def _load_config() -> dict:
     """MCP 서버 설정을 로드합니다."""
+    _ensure_config_exists()
     if MCP_CONFIG_PATH.exists():
         try:
             with open(MCP_CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -177,15 +250,19 @@ async def start_server(server_id: str) -> bool:
     args = server_config.get("args", [])
     env_vars = server_config.get("env", {})
 
-    # 환경 변수 설정
-    env = os.environ.copy()
+    # 환경 변수 설정 (macOS 번들 앱에서는 PATH 보강)
+    env = _augment_path_for_node()
     env.update(env_vars)
 
     try:
-        # Windows에서 npx, uvx 등은 .cmd 파일이므로 shutil.which로 전체 경로 검색
-        resolved_command = shutil.which(command)
+        # npx, uvx 등은 .cmd(Windows) 또는 symlink(macOS)이므로 shutil.which로 전체 경로 검색
+        resolved_command = shutil.which(command, path=env.get("PATH"))
         if resolved_command is None:
-            logger.error("MCP server command not found in PATH: %s", command)
+            logger.error(
+                "MCP server command not found in PATH: %s (PATH=%s)",
+                command,
+                env.get("PATH", "")[:200],
+            )
             return False
 
         cmd = [resolved_command] + args

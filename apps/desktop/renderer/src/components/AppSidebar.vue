@@ -114,8 +114,7 @@
           :unclustered-count="unclusteredCount || 0"
           @filter-cluster="emit('filter-cluster', $event)"
           @refresh-graph="emit('refresh-graph')"
-          @edit-cluster="openClusterEdit"
-          @create-cluster="openClusterCreate"
+          @search="emit('search-graph', $event)"
         />
       </template>
 
@@ -244,23 +243,12 @@
 
 
 
-  <!-- 클러스터 편집 모달 -->
-  <ClusterEditModal
-    :visible="showClusterEditModal"
-    :cluster="editingCluster"
-    :is-create-mode="isClusterCreateMode"
-    @close="closeClusterEdit"
-    @save="handleClusterSave"
-    @reset="handleClusterReset"
-    @create="handleClusterCreate"
-    @delete="handleClusterDelete"
-  />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useVault, useHealth, useEnvironment, useGitHub } from '../composables';
-import ClusterEditModal from './ClusterEditModal.vue';
+
 import {
   EnvironmentSelector,
   GraphClusterPanel,
@@ -299,10 +287,7 @@ const emit = defineEmits<{
   'sidebar-width-change': [width: number];
   'filter-cluster': [clusterId: number | null | 'unclustered'];
   'refresh-graph': [];
-  'update-cluster': [data: { id: number; label: string; color: string; keywords: string[] }];
-  'reset-cluster': [clusterId: number];
-  'create-cluster': [data: { label: string; color: string; keywords: string[] }];
-  'delete-cluster': [clusterId: number];
+  'search-graph': [query: string];
 }>();
 
 // 리사이즈 관련
@@ -416,10 +401,7 @@ const showCreateRepoModal = ref(false);
 const creatingRepo = ref(false);
 const createRepoError = ref<string | null>(null);
 
-// Graph/Cluster State
-const showClusterEditModal = ref(false);
-const editingCluster = ref<ClusterInfo | null>(null);
-const isClusterCreateMode = ref(false);
+
 
 // Init
 onMounted(async () => {
@@ -519,12 +501,25 @@ async function handleAddLocalEnvironment(name: string, path: string) {
 
 async function handleAddGitHubEnvironment(repoId: number) {
   const repo = githubRepos.value.find(r => r.id === repoId);
-  if (!repo) return;
+  if (!repo) {
+    console.error('[GitHub] repo not found for id:', repoId);
+    return;
+  }
 
-  // GitHub 리포지토리를 선택하면 자동으로 환경으로 추가됨 (modify selectRepo in useGitHub)
-  await selectGitHubRepo(repo);
-  closeEnvModal();
-  emit('environment-changed');
+  try {
+    console.log('[GitHub] selectGitHubRepo 시작:', repo.full_name);
+    const success = await selectGitHubRepo(repo);
+    console.log('[GitHub] selectGitHubRepo 결과:', success);
+    
+    if (success) {
+      closeEnvModal();
+      emit('environment-changed');
+    } else {
+      console.warn('[GitHub] selectGitHubRepo returned false, error:', githubError.value);
+    }
+  } catch (e: any) {
+    console.error('[GitHub] handleAddGitHubEnvironment 에러:', e);
+  }
 }
 
 async function handleGitHubLogin(token: string) {
@@ -566,6 +561,10 @@ async function handleCreateRepo(payload: { name: string; description: string; is
     const repo = await createGitHubRepo(payload.name, payload.description, payload.isPrivate, payload.initReadme);
     if (repo) {
       showCreateRepoModal.value = false;
+      // 생성된 리포지토리를 자동으로 선택 → 클론 + 환경 추가
+      await selectGitHubRepo(repo);
+      closeEnvModal();
+      emit('environment-changed');
     } else {
       createRepoError.value = githubError.value || '리포지토리 생성에 실패했습니다';
     }
@@ -741,40 +740,7 @@ function handleCommitSuccess() {
   emit('environment-changed');
 }
 
-// Graph handlers
-function openClusterEdit(cluster: ClusterInfo) {
-  editingCluster.value = cluster;
-  isClusterCreateMode.value = false;
-  showClusterEditModal.value = true;
-}
 
-function openClusterCreate() {
-  editingCluster.value = null;
-  isClusterCreateMode.value = true;
-  showClusterEditModal.value = true;
-}
-
-function closeClusterEdit() {
-  showClusterEditModal.value = false;
-  editingCluster.value = null;
-  isClusterCreateMode.value = false;
-}
-
-function handleClusterSave(data: { id: number; label: string; color: string; keywords: string[] }) {
-  emit('update-cluster', data);
-}
-
-function handleClusterReset(clusterId: number) {
-  emit('reset-cluster', clusterId);
-}
-
-function handleClusterCreate(data: { label: string; color: string; keywords: string[] }) {
-  emit('create-cluster', data);
-}
-
-function handleClusterDelete(clusterId: number) {
-  emit('delete-cluster', clusterId);
-}
 </script>
 
 <style scoped>

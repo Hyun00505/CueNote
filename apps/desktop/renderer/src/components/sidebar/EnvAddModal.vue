@@ -474,16 +474,32 @@ function openGitHubTokenPage() {
 }
 
 async function browseFolder() {
-  if (window.cuenote?.selectVault) {
-    const result = await window.cuenote.selectVault();
-    if (result) {
-      newEnvPath.value = result;
+  try {
+    console.log('[EnvAddModal] browseFolder called');
+    console.log('[EnvAddModal] window.cuenote exists:', !!window.cuenote);
+    console.log('[EnvAddModal] selectVault exists:', !!window.cuenote?.selectVault);
+
+    if (window.cuenote?.selectVault) {
+      console.log('[EnvAddModal] Calling window.cuenote.selectVault...');
+      const result = await window.cuenote.selectVault();
+      console.log('[EnvAddModal] selectVault result:', result);
+
+      if (result) {
+        newEnvPath.value = result;
+        console.log('[EnvAddModal] Path set to:', result);
+      } else {
+        console.log('[EnvAddModal] No path selected (user canceled or error)');
+      }
+    } else {
+      console.warn('[EnvAddModal] window.cuenote.selectVault not available, falling back to prompt');
+      const path = prompt('폴더 경로를 입력하세요:');
+      if (path) {
+        newEnvPath.value = path;
+      }
     }
-  } else {
-    const path = prompt('폴더 경로를 입력하세요:');
-    if (path) {
-      newEnvPath.value = path;
-    }
+  } catch (error) {
+    console.error('[EnvAddModal] Error in browseFolder:', error);
+    alert('폴더 선택 중 오류가 발생했습니다: ' + error.message);
   }
 }
 

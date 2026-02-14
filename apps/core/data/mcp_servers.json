@@ -1,0 +1,35 @@
+{
+  "servers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {},
+      "enabled": true,
+      "description": "단계적 사고 엔진. 복잡한 주제를 분석하고 구조화된 노트를 생성합니다."
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/kimhyunbin"
+      ],
+      "env": {},
+      "enabled": true,
+      "description": "로컬 파일 시스템에 안전하게 접근합니다. 노트 파일 읽기/쓰기/검색에 활용됩니다."
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {},
+      "enabled": true,
+      "description": "지식 그래프 기반의 영구 메모리. AI가 대화 간 맥락을 기억하고 노트 관계를 파악합니다."
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "cuenote-monorepo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "workspaces": [
     "apps/desktop",
@@ -12,8 +12,11 @@
     "dev:core": "cd apps/core && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8787",
     "dev:all": "concurrently \"pnpm dev:core\" \"pnpm dev:desktop\"",
     "build:core": "cd apps/core && pyinstaller cuenote-core.spec --noconfirm && xcopy /E /I /Y dist\\cuenote-core ..\\core-dist",
+    "build:core:mac": "cd apps/core && pyinstaller cuenote-core.spec --noconfirm && cp -r dist/cuenote-core ../core-dist",
     "build:desktop": "pnpm --filter cuenote build:all",
+    "build:desktop:mac": "pnpm --filter cuenote build:mac",
     "build:all": "powershell -ExecutionPolicy Bypass -File scripts/build-all.ps1",
+    "build:all:mac": "bash scripts/build-all.sh",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
