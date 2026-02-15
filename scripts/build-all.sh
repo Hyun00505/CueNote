@@ -20,6 +20,29 @@ DATA_DIR="$ROOT_DIR/apps/core/data"
 # environments.json 초기화
 echo '{"environments": [], "current_id": null}' > "$DATA_DIR/environments.json"
 
+# mcp_servers.json 초기화 (개인 경로 제거)
+cat > "$DATA_DIR/mcp_servers.json" << 'EOF'
+{
+  "servers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {},
+      "enabled": true,
+      "description": "단계적 사고 엔진. 복잡한 주제를 분석하고 구조화된 노트를 생성합니다."
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {},
+      "enabled": true,
+      "description": "지식 그래프 기반의 영구 메모리. AI가 대화 간 맥락을 기억하고 노트 관계를 파악합니다."
+    }
+  }
+}
+EOF
+echo "  Reset mcp_servers.json"
+
 # 그래프 캐시 삭제
 if [ -d "$DATA_DIR/.graph_cache" ]; then
     rm -rf "$DATA_DIR/.graph_cache"
